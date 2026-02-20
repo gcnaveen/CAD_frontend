@@ -100,12 +100,12 @@ const ViewCurrentProject = () => {
       const params = { page, limit };
       if (statusFilter) params.status = statusFilter;
       if (cadCenterFilter) params.cadCenterId = cadCenterFilter;
-      const { data: body } = await apiClient.get("/api/admin/survey-sketch-assignments", {
+      const { data: body } = await apiClient.get("/api/surveyor/sketch-uploads", {
         params,
       });
 
       const list = body?.data ?? [];
-      const meta = body?.pagination ?? {};
+      const meta = body?.meta ?? body?.pagination ?? {};
       setAssignments(Array.isArray(list) ? list : []);
       setPagination({
         page: meta.page ?? page,
@@ -113,8 +113,8 @@ const ViewCurrentProject = () => {
         total: meta.total ?? list?.length ?? 0,
       });
     } catch (error) {
-      console.error("Failed to fetch assignments:", error);
-      message.error(error.response?.data?.message || error.message || "Failed to load assignments");
+      console.error("Failed to fetch sketch uploads:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to load sketch uploads");
       setAssignments([]);
     } finally {
       setLoading(false);
@@ -122,14 +122,14 @@ const ViewCurrentProject = () => {
   };
 
   const handleViewDetails = async (record) => {
-    setSelectedAssignment(record);
     setDrawerOpen(true);
     setLoadingDetails(true);
     setOrderDetails(null);
 
-    const uploadId = typeof record.surveyorSketchUpload === "object"
+    // Upload ID: list row is sketch upload (record._id) or assignment (record.surveyorSketchUpload)
+    const uploadId = record._id ?? (typeof record.surveyorSketchUpload === "object"
       ? record.surveyorSketchUpload?._id
-      : record.surveyorSketchUpload;
+      : record.surveyorSketchUpload);
     if (!uploadId) {
       message.error("No survey sketch upload linked");
       setLoadingDetails(false);
@@ -144,7 +144,7 @@ const ViewCurrentProject = () => {
       }
     } catch (error) {
       console.error("Failed to fetch order details:", error);
-      message.error(error.message || "Failed to load order details");
+      message.error(error?.message || "Failed to load order details");
     } finally {
       setLoadingDetails(false);
     }
@@ -265,6 +265,30 @@ const ViewCurrentProject = () => {
     }
   };
 
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getLocationDisplay = (location) => {
+    if (!location) return "-";
+    if (typeof location === "string") return location;
+    const name = location.name || "-";
+    const code = location.code ? ` (${location.code})` : "";
+    return `${name}${code}`;
+  };
+
   const getCadCenterDisplay = (cadCenter) => {
     if (!cadCenter) return "-";
     if (typeof cadCenter === "string") return cadCenter;
@@ -275,14 +299,60 @@ const ViewCurrentProject = () => {
     {
       title: "Sl. No",
       key: "slNo",
-      width: 80,
+      width: 70,
       render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
+    },
+    {
+      title: "Application ID",
+      dataIndex: "applicationId",
+      key: "applicationId",
+      width: 180,
+      render: (text) => text || "-",
+    },
+    {
+      title: "Survey Type",
+      dataIndex: "surveyType",
+      key: "surveyType",
+      width: 120,
+      render: (type) => (
+        <Tag>
+          {type === "joint_flat" ? "Joint Flat" : type === "single_flat" ? "Single Flat" : type || "-"}
+        </Tag>
+      ),
+    },
+    {
+      title: "District",
+      dataIndex: "district",
+      key: "district",
+      width: 140,
+      render: (loc) => getLocationDisplay(loc),
+    },
+    {
+      title: "Taluka",
+      dataIndex: "taluka",
+      key: "taluka",
+      width: 140,
+      render: (loc) => getLocationDisplay(loc),
+    },
+    {
+      title: "Village",
+      dataIndex: "village",
+      key: "village",
+      width: 140,
+      render: (loc) => getLocationDisplay(loc),
+    },
+    {
+      title: "Survey No",
+      dataIndex: "surveyNo",
+      key: "surveyNo",
+      width: 100,
+      render: (text) => text || "-",
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 130,
+      width: 120,
       render: (status) => (
         <Tag color={getAssignmentStatusColor(status)}>
           {getAssignmentStatusDisplay(status)}
@@ -290,38 +360,16 @@ const ViewCurrentProject = () => {
       ),
     },
     {
-      title: "Assigned At",
-      dataIndex: "assignedAt",
-      key: "assignedAt",
-      width: 130,
-      render: (date) => formatDate(date),
-    },
-    {
-      title: "Due Date",
-      dataIndex: "dueDate",
-      key: "dueDate",
-      width: 130,
-      render: (date) => formatDate(date),
-    },
-    {
-      title: "CAD Center",
-      dataIndex: "cadCenter",
-      key: "cadCenter",
-      width: 180,
-      render: (cadCenter) => getCadCenterDisplay(cadCenter),
-    },
-    {
-      title: "Notes",
-      dataIndex: "notes",
-      key: "notes",
-      width: 200,
-      ellipsis: true,
-      render: (notes) => (notes ? (notes.length > 50 ? `${notes.slice(0, 50)}…` : notes) : "-"),
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 155,
+      render: (date) => formatDateTime(date),
     },
     {
       title: "Action",
       key: "action",
-      width: 200,
+      width: 180,
       fixed: "right",
       render: (_, record) => (
         <Space>
@@ -332,13 +380,15 @@ const ViewCurrentProject = () => {
           >
             View Details
           </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            Edit
-          </Button>
+          {record.assignedAt != null && (
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              Edit
+            </Button>
+          )}
         </Space>
       ),
     },

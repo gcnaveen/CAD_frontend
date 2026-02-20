@@ -54,9 +54,14 @@ const DOCUMENT_LABELS = {
  */
 const STATUS_DISPLAY = {
   PENDING: "Pending Review",
+  ASSIGNED: "Assigned",
   UNDER_REVIEW: "Under Review",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  ON_HOLD: "On Hold",
+  CANCELLED: "Cancelled",
 };
 
 /**
@@ -65,9 +70,14 @@ const STATUS_DISPLAY = {
 const getStatusColor = (status) => {
   const colorMap = {
     PENDING: "warning",
+    ASSIGNED: "processing",
     UNDER_REVIEW: "processing",
     APPROVED: "success",
     REJECTED: "error",
+    IN_PROGRESS: "warning",
+    COMPLETED: "success",
+    ON_HOLD: "default",
+    CANCELLED: "error",
   };
   return colorMap[status] || "default";
 };
