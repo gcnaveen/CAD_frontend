@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Form,
@@ -14,27 +14,14 @@ import {
   surveyorVerifyOtp,
   surveyorComplete,
 } from "../services/auth/authService.js";
+import { getDistricts } from "../services/masters/districtService.js";
+import { getTalukasByDistrict } from "../services/masters/talukaService.js";
 
-// District & Taluka IDs (replace with your backend IDs)
-const DISTRICT_TALUKA_CONFIG = {
-  districts: [
-    { id: "507f1f77bcf86cd799439012", name: "Bengaluru Urban" },
-    { id: "507f1f77bcf86cd799439014", name: "Bengaluru Rural" },
-    { id: "507f1f77bcf86cd799439015", name: "Mysuru" },
-    { id: "507f1f77bcf86cd799439016", name: "Mangaluru" },
-    { id: "507f1f77bcf86cd799439017", name: "Hubballi-Dharwad" },
-    { id: "507f1f77bcf86cd799439018", name: "Belagavi" },
-    { id: "507f1f77bcf86cd799439019", name: "Kalaburagi" },
-  ],
-  talukas: {
-    "507f1f77bcf86cd799439012": [
-      { id: "507f1f77bcf86cd799439013", name: "Bangalore North" },
-      { id: "507f1f77bcf86cd799439020", name: "Bangalore South" },
-      { id: "507f1f77bcf86cd799439021", name: "Anekal" },
-    ],
-    // Add talukas for other district IDs - replace with your backend IDs
-  },
-};
+function normalizeList(res) {
+  const raw = res?.data ?? res;
+  const items = raw?.items ?? (Array.isArray(raw) ? raw : []);
+  return Array.isArray(items) ? items : [];
+}
 
 const darkTheme = {
   token: {
@@ -69,7 +56,40 @@ const RegisterPage = () => {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [districts, setDistricts] = useState([]);
+  const [talukas, setTalukas] = useState([]);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+  const [talukasLoading, setTalukasLoading] = useState(false);
   const selectedDistrictId = Form.useWatch("district", form);
+  const accountType = Form.useWatch("accountType", form);
+
+  useEffect(() => {
+    setDistrictsLoading(true);
+    getDistricts()
+      .then((res) => setDistricts(normalizeList(res)))
+      .catch(() => setDistricts([]))
+      .finally(() => setDistrictsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDistrictId) {
+      setTalukas([]);
+      return;
+    }
+    const districtIdStr =
+      typeof selectedDistrictId === "string"
+        ? selectedDistrictId
+        : selectedDistrictId?._id ?? selectedDistrictId?.id ?? String(selectedDistrictId);
+    if (!districtIdStr || districtIdStr === "[object Object]") {
+      setTalukas([]);
+      return;
+    }
+    setTalukasLoading(true);
+    getTalukasByDistrict(districtIdStr)
+      .then((res) => setTalukas(normalizeList(res)))
+      .catch(() => setTalukas([]))
+      .finally(() => setTalukasLoading(false));
+  }, [selectedDistrictId]);
 
   const getMobile = () => {
     const phone = form.getFieldValue("phone");
@@ -134,16 +154,20 @@ const RegisterPage = () => {
 
   const onFinishStep2 = async (values) => {
     const phone = getMobile();
+    const category = values.accountType === "SURVEYOR" ? "SURVEYOR" : "public";
+    const payload = {
+      phone,
+      password: values.password,
+      district: values.district,
+      taluka: values.taluk,
+      category,
+    };
+    if (category === "SURVEYOR" && values.surveyorType) {
+      payload.surveyType = values.surveyorType; // LS or GS
+    }
     setIsLoading(true);
     try {
-      await surveyorComplete({
-        phone,
-        password: values.password,
-        district: values.district,
-        taluka: values.taluk,
-        category: "SURVEYOR",
-        surveyType: values.surveyorType,
-      });
+      await surveyorComplete(payload);
       antdMessage.success("Registration successful. Please login.");
       navigate("/login", { replace: true });
     } catch (err) {
@@ -164,18 +188,19 @@ const RegisterPage = () => {
     if ("district" in changed) {
       form.setFieldsValue({ taluk: undefined });
     }
+    if ("accountType" in changed) {
+      form.setFieldsValue({ surveyorType: undefined });
+    }
   };
 
-  const districtOptions = (DISTRICT_TALUKA_CONFIG.districts || []).map((d) => ({
-    value: d.id,
-    label: d.name,
+  const districtOptions = districts.map((d) => ({
+    value: d._id ?? d.id,
+    label: d.code ? `${d.name} (${d.code})` : d.name,
   }));
-  const talukOptions = selectedDistrictId
-    ? (DISTRICT_TALUKA_CONFIG.talukas[selectedDistrictId] || []).map((t) => ({
-        value: t.id,
-        label: t.name,
-      }))
-    : [];
+  const talukOptions = talukas.map((t) => ({
+    value: t._id ?? t.id,
+    label: t.code ? `${t.name} (${t.code})` : t.name,
+  }));
 
   return (
     <ConfigProvider theme={darkTheme}>
@@ -400,6 +425,50 @@ const RegisterPage = () => {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                       <Form.Item
+                        name="accountType"
+                        label={
+                          <span className="text-gray-300 text-sm">
+                            Account Type
+                          </span>
+                        }
+                        rules={[
+                          {
+                            required: true,
+                            message: "Please select account type",
+                          },
+                        ]}
+                        className="mb-0 sm:col-span-2"
+                      >
+                        <Radio.Group className="text-gray-300 w-full">
+                          <Radio value="public">
+                            General Public / Citizen
+                          </Radio>
+                          <Radio value="SURVEYOR">Surveyor</Radio>
+                        </Radio.Group>
+                      </Form.Item>
+                      {accountType === "SURVEYOR" && (
+                        <Form.Item
+                          name="surveyorType"
+                          label={
+                            <span className="text-gray-300 text-sm">
+                              Surveyor Type
+                            </span>
+                          }
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select your surveyor type",
+                            },
+                          ]}
+                          className="mb-0 sm:col-span-2"
+                        >
+                          <Radio.Group className="text-gray-300">
+                            <Radio value="LS">Licensed Surveyor (LS)</Radio>
+                            <Radio value="GS">Government Surveyor (GS)</Radio>
+                          </Radio.Group>
+                        </Form.Item>
+                      )}
+                      <Form.Item
                         name="password"
                         label={
                           <span className="text-gray-300 text-sm">
@@ -459,27 +528,6 @@ const RegisterPage = () => {
                           className="rounded-lg"
                         />
                       </Form.Item>
-
-                      <Form.Item
-                        name="surveyorType"
-                        label={
-                          <span className="text-gray-300 text-sm">
-                            Surveyor Type
-                          </span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please select your surveyor type",
-                          },
-                        ]}
-                        className="mb-0 sm:col-span-2"
-                      >
-                        <Radio.Group className="text-gray-300">
-                          <Radio value="LS">Licensed Surveyor</Radio>
-                          <Radio value="GS">Government Surveyor</Radio>
-                        </Radio.Group>
-                      </Form.Item>
                     </div>
                   </div>
 
@@ -524,6 +572,12 @@ const RegisterPage = () => {
                           size="large"
                           className="w-full rounded-lg register-select"
                           allowClear
+                          loading={districtsLoading}
+                          showSearch
+                          optionFilterProp="label"
+                          filterOption={(input, option) =>
+                            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          }
                           options={districtOptions}
                         />
                       </Form.Item>
@@ -551,6 +605,12 @@ const RegisterPage = () => {
                           className="w-full rounded-lg register-select"
                           allowClear
                           disabled={!selectedDistrictId}
+                          loading={talukasLoading}
+                          showSearch
+                          optionFilterProp="label"
+                          filterOption={(input, option) =>
+                            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          }
                           options={talukOptions}
                         />
                       </Form.Item>

@@ -1,11 +1,30 @@
-import React, { useState } from "react";
+  import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Button, message } from "antd";
 import { ArrowLeft } from "lucide-react";
 import SurveyInfo from "./form/SurveyInfo";
 import UploadSurvey from "./form/UploadSurvey";
 import { createSketchUpload } from "../../services/surveyor/sketchUploadService.js";
-import { getImagePresignedUrl } from "../../services/upload/upload.api.js";
+
+const DOCUMENT_FIELDS = [
+  "moolaTippani",
+  "hissaTippani",
+  "atlas",
+  "rrPakkabook",
+  "kharabu",
+];
+
+const MAIN_DOCUMENT_FIELDS = ["moolaTippani", "atlas", "rrPakkabook"];
+
+const DOCUMENT_TYPE_KEYS = [
+  "is_originaltippani",
+  "is_hissatippani",
+  "is_atlas",
+  "is_rrpakkabook",
+  "is_akarabandu",
+  "is_kharabuttar",
+  "is_mulapatra",
+];
 
 const UserUploadForm = ({
   onSubmit,
@@ -19,86 +38,28 @@ const UserUploadForm = ({
   const [loading, setLoading] = useState(false);
   // Audio stored in parent so it is always available for payload (Ant Design form may omit object fields)
   const [audioData, setAudioData] = useState(null);
+  // Uploaded document URLs stored in parent so submit always has them (form can drop custom fields)
+  const [uploadedDocs, setUploadedDocs] = useState({});
+  const [uploadedOtherDocs, setUploadedOtherDocs] = useState({});
 
-  // Helper function to upload a file that hasn't been uploaded yet
-  const uploadFileIfNeeded = async (file, fieldName, villageId) => {
-    // If file already has fileUrl, return it
-    if (file?.fileUrl || file?.url) {
-      const existingUrl = file.fileUrl || file.url;
-      if (existingUrl && existingUrl.startsWith("http")) {
-        return existingUrl;
+  const processOtherDocuments = (payload) => {
+    const otherDocsList = form.getFieldValue("other_documents");
+    if (!otherDocsList || !Array.isArray(otherDocsList) || otherDocsList.length === 0) return;
+    const processedDocs = [];
+    for (const file of otherDocsList) {
+      const uid = file?.uid;
+      const doc = uid ? uploadedOtherDocs[uid] : null;
+      if (!doc?.fileUrl || !doc.fileUrl.startsWith("http")) {
+        throw new Error("OTHER_DOCS_PENDING");
       }
+      processedDocs.push({
+        url: doc.fileUrl,
+        fileName: doc.fileName || "file",
+        mimeType: doc.mimeType || "application/octet-stream",
+        size: doc.size || 0,
+      });
     }
-
-    // Get the actual File object - Ant Design stores it in originFileObj
-    // When beforeUpload returns false, the file parameter IS the File object
-    // When file is from fileList, it's in originFileObj
-    let actualFile = null;
-    
-    if (file instanceof File) {
-      actualFile = file;
-    } else if (file.originFileObj instanceof File) {
-      actualFile = file.originFileObj;
-    } else if (file.originFileObj && typeof file.originFileObj === 'object') {
-      // Sometimes Ant Design wraps it, try to get the actual File
-      actualFile = file.originFileObj;
-    }
-    
-    // Check if we have a valid File object
-    if (!actualFile || !(actualFile instanceof File)) {
-      // If we don't have the File object, the file can't be uploaded
-      // This happens when file was added but upload failed or village wasn't selected
-      throw new Error(`Please remove and re-upload ${fieldName}. The file data is missing.`);
-    }
-
-    // Get presigned URL
-    const fileName = actualFile.name;
-    const contentType = actualFile.type || "application/octet-stream";
-    
-    const result = await getImagePresignedUrl({
-      fileName,
-      contentType,
-      entityId: villageId,
-    });
-    const responseData = result?.data ?? result;
-    const { uploadUrl, fileUrl, key } = responseData;
-
-    if (!uploadUrl || !fileUrl) {
-      throw new Error(`Failed to get upload URL for ${fieldName}`);
-    }
-
-    // Upload file to S3
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
-      body: actualFile,
-      headers: { "Content-Type": contentType },
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload ${fieldName} to S3`);
-    }
-
-    // Update form with fileUrl - preserve all file properties
-    const currentValue = form.getFieldValue(fieldName) || [];
-    form.setFieldValue(fieldName, [
-      ...currentValue.filter((f) => f.uid !== file.uid),
-      {
-        ...file,
-        uid: file.uid,
-        name: file.name || actualFile.name,
-        url: fileUrl,
-        fileUrl,
-        key: key,
-        fileName: file.fileName || actualFile.name,
-        mimeType: file.mimeType || actualFile.type,
-        size: file.size || actualFile.size,
-        status: "done",
-        originFileObj: actualFile,
-        percent: 100,
-      },
-    ]);
-
-    return fileUrl;
+    if (processedDocs.length > 0) payload.other_documents = processedDocs;
   };
 
   const handleSubmit = async (values) => {
@@ -108,25 +69,15 @@ const UserUploadForm = ({
       return;
     }
 
-    // Otherwise, handle submission internally
     setLoading(true);
     try {
-      // Validate village is selected (needed for uploads)
       if (!values.village) {
         message.error("Please select village first");
         setLoading(false);
         return;
       }
 
-      // Extract file URLs from form values
-      const documentFields = [
-        "moolaTippani",
-        "hissaTippani",
-        "atlas",
-        "rrPakkabook",
-        "kharabu",
-      ];
-
+      const uploadMode = values.uploadMode ?? "normal";
       const payload = {
         surveyType: values.surveyType,
         district: values.district,
@@ -136,12 +87,8 @@ const UserUploadForm = ({
         surveyNo: values.surveyNo,
       };
 
-      // Others: text only
-      if (values.others) {
-        payload.others = values.others;
-      }
+      if (values.others) payload.others = values.others;
 
-      // Audio: from parent state (set by UploadSurvey via onAudioChange). Send both url and fileUrl so backend can persist.
       if (audioData?.fileUrl) {
         payload.audio = {
           url: audioData.fileUrl,
@@ -152,93 +99,78 @@ const UserUploadForm = ({
         };
       }
 
-      // Process document fields - upload files that haven't been uploaded yet
-      for (const fieldName of documentFields) {
-        const fileList = form.getFieldValue(fieldName) || values[fieldName];
-        
-        if (fileList && Array.isArray(fileList) && fileList.length > 0) {
-          const file = fileList[0];
-          let fileUrl = file?.fileUrl || file?.url;
-          
-          // If file doesn't have fileUrl, upload it now
-          if (!fileUrl || !fileUrl.startsWith("http")) {
-            try {
-              const hideLoading = message.loading({ content: `Uploading ${fieldName}...`, key: `upload-${fieldName}`, duration: 0 });
-              fileUrl = await uploadFileIfNeeded(file, fieldName, values.village);
-              hideLoading();
-              message.success({ content: `${fieldName} uploaded`, key: `upload-${fieldName}`, duration: 2 });
-            } catch (error) {
-              message.error({ content: `Failed to upload ${fieldName}: ${error.message}`, key: `upload-${fieldName}`, duration: 4 });
-              setLoading(false);
-              return;
-            }
+      if (uploadMode === "single") {
+        // Single Upload Mode
+        const singleDoc = uploadedDocs.singleUpload;
+        if (!singleDoc?.fileUrl || !singleDoc.fileUrl.startsWith("http")) {
+          message.error("Please upload a document first, or wait for upload to complete.");
+          setLoading(false);
+          return;
+        }
+        const docTypes = values.documentTypes ?? [];
+        if (!Array.isArray(docTypes) || docTypes.length === 0) {
+          message.error("Select at least one document type");
+          setLoading(false);
+          return;
+        }
+        payload.singleUpload = {
+          url: singleDoc.fileUrl,
+          fileName: singleDoc.fileName || "file",
+          mimeType: singleDoc.mimeType || "application/octet-stream",
+          size: singleDoc.size || 0,
+        };
+        DOCUMENT_TYPE_KEYS.forEach((key) => {
+          payload[key] = docTypes.includes(key);
+        });
+        try {
+          processOtherDocuments(payload);
+        } catch {
+          message.error("One or more other documents are not uploaded yet. Wait for upload to complete or remove and re-upload.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Normal Upload Mode
+        for (const fieldName of DOCUMENT_FIELDS) {
+          const fileList = form.getFieldValue(fieldName) || values[fieldName];
+          const hasFile = fileList && Array.isArray(fileList) && fileList.length > 0;
+          if (!hasFile) continue;
+          const doc = uploadedDocs[fieldName];
+          if (!doc?.fileUrl || !doc.fileUrl.startsWith("http")) {
+            message.error(`Please wait for "${fieldName}" to finish uploading, or remove and re-upload it.`);
+            setLoading(false);
+            return;
           }
-          
-          // Add to payload if we have a valid fileUrl
-          if (fileUrl && fileUrl.startsWith("http")) {
-            payload[fieldName] = {
-              url: fileUrl,
-              fileName: file.fileName || file.name || "file",
-              mimeType: file.mimeType || file.type || "application/octet-stream",
-              size: file.size || 0,
-            };
-          }
+          payload[fieldName] = {
+            url: doc.fileUrl,
+            fileName: doc.fileName || "file",
+            mimeType: doc.mimeType || "application/octet-stream",
+            size: doc.size || 0,
+          };
+        }
+        const hasMainDoc = MAIN_DOCUMENT_FIELDS.some((f) => payload[f] !== undefined);
+        if (!hasMainDoc) {
+          message.error("At least one main document is required (Moola Tippani, Atlas, or RR Pakkabook)");
+          setLoading(false);
+          return;
+        }
+        try {
+          processOtherDocuments(payload);
+        } catch {
+          message.error("One or more other documents are not uploaded yet. Wait for upload to complete or remove and re-upload.");
+          setLoading(false);
+          return;
         }
       }
 
-      // Process other_documents - optional multi-file upload
-      const otherDocsList = form.getFieldValue("other_documents") || values.other_documents;
-      if (otherDocsList && Array.isArray(otherDocsList) && otherDocsList.length > 0) {
-        const processedDocs = [];
-        
-        for (const file of otherDocsList) {
-          let fileUrl = file?.fileUrl || file?.url;
-          
-          // If file doesn't have fileUrl, upload it now
-          if (!fileUrl || !fileUrl.startsWith("http")) {
-            try {
-              const hideLoading = message.loading({ content: `Uploading other document...`, key: `upload-other-doc-${file.uid}`, duration: 0 });
-              fileUrl = await uploadFileIfNeeded(file, "other_documents", values.village);
-              hideLoading();
-              message.success({ content: `Document uploaded`, key: `upload-other-doc-${file.uid}`, duration: 2 });
-            } catch (error) {
-              message.error({ content: `Failed to upload document: ${error.message}`, key: `upload-other-doc-${file.uid}`, duration: 4 });
-              setLoading(false);
-              return;
-            }
-          }
-          
-          // Add to processed docs if we have a valid fileUrl
-          if (fileUrl && fileUrl.startsWith("http")) {
-            // Format as object with metadata
-            processedDocs.push({
-              url: fileUrl,
-              fileName: file.fileName || file.name || "file",
-              mimeType: file.mimeType || file.type || "application/octet-stream",
-              size: file.size || 0,
-            });
-          }
-        }
-        
-        if (processedDocs.length > 0) {
-          payload.other_documents = processedDocs;
-        }
-      }
-
-      // Validate at least one document is uploaded
-      const uploadedFields = documentFields.filter((field) => payload[field] !== undefined);
-      const hasDocument = uploadedFields.length > 0;
-      
-      if (!hasDocument) {
-        message.error("Please upload at least one document");
-        setLoading(false);
-        return;
-      }
+      console.log("Payload:", payload);
       const result = await createSketchUpload(payload);
       if (result.success) {
         message.success("Survey sketch uploaded successfully!");
         form.resetFields();
         setAudioData(null);
+        setUploadedDocs({});
+        setUploadedOtherDocs({});
         navigate("/dashboard/user");
       } else {
         message.error(result.message || "Failed to upload survey sketch");
@@ -253,7 +185,30 @@ const UserUploadForm = ({
   const handleCancel = () => {
     form.resetFields();
     setAudioData(null);
+    setUploadedDocs({});
+    setUploadedOtherDocs({});
     onCancel?.();
+  };
+
+  const handleDocumentUpload = (fieldName, data) => {
+    setUploadedDocs((prev) => ({ ...prev, [fieldName]: data }));
+  };
+  const handleDocumentRemove = (fieldName) => {
+    setUploadedDocs((prev) => {
+      const next = { ...prev };
+      delete next[fieldName];
+      return next;
+    });
+  };
+  const handleOtherDocumentUpload = (uid, data) => {
+    setUploadedOtherDocs((prev) => ({ ...prev, [uid]: data }));
+  };
+  const handleOtherDocumentRemove = (uid) => {
+    setUploadedOtherDocs((prev) => {
+      const next = { ...prev };
+      delete next[uid];
+      return next;
+    });
   };
 
   const handleBack = () => {
@@ -286,6 +241,7 @@ const UserUploadForm = ({
           layout="vertical"
           requiredMark={false}
           onFinish={handleSubmit}
+          initialValues={{ uploadMode: "normal" }}
           className="user-upload-form"
         >
           <div className="space-y-8 sm:space-y-10">
@@ -294,7 +250,14 @@ const UserUploadForm = ({
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-              <UploadSurvey form={form} onAudioChange={setAudioData} />
+              <UploadSurvey
+                form={form}
+                onAudioChange={setAudioData}
+                onDocumentUpload={handleDocumentUpload}
+                onDocumentRemove={handleDocumentRemove}
+                onOtherDocumentUpload={handleOtherDocumentUpload}
+                onOtherDocumentRemove={handleOtherDocumentRemove}
+              />
             </section>
           </div>
 

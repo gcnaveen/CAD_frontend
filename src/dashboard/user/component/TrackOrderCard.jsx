@@ -6,7 +6,7 @@ import { getSketchUploadById } from "../../../services/surveyor/sketchUploadServ
 const { Text, Paragraph } = Typography;
 
 /**
- * Document field labels mapping
+ * Document field labels mapping (Normal mode)
  */
 const DOCUMENT_LABELS = {
   moolaTippani: { en: "Moola Tippani", kn: "ಮೂಲ ಟಿಪ್ಪಣಿ" },
@@ -14,6 +14,19 @@ const DOCUMENT_LABELS = {
   atlas: { en: "Atlas", kn: "ಅಟ್ಲಾಸ್" },
   rrPakkabook: { en: "RR Pakkabook", kn: "RR ಪಕ್ಕಬುಕ್" },
   kharabu: { en: "Kharabu", kn: "ಖರಾಬು ಉತಾರ್" },
+};
+
+/**
+ * Document type labels for Single Upload mode (checkbox keys)
+ */
+const SINGLE_MODE_DOCUMENT_LABELS = {
+  is_originaltippani: { en: "Moola Tippani", kn: "ಮೂಲ ಟಿಪ್ಪಣಿ" },
+  is_hissatippani: { en: "Hissa Tippani", kn: "ಹಿಸ್ಸ ಟಿಪ್ಪಣಿ" },
+  is_atlas: { en: "Atlas", kn: "ಅಟ್ಲಾಸ್" },
+  is_rrpakkabook: { en: "RR Pakkabook", kn: "RR ಪಕ್ಕಬುಕ್" },
+  is_akarabandu: { en: "Akarabandu", kn: "ಆಕಾರಬಂದು" },
+  is_kharabuttar: { en: "Kharab Utthar", kn: "ಖರಾಬ್ ಉತ್ತರ" },
+  is_mulapatra: { en: "Moola Patra", kn: "ಮೂಲ ಪತ್ರ" },
 };
 
 /**
@@ -299,66 +312,169 @@ const TrackOrderCard = ({
               <h3 className="mb-4 text-base font-semibold text-gray-900">
                 Documents
               </h3>
-              <div className="space-y-4">
-                {Object.keys(DOCUMENT_LABELS).map((fieldName) => {
-                  const doc = orderDetails.documents?.[fieldName];
-                  const label = DOCUMENT_LABELS[fieldName];
-
-                  return (
-                    <Card
-                      key={fieldName}
-                      size="small"
-                      className="border-gray-200"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <Text strong className="text-sm">
-                            {label.en} / {label.kn}
-                          </Text>
-                          {doc && doc.url ? (
-                            <div className="mt-2 space-y-1">
-                              <div>
-                                <Text type="secondary" className="text-xs">
-                                  File: {doc.fileName || "Unknown"}
-                                </Text>
-                              </div>
-                              <div>
-                                <Text type="secondary" className="text-xs">
-                                  Type: {doc.mimeType || "Unknown"} • Size:{" "}
-                                  {formatFileSize(doc.size)}
-                                </Text>
-                              </div>
-                              {doc.uploadedAt && (
-                                <div>
-                                  <Text type="secondary" className="text-xs">
-                                    Uploaded: {formatDate(doc.uploadedAt)}
-                                  </Text>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="mt-2">
+              {(orderDetails.uploadMode === "single" || orderDetails.singleUpload) ? (
+                /* Single Upload Mode */
+                <div className="space-y-4">
+                  <Card size="small" className="border-gray-200">
+                    <div className="mb-2">
+                      <Tag color="blue">Single Upload</Tag>
+                    </div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <Text strong className="text-sm">
+                          Uploaded Document / ಅಪ್ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆ
+                        </Text>
+                        {orderDetails.singleUpload?.url ? (
+                          <div className="mt-2 space-y-1">
+                            <div>
                               <Text type="secondary" className="text-xs">
-                                Not uploaded
+                                File: {orderDetails.singleUpload.fileName || "Unknown"}
                               </Text>
                             </div>
-                          )}
-                        </div>
-                        {doc && doc.url && (
-                          <Button
-                            type="link"
-                            icon={<ExternalLink className="h-4 w-4" />}
-                            onClick={() => window.open(doc.url, "_blank")}
-                            size="small"
-                          >
-                            View
-                          </Button>
+                            <div>
+                              <Text type="secondary" className="text-xs">
+                                Type: {orderDetails.singleUpload.mimeType || "Unknown"} • Size:{" "}
+                                {formatFileSize(orderDetails.singleUpload.size)}
+                              </Text>
+                            </div>
+                            {orderDetails.singleUpload.uploadedAt && (
+                              <div>
+                                <Text type="secondary" className="text-xs">
+                                  Uploaded: {formatDate(orderDetails.singleUpload.uploadedAt)}
+                                </Text>
+                              </div>
+                            )}
+                            <div className="mt-2">
+                              <Text type="secondary" className="text-xs block">
+                                Document types:{" "}
+                                {Object.keys(SINGLE_MODE_DOCUMENT_LABELS)
+                                  .filter((key) => orderDetails[key] === true)
+                                  .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key].en)
+                                  .join(", ") || "-"}
+                              </Text>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2">
+                            <Text type="secondary" className="text-xs">
+                              No document
+                            </Text>
+                          </div>
                         )}
                       </div>
-                    </Card>
-                  );
-                })}
-              </div>
+                      {orderDetails.singleUpload?.url && (
+                        <Button
+                          type="link"
+                          icon={<ExternalLink className="h-4 w-4" />}
+                          onClick={() => window.open(orderDetails.singleUpload.url, "_blank")}
+                          size="small"
+                        >
+                          View
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              ) : (
+                /* Normal Upload Mode */
+                <div className="space-y-4">
+                  {Object.keys(DOCUMENT_LABELS).map((fieldName) => {
+                    const doc = orderDetails.documents?.[fieldName];
+                    const label = DOCUMENT_LABELS[fieldName];
+
+                    return (
+                      <Card
+                        key={fieldName}
+                        size="small"
+                        className="border-gray-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <Text strong className="text-sm">
+                              {label.en} / {label.kn}
+                            </Text>
+                            {doc && doc.url ? (
+                              <div className="mt-2 space-y-1">
+                                <div>
+                                  <Text type="secondary" className="text-xs">
+                                    File: {doc.fileName || "Unknown"}
+                                  </Text>
+                                </div>
+                                <div>
+                                  <Text type="secondary" className="text-xs">
+                                    Type: {doc.mimeType || "Unknown"} • Size:{" "}
+                                    {formatFileSize(doc.size)}
+                                  </Text>
+                                </div>
+                                {doc.uploadedAt && (
+                                  <div>
+                                    <Text type="secondary" className="text-xs">
+                                      Uploaded: {formatDate(doc.uploadedAt)}
+                                    </Text>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="mt-2">
+                                <Text type="secondary" className="text-xs">
+                                  Not uploaded
+                                </Text>
+                              </div>
+                            )}
+                          </div>
+                          {doc && doc.url && (
+                            <Button
+                              type="link"
+                              icon={<ExternalLink className="h-4 w-4" />}
+                              onClick={() => window.open(doc.url, "_blank")}
+                              size="small"
+                            >
+                              View
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Other Documents (both modes) */}
+              {orderDetails.other_documents && Array.isArray(orderDetails.other_documents) && orderDetails.other_documents.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">
+                    Other Documents / ಇತರೆ ದಾಖಲೆಗಳು
+                  </h4>
+                  <div className="space-y-2">
+                    {orderDetails.other_documents.map((doc, index) => (
+                      <Card key={doc.url || index} size="small" className="border-gray-200">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <Text strong className="text-sm">
+                              {doc.fileName || "Document"}
+                            </Text>
+                            <div>
+                              <Text type="secondary" className="text-xs">
+                                {doc.mimeType || ""} • {formatFileSize(doc.size)}
+                              </Text>
+                            </div>
+                          </div>
+                          {doc.url && (
+                            <Button
+                              type="link"
+                              icon={<ExternalLink className="h-4 w-4" />}
+                              onClick={() => window.open(doc.url, "_blank")}
+                              size="small"
+                            >
+                              View
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Audio Section */}

@@ -17,7 +17,8 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../../features/auth/authSlice";
 import "./superadminlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -87,6 +88,7 @@ const SuperAdminLayout = () => {
   const [openKeys, setOpenKeys] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const isMasterPath = masterPaths.includes(location.pathname);
 
   const userRole = useSelector((state) => state.auth?.role);
@@ -150,7 +152,8 @@ const SuperAdminLayout = () => {
   });
 
   const handleLogout = () => {
-    navigate("/login");
+    dispatch(logout());
+    navigate("/login", { replace: true });
   };
 
   const siderWidth = collapsed ? 80 : 260;
