@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../features/auth/authSlice";
 import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
 
 const getDisplayName = (user) => {
@@ -19,6 +21,7 @@ const Header = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const stored = localStorage.getItem(USER_KEY);
@@ -43,8 +46,7 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    dispatch(logout());
     setUser(null);
     setIsMobileMenuOpen(false);
     navigate("/login", { replace: true });

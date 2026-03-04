@@ -39,7 +39,7 @@ const PAYMENT_STATUS_MAP = {
 };
 
 /**
- * Document field labels mapping
+ * Document field labels mapping (Normal mode)
  */
 const DOCUMENT_LABELS = {
   moolaTippani: { en: "Moola Tippani", kn: "ಮೂಲ ಟಿಪ್ಪಣಿ" },
@@ -47,6 +47,19 @@ const DOCUMENT_LABELS = {
   atlas: { en: "Atlas", kn: "ಅಟ್ಲಾಸ್" },
   rrPakkabook: { en: "RR Pakkabook", kn: "RR ಪಕ್ಕಬುಕ್" },
   kharabu: { en: "Kharabu", kn: "ಖರಾಬು ಉತಾರ್" },
+};
+
+/**
+ * Document type labels for Single Upload mode (checkbox keys)
+ */
+const SINGLE_MODE_DOCUMENT_LABELS = {
+  is_originaltippani: { en: "Moola Tippani", kn: "ಮೂಲ ಟಿಪ್ಪಣಿ" },
+  is_hissatippani: { en: "Hissa Tippani", kn: "ಹಿಸ್ಸ ಟಿಪ್ಪಣಿ" },
+  is_atlas: { en: "Atlas", kn: "ಅಟ್ಲಾಸ್" },
+  is_rrpakkabook: { en: "RR Pakkabook", kn: "RR ಪಕ್ಕಬುಕ್" },
+  is_akarabandu: { en: "Akarabandu", kn: "ಆಕಾರಬಂದು" },
+  is_kharabuttar: { en: "Kharab Utthar", kn: "ಖರಾಬ್ ಉತ್ತರ" },
+  is_mulapatra: { en: "Moola Patra", kn: "ಮೂಲ ಪತ್ರ" },
 };
 
 /**
@@ -318,67 +331,133 @@ const ProjectOrderDetailDrawer = ({
 
           {/* Documents Section */}
           <Card size="small" title="Uploaded Documents" style={{ marginBottom: 0 }}>
-            <div className="space-y-4">
-              {Object.keys(DOCUMENT_LABELS).map((fieldName) => {
-                const doc = order.documents?.[fieldName];
-                const label = DOCUMENT_LABELS[fieldName];
-
-                return (
-                  <Card
-                    key={fieldName}
-                    size="small"
-                    className="border-gray-200"
-                    style={{ marginBottom: 8 }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Text strong className="text-sm">
-                          {label.en} / {label.kn}
-                        </Text>
-                        {doc && doc.url ? (
-                          <div className="mt-2 space-y-1">
-                            <div>
-                              <Text type="secondary" className="text-xs">
-                                File: {doc.fileName || "Unknown"}
-                              </Text>
-                            </div>
-                            <div>
-                              <Text type="secondary" className="text-xs">
-                                Type: {doc.mimeType || "Unknown"} • Size:{" "}
-                                {formatFileSize(doc.size)}
-                              </Text>
-                            </div>
-                            {doc.uploadedAt && (
-                              <div>
-                                <Text type="secondary" className="text-xs">
-                                  Uploaded: {formatDate(doc.uploadedAt)}
-                                </Text>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-2">
+            {(order.uploadMode === "single" || order.singleUpload) ? (
+              /* Single Upload Mode */
+              <div className="space-y-4">
+                <Card size="small" className="border-gray-200" style={{ marginBottom: 8 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <Tag color="blue">Single Upload</Tag>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <Text strong className="text-sm">
+                        Uploaded Document / ಅಪ್ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆ
+                      </Text>
+                      {order.singleUpload?.url ? (
+                        <div className="mt-2 space-y-1">
+                          <div>
                             <Text type="secondary" className="text-xs">
-                              Not uploaded
+                              File: {order.singleUpload.fileName || "Unknown"}
                             </Text>
                           </div>
-                        )}
-                      </div>
-                      {doc && doc.url && (
-                        <Button
-                          type="link"
-                          icon={<LinkOutlined />}
-                          onClick={() => window.open(doc.url, "_blank")}
-                          size="small"
-                        >
-                          View
-                        </Button>
+                          <div>
+                            <Text type="secondary" className="text-xs">
+                              Type: {order.singleUpload.mimeType || "Unknown"} • Size:{" "}
+                              {formatFileSize(order.singleUpload.size)}
+                            </Text>
+                          </div>
+                          {order.singleUpload.uploadedAt && (
+                            <div>
+                              <Text type="secondary" className="text-xs">
+                                Uploaded: {formatDate(order.singleUpload.uploadedAt)}
+                              </Text>
+                            </div>
+                          )}
+                          <div className="mt-2">
+                            <Text type="secondary" className="text-xs" style={{ display: "block" }}>
+                              Document types:{" "}
+                              {Object.keys(SINGLE_MODE_DOCUMENT_LABELS)
+                                .filter((key) => order[key] === true)
+                                .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key].en)
+                                .join(", ") || "-"}
+                            </Text>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2">
+                          <Text type="secondary" className="text-xs">
+                            No document
+                          </Text>
+                        </div>
                       )}
                     </div>
-                  </Card>
-                );
-              })}
-            </div>
+                    {order.singleUpload?.url && (
+                      <Button
+                        type="link"
+                        icon={<LinkOutlined />}
+                        onClick={() => window.open(order.singleUpload.url, "_blank")}
+                        size="small"
+                      >
+                        View
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            ) : (
+              /* Normal Upload Mode */
+              <div className="space-y-4">
+                {Object.keys(DOCUMENT_LABELS).map((fieldName) => {
+                  const doc = order.documents?.[fieldName];
+                  const label = DOCUMENT_LABELS[fieldName];
+
+                  return (
+                    <Card
+                      key={fieldName}
+                      size="small"
+                      className="border-gray-200"
+                      style={{ marginBottom: 8 }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <Text strong className="text-sm">
+                            {label.en} / {label.kn}
+                          </Text>
+                          {doc && doc.url ? (
+                            <div className="mt-2 space-y-1">
+                              <div>
+                                <Text type="secondary" className="text-xs">
+                                  File: {doc.fileName || "Unknown"}
+                                </Text>
+                              </div>
+                              <div>
+                                <Text type="secondary" className="text-xs">
+                                  Type: {doc.mimeType || "Unknown"} • Size:{" "}
+                                  {formatFileSize(doc.size)}
+                                </Text>
+                              </div>
+                              {doc.uploadedAt && (
+                                <div>
+                                  <Text type="secondary" className="text-xs">
+                                    Uploaded: {formatDate(doc.uploadedAt)}
+                                  </Text>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mt-2">
+                              <Text type="secondary" className="text-xs">
+                                Not uploaded
+                              </Text>
+                            </div>
+                          )}
+                        </div>
+                        {doc && doc.url && (
+                          <Button
+                            type="link"
+                            icon={<LinkOutlined />}
+                            onClick={() => window.open(doc.url, "_blank")}
+                            size="small"
+                          >
+                            View
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           {/* Other Documents (from API other_documents array) */}

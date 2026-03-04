@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
 import Homepage from "../pages/Homepage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
@@ -32,19 +33,19 @@ export default function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
 
       <Route path="/surveyor/home" element={<Navigate to="/dashboard/user" replace />} />
-      <Route path="/dashboard/user" element={<HomePage />} />
+      <Route path="/dashboard/user" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
 
-      <Route path="/dashboard/cad" element={<CADLayout />}>
+      <Route path="/dashboard/cad" element={<ProtectedRoute><CADLayout /></ProtectedRoute>}>
         <Route index element={<CADHomePage />} />
         <Route path="current-orders" element={<ViewCurrentOrders />} />
         <Route path="order-history" element={<ViewAllOrders />} />
         <Route path="wallet" element={<Wallet />} />
       </Route>
-      <Route path="/dashboard/user/upload" element={<UserUploadForm />} />
-      <Route path="/dashboard/user/track-order" element={<TrackCurrentOrder />} />
-      <Route path="/dashboard/user/order-history" element={<OrderHistoryTable />} />
+      <Route path="/dashboard/user/upload" element={<ProtectedRoute><UserUploadForm /></ProtectedRoute>} />
+      <Route path="/dashboard/user/track-order" element={<ProtectedRoute><TrackCurrentOrder /></ProtectedRoute>} />
+      <Route path="/dashboard/user/order-history" element={<ProtectedRoute><OrderHistoryTable /></ProtectedRoute>} />
 
-      <Route path="/superadmin" element={<SuperAdminLayout />}>
+      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
         <Route index element={<SuperAdminHome />} />
         <Route path="home" element={<SuperAdminHome />} />
         <Route path="admin-users" element={<ViewAdminUsers />} />

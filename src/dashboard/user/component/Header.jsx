@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { Avatar, Dropdown } from "antd";
+import { logout } from "../../../features/auth/authSlice";
 import {
   User,
   Phone,
@@ -11,6 +13,7 @@ import {
 
 const UserDashboardHeader = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // User display name from localStorage (for future use in dropdown label)
@@ -32,10 +35,8 @@ const UserDashboardHeader = () => {
 
   const handleLogout = () => {
     setDropdownOpen(false);
-    localStorage.removeItem("userName");
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    navigate("/login");
+    dispatch(logout());
+    navigate("/login", { replace: true });
   };
 
   const menuItems = [

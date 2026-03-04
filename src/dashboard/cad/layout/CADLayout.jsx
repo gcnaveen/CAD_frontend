@@ -10,6 +10,8 @@ import {
   LogoutOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../../../features/auth/authSlice";
 import "./cadlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -50,13 +52,15 @@ const CADLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   const handleMenuClick = (e) => {
     navigate(e.key);
   };
 
   const handleLogout = () => {
-    navigate("/login");
+    dispatch(logout());
+    navigate("/login", { replace: true });
   };
 
   const siderWidth = collapsed ? 80 : 260;
