@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>North-cot | CAD Drawings for Karnataka Land Surveyors</title>
+  <meta name="description" content="On-demand CAD drawings for Karnataka land surveyors. Upload your survey documents, receive a QC-reviewed AutoCAD drawing in 48 hours. Fixed ₹500 price." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              50:  '#f0f4fa',
+              100: '#dce6f4',
+              200: '#b8cde9',
+              300: '#85a9d6',
+              400: '#5280be',
+              500: '#3461a6',
+              600: '#264d8a',
+              700: '#1e3c70',
+              800: '#1a2f56',
+              900: '#182847',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* Language toggle — hide/show layers */
+    .lang-kn { display: none; }
+    body.kannada .lang-en { display: none; }
+    body.kannada .lang-kn { display: revert; }
+
+    /* Smooth sticky bottom padding so content isn't hidden under sticky bar */
+    .has-sticky-footer { padding-bottom: 80px; }
+
+    /* Step connector line */
+    .step-connector::after {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: -16px;
+      width: 2px;
+      background: #dce6f4;
+    }
+    .step-item:last-child .step-connector::after { display: none; }
+
+    /* Accordion */
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .faq-item.open .faq-answer { max-height: 500px; }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+    .faq-chevron { transition: transform 0.3s ease; }
+  </style>
+</head>
+
+<body class="bg-white font-sans text-slate-800 has-sticky-footer">
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
+<header class="sticky top-0 z-50 bg-navy-800 shadow-lg">
+  <div class="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <!-- Logo placeholder — replace with actual <img> once file is provided -->
+      <div class="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
+        <span class="text-white font-bold text-sm">N</span>
+      </div>
+      <span class="text-white font-bold text-lg tracking-tight">North-cot</span>
+    </div>
+
+    <!-- Right side: lang toggle + login -->
+    <div class="flex items-center gap-3">
+      <!-- Language toggle -->
+      <button
+        id="langToggle"
+        onclick="toggleLanguage()"
+        class="flex items-center gap-1 bg-navy-700 hover:bg-navy-600 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        aria-label="Toggle language"
+      >
+        <span id="langActive" class="text-orange-400 font-semibold">EN</span>
+        <span class="text-navy-300">|</span>
+        <span id="langOther" class="text-navy-200">ಕನ್ನಡ</span>
+      </button>
+      <!-- Login -->
+      <a href="#" class="text-navy-200 hover:text-white text-sm font-medium transition-colors">
+        <span class="lang-en">Login</span>
+        <span class="lang-kn">ಲಾಗಿನ್</span>
+      </a>
+    </div>
+
+  </div>
+</header>
+
+
+<!-- ============================================================
+     HERO
+============================================================ -->
+<section class="bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 text-white px-4 pt-10 pb-8">
+  <div class="max-w-lg mx-auto">
+
+    <!-- Eyebrow tag -->
+    <div class="inline-flex items-center gap-1.5 bg-orange-500/20 border border-orange-500/40 rounded-full px-3 py-1 mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+      <span class="text-orange-300 text-xs font-semibold tracking-wide uppercase lang-en">Karnataka Land Surveyors</span>
+      <span class="text-orange-300 text-xs font-semibold tracking-wide uppercase lang-kn">ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗಾಗಿ</span>
+    </div>
+
+    <!-- H1 -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold leading-snug mb-4">
+      <span class="lang-en">Every Land Transaction Needs a Drawing — Get Yours in 48 Hours.</span>
+      <span class="lang-kn">ಪ್ರತಿ ಭೂಮಿ ವ್ಯವಹಾರಕ್ಕೆ ಡ್ರಾಯಿಂಗ್ ಬೇಕು — 48 ಗಂಟೆಯಲ್ಲಿ ಪಡೆಯಿರಿ.</span>
+    </h1>
+
+    <!-- Sub-headline -->
+    <p class="text-navy-200 text-sm leading-relaxed mb-7">
+      <span class="lang-en">Upload your Tippani and survey documents from your smartphone and receive a professionally prepared, QC-reviewed AutoCAD drawing within 48 hours — without travelling to a CAD centre. Fixed ₹500 per drawing, every time, for licensed land surveyors across Karnataka.</span>
+      <span class="lang-kn">ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಟಿಪ್ಪಣಿ ಮತ್ತು ಸರ್ವೇ ದಾಖಲೆಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ. QC-ಪರಿಶೀಲಿತ AutoCAD ಡ್ರಾಯಿಂಗ್ 48 ಗಂಟೆಯಲ್ಲಿ ನಿಮ್ಮ ಫೋನ್‌ಗೆ ಬರುತ್ತದೆ. ಸ್ಥಿರ ₹500 ಬೆಲೆ.</span>
+    </p>
+
+    <!-- CTA Buttons -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+      <a href="#"
+         class="flex-1 bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white text-center font-bold text-base py-3.5 rounded-xl shadow-lg shadow-orange-500/30 transition-colors">
+        <span class="lang-en">📤 Upload Your Drawing</span>
+        <span class="lang-kn">📤 ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ</span>
+      </a>
+      <a href="#how-it-works"
+         class="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-center font-semibold text-sm py-3.5 rounded-xl transition-colors">
+        <span class="lang-en">How It Works ↓</span>
+        <span class="lang-kn">ಹೇಗೆ ಕಾರ್ಯ ನಿರ್ವಹಿಸುತ್ತದೆ ↓</span>
+      </a>
+    </div>
+
+    <!-- 4 Trust Stats Bar -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-white/10 rounded-xl px-3 py-3 text-center border border-white/10">
+        <div class="text-xl font-extrabold text-orange-400">₹500</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-en">per drawing</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-kn">ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್</div>
+      </div>
+      <div class="bg-white/10 rounded-xl px-3 py-3 text-center border border-white/10">
+        <div class="text-xl font-extrabold text-orange-400">48hr</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-en">delivery</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-kn">ಡೆಲಿವರಿ</div>
+      </div>
+      <div class="bg-white/10 rounded-xl px-3 py-3 text-center border border-white/10">
+        <div class="text-lg font-extrabold text-orange-400 lang-en">Karnataka</div>
+        <div class="text-lg font-extrabold text-orange-400 lang-kn">ಕರ್ನಾಟಕ</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-en">only</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-kn">ಮಾತ್ರ</div>
+      </div>
+      <div class="bg-white/10 rounded-xl px-3 py-3 text-center border border-white/10">
+        <div class="text-lg font-extrabold text-orange-400">✓ QC</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-en">assured</div>
+        <div class="text-navy-200 text-xs mt-0.5 lang-kn">ಖಾತ್ರಿ</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PROBLEM SECTION
+============================================================ -->
+<section class="bg-slate-50 px-4 py-16">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-8">
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">Why Surveyors Are Stuck</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">ಭೂಮಾಪಕರು ಯಾಕೆ ತೊಂದರೆಯಲ್ಲಿದ್ದಾರೆ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">Getting a CAD drawing in Karnataka today means travel, waiting, and uncertainty. North-cot was built to fix exactly this.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">CAD ಡ್ರಾಯಿಂಗ್ ಪಡೆಯಲು ಇಂದು ಪ್ರಯಾಣ, ನಿರೀಕ್ಷೆ, ಅನಿಶ್ಚಿತತೆ. North-cot ಇದನ್ನು ಸರಿಪಡಿಸಲು ನಿರ್ಮಿಸಲಾಗಿದೆ.</p>
+    </div>
+
+    <div class="space-y-3">
+      <!-- Problem 1 -->
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-red-500 text-lg">🚗</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">Long travel to reach a CAD centre</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">CAD ಕೇಂದ್ರಕ್ಕೆ ದೀರ್ಘ ಪ್ರಯಾಣ</h3>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-en">Rural surveyors currently travel 30–100 km to reach CAD centres in Bangalore, Tumkur, or Mysore just to submit drawing work.</p>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-kn">ಗ್ರಾಮೀಣ ಭೂಮಾಪಕರು ಡ್ರಾಯಿಂಗ್ ಕೆಲಸ ಸಲ್ಲಿಸಲು ಬೆಂಗಳೂರು, ತುಮಕೂರು ಅಥವಾ ಮೈಸೂರಿಗೆ 30–100 ಕಿ.ಮೀ ಪ್ರಯಾಣಿಸುತ್ತಾರೆ.</p>
+        </div>
+      </div>
+
+      <!-- Problem 2 -->
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-red-500 text-lg">⏳</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">7 to 10 day wait for drawings</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಡ್ರಾಯಿಂಗ್‌ಗೆ 7-10 ದಿನ ನಿರೀಕ್ಷೆ</h3>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-en">Traditional CAD centres take 7–10 days to deliver a completed survey drawing — too slow for surveyors with active land transactions.</p>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-kn">ಸಾಂಪ್ರದಾಯಿಕ CAD ಕೇಂದ್ರಗಳು ಸರ್ವೇ ಡ್ರಾಯಿಂಗ್ ತಲುಪಿಸಲು 7-10 ದಿನ ತೆಗೆದುಕೊಳ್ಳುತ್ತವೆ.</p>
+        </div>
+      </div>
+
+      <!-- Problem 3 -->
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-red-500 text-lg">📵</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">No option to work from a smartphone</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಕೆಲಸ ಮಾಡಲು ಆಯ್ಕೆ ಇಲ್ಲ</h3>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-en">Surveyors work in the field and carry smartphones, not laptops. Traditional CAD centre workflows require in-person submission or desktop access.</p>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-kn">ಭೂಮಾಪಕರು ಸ್ಮಾರ್ಟ್‌ಫೋನ್ ಹೊಂದಿರುತ್ತಾರೆ, ಲ್ಯಾಪ್‌ಟಾಪ್ ಅಲ್ಲ. ಆದರೆ ಸಾಂಪ್ರದಾಯಿಕ ವ್ಯವಸ್ಥೆ ಡೆಸ್ಕ್‌ಟಾಪ್ ಬೇಡುತ್ತದೆ.</p>
+        </div>
+      </div>
+
+      <!-- Problem 4 -->
+      <div class="bg-white rounded-xl p-4 border border-red-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-red-500 text-lg">💸</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">Variable, unpredictable pricing</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಅಸ್ಥಿರ, ಅನಿರೀಕ್ಷಿತ ಬೆಲೆ</h3>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-en">Current market price for a survey CAD drawing ranges from ₹500 to ₹1,000 depending on the centre — no fixed rate, no transparency.</p>
+          <p class="text-slate-500 text-xs mt-1 leading-relaxed lang-kn">ಸರ್ವೇ CAD ಡ್ರಾಯಿಂಗ್‌ಗೆ ಪ್ರಸ್ತುತ ಮಾರುಕಟ್ಟೆ ಬೆಲೆ ₹500-₹1,000 — ನಿಗದಿತ ದರ ಇಲ್ಲ.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     SOLUTION SECTION
+============================================================ -->
+<section class="bg-white px-4 py-16">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-8">
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">North-cot Fixes This</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">North-cot ಇದನ್ನು ಸರಿಪಡಿಸುತ್ತದೆ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">One platform. Fixed price. QC-reviewed drawing. Delivered to your phone in 48 hours.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">ಒಂದು ಪ್ಲಾಟ್‌ಫಾರ್ಮ್. ಸ್ಥಿರ ಬೆಲೆ. QC-ಪರಿಶೀಲಿತ ಡ್ರಾಯಿಂಗ್. 48 ಗಂಟೆಯಲ್ಲಿ ಫೋನ್‌ಗೆ.</p>
+    </div>
+
+    <div class="space-y-3">
+      <!-- Solution 1 -->
+      <div class="bg-green-50 rounded-xl p-4 border border-green-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-white text-base">✓</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">No travel required</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಪ್ರಯಾಣ ಬೇಕಿಲ್ಲ</h3>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-en">Upload your documents from wherever you are. North-cot handles the rest — assignment, drawing, quality check, and delivery — all online.</p>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-kn">ನೀವಿರುವ ಸ್ಥಳದಿಂದಲೇ ದಾಖಲೆಗಳು ಅಪ್ಲೋಡ್ ಮಾಡಿ. ಉಳಿದದ್ದನ್ನು North-cot ನಿರ್ವಹಿಸುತ್ತದೆ.</p>
+        </div>
+      </div>
+
+      <!-- Solution 2 -->
+      <div class="bg-green-50 rounded-xl p-4 border border-green-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-white text-base">✓</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">Works on any smartphone</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಯಾವುದೇ ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಲ್ಲಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ</h3>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-en">Log in, fill your order details, and upload your survey documents — all from your mobile phone, without needing a desktop or laptop.</p>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-kn">ಲಾಗಿನ್ ಮಾಡಿ, ಆರ್ಡರ್ ವಿವರ ತುಂಬಿ, ದಾಖಲೆಗಳು ಅಪ್ಲೋಡ್ ಮಾಡಿ — ಎಲ್ಲಾ ಮೊಬೈಲ್‌ನಲ್ಲಿ.</p>
+        </div>
+      </div>
+
+      <!-- Solution 3 -->
+      <div class="bg-green-50 rounded-xl p-4 border border-green-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-white text-base">✓</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">Fixed ₹500 price, every time</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">ಸ್ಥಿರ ₹500 ಬೆಲೆ, ಪ್ರತಿ ಬಾರಿ</h3>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-en">No negotiation, no variable rates. Every drawing is ₹500 — ₹100 to place your order, ₹400 when you download your completed drawing.</p>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-kn">ಮಾತುಕತೆ ಇಲ್ಲ, ವ್ಯತ್ಯಾಸ ಇಲ್ಲ. ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ ₹500 — ₹100 ಆರ್ಡರ್ ಸ್ಥಳ, ₹400 ಡೌನ್‌ಲೋಡ್ ಸಮಯ.</p>
+        </div>
+      </div>
+
+      <!-- Solution 4 -->
+      <div class="bg-green-50 rounded-xl p-4 border border-green-100 shadow-sm flex gap-3">
+        <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-white text-base">✓</span>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 text-sm lang-en">Delivered in 48 hours, QC-reviewed</h3>
+          <h3 class="font-semibold text-slate-800 text-sm lang-kn">48 ಗಂಟೆಯಲ್ಲಿ, QC-ಪರಿಶೀಲಿತ</h3>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-en">Every drawing is checked against a 6-point quality checklist by North-cot's admin team before it reaches you. No unreviewed drawing leaves the platform.</p>
+          <p class="text-slate-600 text-xs mt-1 leading-relaxed lang-kn">ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ 6-ಅಂಶ QC ಪರಿಶೀಲನೆ ಮಾಡಿ ನಿಮಗೆ ತಲುಪಿಸಲಾಗುತ್ತದೆ.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     HOW IT WORKS
+============================================================ -->
+<section id="how-it-works" class="bg-slate-50 px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-7">
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">How It Works</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">ಹೇಗೆ ಕಾರ್ಯ ನಿರ್ವಹಿಸುತ್ತದೆ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">Four steps from your phone to your completed drawing.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">ನಿಮ್ಮ ಫೋನ್‌ನಿಂದ ಪೂರ್ಣ ಡ್ರಾಯಿಂಗ್‌ಗೆ ನಾಲ್ಕು ಹೆಜ್ಜೆ.</p>
+    </div>
+
+    <div class="space-y-0">
+
+      <!-- Step 1 -->
+      <div class="step-item flex gap-4 relative pb-6">
+        <div class="step-connector relative flex-shrink-0">
+          <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-orange-300">1</div>
+        </div>
+        <div class="pt-1.5">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-bold text-slate-800 text-sm lang-en">Upload Your Documents</h3>
+            <h3 class="font-bold text-slate-800 text-sm lang-kn">ದಾಖಲೆಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ</h3>
+          </div>
+          <p class="text-orange-600 font-semibold text-xs mb-1.5 lang-en">Pay ₹100 to confirm your order.</p>
+          <p class="text-orange-600 font-semibold text-xs mb-1.5 lang-kn">ಆರ್ಡರ್ ದೃಢೀಕರಿಸಲು ₹100 ಪಾವತಿಸಿ.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-en">Log in, enter your land details (District → Taluk → Hobli → Village → Survey Number), upload your reference documents (Tippani, RR Pakka Book, Village Map, Hissa Tippan, Akarbandh, RTC), and pay ₹100.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-kn">ಲಾಗಿನ್ ಮಾಡಿ, ಜಮೀನು ವಿವರ ನಮೂದಿಸಿ, ದಾಖಲೆಗಳು (ಟಿಪ್ಪಣಿ, RR ಪಕ್ಕಾ ಬುಕ್, ಗ್ರಾಮ ನಕ್ಷೆ, ಹಿಸ್ಸಾ ಟಿಪ್ಪಣಿ, ಆಕಾರ ಬಂಧ, RTC) ಅಪ್ಲೋಡ್ ಮಾಡಿ, ₹100 ಪಾವತಿಸಿ.</p>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-item flex gap-4 relative pb-6">
+        <div class="step-connector relative flex-shrink-0">
+          <div class="w-10 h-10 rounded-full bg-navy-700 flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-navy-300">2</div>
+        </div>
+        <div class="pt-1.5">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-bold text-slate-800 text-sm lang-en">Admin Reviews and Assigns</h3>
+            <h3 class="font-bold text-slate-800 text-sm lang-kn">ಆಡ್ಮಿನ್ ಪರಿಶೀಲಿಸಿ ನಿಯೋಜಿಸುತ್ತಾರೆ</h3>
+          </div>
+          <p class="text-navy-600 font-semibold text-xs mb-1.5 lang-en">Your documents are checked and your job is queued.</p>
+          <p class="text-navy-600 font-semibold text-xs mb-1.5 lang-kn">ನಿಮ್ಮ ದಾಖಲೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಕೆಲಸ ಸರದಿಯಲ್ಲಿ ಇಡಲಾಗುತ್ತದೆ.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-en">North-cot's admin team verifies that your uploaded files are clear and complete. Once approved, your job is assigned to a verified Karnataka-specialist CAD operator.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-kn">ಆಡ್ಮಿನ್ ಫೈಲ್‌ಗಳು ಸ್ಪಷ್ಟ ಮತ್ತು ಪೂರ್ಣ ಎಂದು ಪರಿಶೀಲಿಸುತ್ತಾರೆ. ಅನುಮೋದನೆ ನಂತರ, ಪರಿಶೀಲಿತ CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸಲಾಗುತ್ತದೆ.</p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-item flex gap-4 relative pb-6">
+        <div class="step-connector relative flex-shrink-0">
+          <div class="w-10 h-10 rounded-full bg-navy-700 flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-navy-300">3</div>
+        </div>
+        <div class="pt-1.5">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-bold text-slate-800 text-sm lang-en">CAD Operator Prepares Your Drawing</h3>
+            <h3 class="font-bold text-slate-800 text-sm lang-kn">CAD ಆಪರೇಟರ್ ಡ್ರಾಯಿಂಗ್ ತಯಾರಿಸುತ್ತಾರೆ</h3>
+          </div>
+          <p class="text-navy-600 font-semibold text-xs mb-1.5 lang-en">A verified specialist prepares your 2D AutoCAD drawing.</p>
+          <p class="text-navy-600 font-semibold text-xs mb-1.5 lang-kn">ಪರಿಶೀಲಿತ ತಜ್ಞ ನಿಮ್ಮ 2D AutoCAD ಡ್ರಾಯಿಂಗ್ ತಯಾರಿಸುತ್ತಾರೆ.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-en">Your assigned operator works from your reference documents through their secure North-cot portal — not WhatsApp, not email — and submits a completed DWG + PDF for quality review.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-kn">ನಿಯೋಜಿತ ಆಪರೇಟರ್ ಸುರಕ್ಷಿತ North-cot ಪೋರ್ಟಲ್ ಮೂಲಕ ಕೆಲಸ ಮಾಡುತ್ತಾರೆ — WhatsApp ಅಲ್ಲ — DWG+PDF ಸಲ್ಲಿಸುತ್ತಾರೆ.</p>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-item flex gap-4 relative">
+        <div class="step-connector relative flex-shrink-0">
+          <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-green-300">4</div>
+        </div>
+        <div class="pt-1.5">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-bold text-slate-800 text-sm lang-en">QC Approved. Download Your Drawing.</h3>
+            <h3 class="font-bold text-slate-800 text-sm lang-kn">QC ಅನುಮೋದನೆ. ಡ್ರಾಯಿಂಗ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.</h3>
+          </div>
+          <p class="text-green-600 font-semibold text-xs mb-1.5 lang-en">Pay ₹400 and download your completed files.</p>
+          <p class="text-green-600 font-semibold text-xs mb-1.5 lang-kn">₹400 ಪಾವತಿಸಿ, ಪೂರ್ಣ ಫೈಲ್‌ಗಳು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-en">After North-cot's admin approves the drawing against the quality checklist, you receive a WhatsApp notification. Pay ₹400 and download your DWG + PDF files from your secure order link.</p>
+          <p class="text-slate-500 text-xs leading-relaxed lang-kn">ಆಡ್ಮಿನ್ ಗುಣಮಟ್ಟ ಪರಿಶೀಲಿಸಿ ಅನುಮೋದಿಸಿದ ನಂತರ WhatsApp ಅಧಿಸೂಚನೆ ಬರುತ್ತದೆ. ₹400 ಪಾವತಿಸಿ DWG+PDF ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Payment Summary Box -->
+    <div class="mt-7 bg-navy-800 rounded-2xl p-5 text-white shadow-lg">
+      <h4 class="font-bold text-sm text-navy-200 uppercase tracking-wide mb-3 lang-en">Payment Summary</h4>
+      <h4 class="font-bold text-sm text-navy-200 uppercase tracking-wide mb-3 lang-kn">ಪಾವತಿ ಸಾರಾಂಶ</h4>
+
+      <div class="space-y-2.5">
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="text-sm font-semibold lang-en">Booking fee</span>
+            <span class="text-sm font-semibold lang-kn">ಬುಕಿಂಗ್ ಶುಲ್ಕ</span>
+            <p class="text-xs text-navy-300 lang-en">Paid at order submission (Step 1)</p>
+            <p class="text-xs text-navy-300 lang-kn">ಆರ್ಡರ್ ಸಲ್ಲಿಕೆ ಸಮಯ (ಹಂತ 1)</p>
+          </div>
+          <span class="text-xl font-extrabold text-orange-400">₹100</span>
+        </div>
+        <div class="border-t border-navy-600"></div>
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="text-sm font-semibold lang-en">Download fee</span>
+            <span class="text-sm font-semibold lang-kn">ಡೌನ್‌ಲೋಡ್ ಶುಲ್ಕ</span>
+            <p class="text-xs text-navy-300 lang-en">Paid when drawing is ready (Step 4)</p>
+            <p class="text-xs text-navy-300 lang-kn">ಡ್ರಾಯಿಂಗ್ ಸಿದ್ಧವಾದಾಗ (ಹಂತ 4)</p>
+          </div>
+          <span class="text-xl font-extrabold text-orange-400">₹400</span>
+        </div>
+        <div class="border-t border-navy-600"></div>
+        <div class="flex justify-between items-center bg-white/10 rounded-lg px-3 py-2">
+          <div>
+            <span class="font-extrabold text-base lang-en">Total</span>
+            <span class="font-extrabold text-base lang-kn">ಒಟ್ಟು</span>
+            <p class="text-xs text-navy-300 lang-en">Fixed price — no hidden charges</p>
+            <p class="text-xs text-navy-300 lang-kn">ಸ್ಥಿರ ಬೆಲೆ — ಯಾವುದೇ ಗುಪ್ತ ಶುಲ್ಕ ಇಲ್ಲ</p>
+          </div>
+          <span class="text-2xl font-extrabold text-white">₹500</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PRICING
+============================================================ -->
+<section id="pricing" class="bg-white px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-6">
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">Simple, Fixed Pricing</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">ಸರಳ, ಸ್ಥಿರ ಬೆಲೆ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">One drawing type. One price. No negotiation.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">ಒಂದು ಡ್ರಾಯಿಂಗ್ ವಿಧ. ಒಂದು ಬೆಲೆ. ಮಾತುಕತೆ ಇಲ್ಲ.</p>
+    </div>
+
+    <!-- Pricing Card -->
+    <div class="border-2 border-orange-400 rounded-2xl overflow-hidden shadow-lg">
+      <!-- Card header -->
+      <div class="bg-orange-500 px-5 py-4 text-white text-center">
+        <div class="text-3xl font-extrabold">₹500</div>
+        <div class="text-orange-100 text-sm font-medium lang-en">per drawing</div>
+        <div class="text-orange-100 text-sm font-medium lang-kn">ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್</div>
+      </div>
+
+      <!-- What's included -->
+      <div class="bg-white px-5 py-4">
+        <h4 class="font-bold text-sm text-slate-700 mb-3 lang-en">What's included</h4>
+        <h4 class="font-bold text-sm text-slate-700 mb-3 lang-kn">ಏನು ಒಳಗೊಂಡಿದೆ</h4>
+        <ul class="space-y-2">
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">Professional 2D AutoCAD drawing of your Karnataka survey plot</span>
+            <span class="lang-kn">ಕರ್ನಾಟಕ ಸರ್ವೇ ಪ್ಲಾಟ್‌ನ ವೃತ್ತಿಪರ 2D AutoCAD ಡ್ರಾಯಿಂಗ್</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">Admin review of your uploaded reference documents before the job is assigned</span>
+            <span class="lang-kn">ಕೆಲಸ ನಿಯೋಜನೆ ಮೊದಲು ಅಪ್ಲೋಡ್ ದಾಖಲೆಗಳ ಆಡ್ಮಿನ್ ಪರಿಶೀಲನೆ</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">6-point quality checklist review by North-cot admin before delivery</span>
+            <span class="lang-kn">ತಲುಪಿಸುವ ಮೊದಲು 6-ಅಂಶ QC ಪರಿಶೀಲನೆ</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">Delivery in both DWG (editable) and PDF (print-ready) formats</span>
+            <span class="lang-kn">DWG (ಸಂಪಾದಿಸಬಹುದಾದ) ಮತ್ತು PDF (ಮುದ್ರಣ-ಸಿದ್ಧ) ಎರಡೂ ಫಾರ್ಮ್ಯಾಟ್</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">Secure, order-specific download link</span>
+            <span class="lang-kn">ಸುರಕ್ಷಿತ, ಆರ್ಡರ್-ನಿರ್ದಿಷ್ಟ ಡೌನ್‌ಲೋಡ್ ಲಿಂಕ್</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">WhatsApp notifications at assignment, completion, and delivery</span>
+            <span class="lang-kn">ನಿಯೋಜನೆ, ಪೂರ್ಣ, ತಲುಪಿಸುವಿಕೆ ಸಮಯ WhatsApp ಅಧಿಸೂಚನೆ</span>
+          </li>
+          <li class="flex gap-2.5 text-xs text-slate-600">
+            <span class="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+            <span class="lang-en">24/7 order acceptance — place your order at any time</span>
+            <span class="lang-kn">24/7 ಆರ್ಡರ್ ಸ್ವೀಕಾರ — ಯಾವಾಗ ಬೇಕಾದರೂ ಆರ್ಡರ್ ಮಾಡಿ</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Add-on & refund -->
+      <div class="bg-slate-50 border-t border-slate-100 px-5 py-4">
+        <h4 class="font-bold text-xs text-slate-500 uppercase tracking-wide mb-2 lang-en">Charged separately</h4>
+        <h4 class="font-bold text-xs text-slate-500 uppercase tracking-wide mb-2 lang-kn">ಪ್ರತ್ಯೇಕ ಶುಲ್ಕ</h4>
+        <div class="flex justify-between items-center text-xs text-slate-600">
+          <span class="lang-en">Drawing revision (if corrections needed after delivery)</span>
+          <span class="lang-kn">ಡ್ರಾಯಿಂಗ್ ಪರಿಷ್ಕರಣ (ತಲುಪಿಕೆ ನಂತರ ತಿದ್ದುಪಡಿ ಬೇಕಾದರೆ)</span>
+          <span class="font-bold text-slate-800 ml-2 flex-shrink-0">₹100</span>
+        </div>
+      </div>
+
+      <!-- Refund notice -->
+      <div class="bg-blue-50 border-t border-blue-100 px-5 py-3">
+        <p class="text-xs text-blue-700 leading-relaxed lang-en">
+          <span class="font-semibold">Refund policy:</span> Full refund available if your order has not yet been assigned to a CAD operator. No refund once the CAD operator has completed the drawing.
+        </p>
+        <p class="text-xs text-blue-700 leading-relaxed lang-kn">
+          <span class="font-semibold">ಮರಳಿ ಪಾವತಿ ನೀತಿ:</span> CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸದ ಹೊರತು ಪೂರ್ಣ ಮರಳಿ ಪಾವತಿ ಲಭ್ಯ. ಡ್ರಾಯಿಂಗ್ ಪೂರ್ಣವಾದ ನಂತರ ಮರಳಿ ಪಾವತಿ ಇಲ್ಲ.
+        </p>
+      </div>
+
+      <!-- CTA inside card -->
+      <div class="px-5 py-4">
+        <a href="#" class="block w-full bg-orange-500 hover:bg-orange-400 text-white text-center font-bold py-3.5 rounded-xl transition-colors">
+          <span class="lang-en">📤 Upload Your Drawing</span>
+          <span class="lang-kn">📤 ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     TRUST / QC
+============================================================ -->
+<section id="quality" class="bg-navy-900 text-white px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-6">
+      <h2 class="text-xl font-extrabold lang-en">Every Drawing Is Checked Before You Download</h2>
+      <h2 class="text-xl font-extrabold lang-kn">ನೀವು ಡೌನ್‌ಲೋಡ್ ಮಾಡುವ ಮೊದಲು ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ</h2>
+      <p class="text-navy-300 text-sm mt-2 lang-en">No drawing leaves North-cot without passing a 6-point quality review by our admin team — against your own uploaded documents.</p>
+      <p class="text-navy-300 text-sm mt-2 lang-kn">ನಮ್ಮ ಆಡ್ಮಿನ್ ತಂಡ ನಿಮ್ಮ ಸ್ವಂತ ಅಪ್ಲೋಡ್ ದಾಖಲೆಗಳ ವಿರುದ್ಧ 6-ಅಂಶ ಗುಣಮಟ್ಟ ಪರಿಶೀಲನೆ ಮಾಡದ ಹೊರತು ಯಾವುದೇ ಡ್ರಾಯಿಂಗ್ North-cot ಬಿಡುವುದಿಲ್ಲ.</p>
+    </div>
+
+    <!-- QC Checklist -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6">
+      <h4 class="text-xs font-bold text-navy-300 uppercase tracking-widest mb-4 lang-en">6-Point Quality Checklist</h4>
+      <h4 class="text-xs font-bold text-navy-300 uppercase tracking-widest mb-4 lang-kn">6-ಅಂಶ ಗುಣಮಟ್ಟ ಪರಿಶೀಲನಾ ಪಟ್ಟಿ</h4>
+      <div class="space-y-3">
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">All boundary lines present</span>
+          <span class="text-sm lang-kn">ಎಲ್ಲಾ ಗಡಿ ರೇಖೆಗಳು ಇರಬೇಕು</span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">Clear mark and labelling</span>
+          <span class="text-sm lang-kn">ಸ್ಪಷ್ಟ ಗುರುತು ಮತ್ತು ಲೇಬಲ್</span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">Scaling correct</span>
+          <span class="text-sm lang-kn">ಮಾಪನ ಸರಿಯಾಗಿರಬೇಕು</span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">Survey number labelled</span>
+          <span class="text-sm lang-kn">ಸರ್ವೇ ಸಂಖ್ಯೆ ಲೇಬಲ್ ಇರಬೇಕು</span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">Owner name present</span>
+          <span class="text-sm lang-kn">ಮಾಲೀಕರ ಹೆಸರು ಇರಬೇಕು</span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="text-white text-xs font-bold">✓</span>
+          </div>
+          <span class="text-sm lang-en">Measurements match uploaded Tippani</span>
+          <span class="text-sm lang-kn">ಅಳತೆಗಳು ಅಪ್ಲೋಡ್ ಟಿಪ್ಪಣಿಗೆ ಹೊಂದಾಣಿಕೆ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operational Integrity Points -->
+    <div class="space-y-3">
+      <div class="flex gap-3">
+        <span class="text-orange-400 flex-shrink-0 mt-0.5">🔒</span>
+        <p class="text-sm text-navy-200 lang-en"><span class="font-semibold text-white">Verified operators only.</span> CAD operators are registered, identity-verified Karnataka survey specialists — not anonymous freelancers.</p>
+        <p class="text-sm text-navy-200 lang-kn"><span class="font-semibold text-white">ಪರಿಶೀಲಿತ ಆಪರೇಟರ್‌ಗಳು ಮಾತ್ರ.</span> CAD ಆಪರೇಟರ್‌ಗಳು ನೋಂದಾಯಿತ, ಗುರುತು-ಪರಿಶೀಲಿತ ಕರ್ನಾಟಕ ಸರ್ವೇ ತಜ್ಞರು.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-orange-400 flex-shrink-0 mt-0.5">👁️</span>
+        <p class="text-sm text-navy-200 lang-en"><span class="font-semibold text-white">Your documents are private.</span> The CAD operator sees only your order files. Your name and phone number are never shared.</p>
+        <p class="text-sm text-navy-200 lang-kn"><span class="font-semibold text-white">ನಿಮ್ಮ ದಾಖಲೆಗಳು ಖಾಸಗಿ.</span> CAD ಆಪರೇಟರ್ ಆರ್ಡರ್ ಫೈಲ್‌ಗಳನ್ನು ಮಾತ್ರ ನೋಡುತ್ತಾರೆ. ನಿಮ್ಮ ಹೆಸರು ಅಥವಾ ಫೋನ್ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಲಾಗುವುದಿಲ್ಲ.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-orange-400 flex-shrink-0 mt-0.5">📱</span>
+        <p class="text-sm text-navy-200 lang-en"><span class="font-semibold text-white">All payments go through the platform.</span> No off-platform transactions.</p>
+        <p class="text-sm text-navy-200 lang-kn"><span class="font-semibold text-white">ಎಲ್ಲಾ ಪಾವತಿಗಳು ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಮೂಲಕ.</span> ಹೊರಗಡೆ ವ್ಯವಹಾರ ಇಲ್ಲ.</p>
+      </div>
+    </div>
+
+    <!-- Document types -->
+    <div class="mt-6 bg-white/5 border border-white/10 rounded-xl px-4 py-4">
+      <p class="text-xs text-navy-300 uppercase font-bold tracking-wide mb-2 lang-en">Karnataka survey documents handled</p>
+      <p class="text-xs text-navy-300 uppercase font-bold tracking-wide mb-2 lang-kn">ಕರ್ನಾಟಕ ಸರ್ವೇ ದಾಖಲೆಗಳು ಸ್ವೀಕರಿಸಲಾಗುತ್ತದೆ</p>
+      <p class="text-sm text-white leading-relaxed">Tippani · RR Pakka Book · Village Map · Hissa Tippan · Akarbandh · RTC</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOR SURVEYORS
+============================================================ -->
+<section id="for-surveyors" class="bg-white px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-6">
+      <div class="inline-block bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 mb-3">
+        <span class="text-blue-700 text-xs font-bold uppercase tracking-wide lang-en">For Surveyors</span>
+        <span class="text-blue-700 text-xs font-bold uppercase tracking-wide lang-kn">ಭೂಮಾಪಕರಿಗಾಗಿ</span>
+      </div>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">Built for Karnataka Land Surveyors</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗಾಗಿ ನಿರ್ಮಿಸಲಾಗಿದೆ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">Everything on this platform is designed around how Karnataka surveyors actually work — in the field, on a smartphone, with government survey documents.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">ಈ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್‌ನ ಎಲ್ಲವೂ ಕರ್ನಾಟಕ ಭೂಮಾಪಕರ ಕೆಲಸದ ರೀತಿಯ ಸುತ್ತ ವಿನ್ಯಾಸಗೊಂಡಿದೆ.</p>
+    </div>
+
+    <ul class="space-y-3">
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">No travel to a CAD centre.</span> Upload from the field. Surveyors currently travel 30–100 km to CAD centres in Bangalore, Tumkur, or Mysore. North-cot eliminates the trip entirely.</span>
+        <span class="lang-kn"><span class="font-semibold">CAD ಕೇಂದ್ರಕ್ಕೆ ಪ್ರಯಾಣ ಇಲ್ಲ.</span> ಕ್ಷೇತ್ರದಿಂದ ಅಪ್ಲೋಡ್ ಮಾಡಿ. North-cot ಪ್ರಯಾಣವನ್ನು ಸಂಪೂರ್ಣ ನಿವಾರಿಸುತ್ತದೆ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Works entirely from your smartphone.</span> Log in, upload documents, and receive your completed drawing — all on your phone without a desktop or laptop.</span>
+        <span class="lang-kn"><span class="font-semibold">ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಸಂಪೂರ್ಣ ಕೆಲಸ.</span> ಡೆಸ್ಕ್‌ಟಾಪ್ ಅಥವಾ ಲ್ಯಾಪ್‌ಟಾಪ್ ಇಲ್ಲದೆ ಫೋನ್‌ನಿಂದ ಎಲ್ಲವೂ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Fixed ₹500 price — no negotiation, no surprise charges.</span></span>
+        <span class="lang-kn"><span class="font-semibold">ಸ್ಥಿರ ₹500 ಬೆಲೆ — ಮಾತುಕತೆ ಇಲ್ಲ, ಅನಿರೀಕ್ಷಿತ ಶುಲ್ಕ ಇಲ್ಲ.</span></span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">48-hour delivery</span> — compared to the current 7–10 day wait at traditional CAD centres.</span>
+        <span class="lang-kn"><span class="font-semibold">48-ಗಂಟೆ ಡೆಲಿವರಿ</span> — ಸಾಂಪ್ರದಾಯಿಕ CAD ಕೇಂದ್ರಗಳ 7-10 ದಿನಕ್ಕೆ ಹೋಲಿಸಿ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Order any time — 24/7.</span> Place and track orders at any hour. No need to call or visit during business hours.</span>
+        <span class="lang-kn"><span class="font-semibold">ಯಾವಾಗ ಬೇಕಾದರೂ ಆರ್ಡರ್ — 24/7.</span> ಯಾವ ಸಮಯದಲ್ಲಾದರೂ ಆರ್ಡರ್ ಮಾಡಿ ಮತ್ತು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">WhatsApp notifications at every stage.</span> You are notified at assignment, completion, and delivery via WhatsApp.</span>
+        <span class="lang-kn"><span class="font-semibold">ಪ್ರತಿ ಹಂತದಲ್ಲಿ WhatsApp ಅಧಿಸೂಚನೆ.</span> ನಿಯೋಜನೆ, ಪೂರ್ಣ ಮತ್ತು ತಲುಪಿಸುವಿಕೆ ಸಮಯ WhatsApp ಮೂಲಕ ತಿಳಿಸಲಾಗುತ್ತದೆ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-orange-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Clear refund policy.</span> If your order has not yet been assigned to an operator, you can receive a full refund.</span>
+        <span class="lang-kn"><span class="font-semibold">ಸ್ಪಷ್ಟ ಮರಳಿ ಪಾವತಿ ನೀತಿ.</span> ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸದ ಹೊರತು ಪೂರ್ಣ ಮರಳಿ ಪಾವತಿ.</span>
+      </li>
+    </ul>
+
+    <a href="#" class="mt-6 block w-full bg-orange-500 hover:bg-orange-400 text-white text-center font-bold py-3.5 rounded-xl transition-colors">
+      <span class="lang-en">📤 Upload Your Drawing</span>
+      <span class="lang-kn">📤 ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ</span>
+    </a>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOR CAD OPERATORS
+============================================================ -->
+<section id="for-operators" class="bg-slate-50 px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <div class="mb-6">
+      <div class="inline-block bg-navy-100 border border-navy-200 rounded-lg px-3 py-1 mb-3">
+        <span class="text-navy-700 text-xs font-bold uppercase tracking-wide lang-en">For CAD Operators</span>
+        <span class="text-navy-700 text-xs font-bold uppercase tracking-wide lang-kn">CAD ಆಪರೇಟರ್‌ಗಳಿಗಾಗಿ</span>
+      </div>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-en">Earn From Your AutoCAD Skills</h2>
+      <h2 class="text-xl font-extrabold text-navy-900 lang-kn">ನಿಮ್ಮ AutoCAD ಕೌಶಲ್ಯದಿಂದ ಗಳಿಸಿ</h2>
+      <p class="text-slate-500 text-sm mt-1 lang-en">North-cot connects verified Karnataka CAD specialists with a steady pipeline of land survey drawing jobs — through a clean portal, not WhatsApp.</p>
+      <p class="text-slate-500 text-sm mt-1 lang-kn">North-cot ಪರಿಶೀಲಿತ ಕರ್ನಾಟಕ CAD ತಜ್ಞರಿಗೆ ನಿಯಮಿತ ಸರ್ವೇ ಡ್ರಾಯಿಂಗ್ ಕೆಲಸಗಳನ್ನು ಒದಗಿಸುತ್ತದೆ.</p>
+    </div>
+
+    <!-- Earnings highlight -->
+    <div class="bg-navy-800 text-white rounded-2xl px-5 py-4 mb-5 flex items-center justify-between">
+      <div>
+        <p class="text-navy-300 text-xs lang-en">Your earnings per drawing</p>
+        <p class="text-navy-300 text-xs lang-kn">ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್‌ಗೆ ನಿಮ್ಮ ಗಳಿಕೆ</p>
+        <p class="text-2xl font-extrabold text-orange-400 mt-0.5">₹400</p>
+        <p class="text-navy-300 text-xs lang-en">80% of each ₹500 order</p>
+        <p class="text-navy-300 text-xs lang-kn">ಪ್ರತಿ ₹500 ಆರ್ಡರ್‌ನ 80%</p>
+      </div>
+      <div class="text-right">
+        <p class="text-navy-300 text-xs lang-en">Paid within</p>
+        <p class="text-navy-300 text-xs lang-kn">ಪಾವತಿ</p>
+        <p class="text-2xl font-extrabold text-green-400 mt-0.5">24–48hr</p>
+        <p class="text-navy-300 text-xs lang-en">of admin approval</p>
+        <p class="text-navy-300 text-xs lang-kn">ಆಡ್ಮಿನ್ ಅನುಮೋದನೆ ನಂತರ</p>
+      </div>
+    </div>
+
+    <ul class="space-y-3 mb-6">
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-navy-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">One job at a time through your portal.</span> No confusion about which file belongs to which job. Your portal shows exactly what you need to work on, with all documents organised per order.</span>
+        <span class="lang-kn"><span class="font-semibold">ಒಂದು ಸಮಯದಲ್ಲಿ ಒಂದು ಕೆಲಸ.</span> ಯಾವ ಫೈಲ್ ಯಾವ ಕೆಲಸ ಎಂಬ ಗೊಂದಲ ಇಲ್ಲ. ನಿಮ್ಮ ಪೋರ್ಟಲ್ ಪ್ರತಿ ಆರ್ಡರ್‌ಗೆ ದಾಖಲೆಗಳು ಸಂಘಟಿಸಿ ತೋರಿಸುತ್ತದೆ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-navy-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Surveyor contact details are never shared with you.</span> You see only the order files and basic job information — not the surveyor's name or phone number.</span>
+        <span class="lang-kn"><span class="font-semibold">ಭೂಮಾಪಕರ ಸಂಪರ್ಕ ವಿವರ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳುವುದಿಲ್ಲ.</span> ಆರ್ಡರ್ ಫೈಲ್‌ಗಳು ಮತ್ತು ಮೂಲ ಕೆಲಸ ಮಾಹಿತಿ ಮಾತ್ರ ಕಾಣಿಸುತ್ತದೆ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-navy-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Admin handles all client communication.</span> You focus entirely on the drawing. North-cot admin manages all surveyor queries, assignments, QC review, and dispute resolution.</span>
+        <span class="lang-kn"><span class="font-semibold">ಆಡ್ಮಿನ್ ಎಲ್ಲಾ ಕ್ಲೈಂಟ್ ಸಂವಹನ ನಿರ್ವಹಿಸುತ್ತಾರೆ.</span> ನೀವು ಸಂಪೂರ್ಣ ಡ್ರಾಯಿಂಗ್‌ನಲ್ಲಿ ಕೇಂದ್ರೀಕರಿಸಿ.</span>
+      </li>
+      <li class="flex gap-3 text-sm text-slate-700">
+        <span class="text-navy-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+        <span class="lang-en"><span class="font-semibold">Karnataka survey specialisation required.</span> Operators must be familiar with Tippani, Village Maps, boundary lines, and Kannada-language document reading.</span>
+        <span class="lang-kn"><span class="font-semibold">ಕರ್ನಾಟಕ ಸರ್ವೇ ವಿಶೇಷತೆ ಅಗತ್ಯ.</span> ಟಿಪ್ಪಣಿ, ಗ್ರಾಮ ನಕ್ಷೆ, ಗಡಿ ರೇಖೆ ಮತ್ತು ಕನ್ನಡ ದಾಖಲೆ ಓದಲು ಪರಿಚಿತರಾಗಿರಬೇಕು.</span>
+      </li>
+    </ul>
+
+    <a href="#" class="block w-full bg-navy-700 hover:bg-navy-600 text-white text-center font-bold py-3.5 rounded-xl transition-colors">
+      <span class="lang-en">Register as an Operator</span>
+      <span class="lang-kn">ಆಪರೇಟರ್ ಆಗಿ ನೋಂದಾಯಿಸಿ</span>
+    </a>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     TESTIMONIALS (placeholder)
+============================================================ -->
+<section class="bg-white px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <h2 class="text-xl font-extrabold text-navy-900 mb-2 lang-en">What Surveyors Say</h2>
+    <h2 class="text-xl font-extrabold text-navy-900 mb-2 lang-kn">ಭೂಮಾಪಕರು ಏನು ಹೇಳುತ್ತಾರೆ</h2>
+
+    <div class="border-2 border-dashed border-slate-200 rounded-2xl px-5 py-8 text-center">
+      <div class="text-4xl mb-3">🏗️</div>
+      <p class="text-slate-500 text-sm lang-en">Testimonials coming soon — currently running pilot with Karnataka surveyors.</p>
+      <p class="text-slate-500 text-sm lang-kn">ಶೀಘ್ರದಲ್ಲೇ ಅಭಿಪ್ರಾಯಗಳು — ಪ್ರಸ್ತುತ ಕರ್ನಾಟಕ ಭೂಮಾಪಕರೊಂದಿಗೆ ಪ್ರಾಯೋಗಿಕ ನಡೆಯುತ್ತಿದೆ.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FAQ
+============================================================ -->
+<section id="faq" class="bg-slate-50 px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <h2 class="text-xl font-extrabold text-navy-900 mb-6 lang-en">Frequently Asked Questions</h2>
+    <h2 class="text-xl font-extrabold text-navy-900 mb-6 lang-kn">ಪದೇ ಕೇಳಲಾಗುವ ಪ್ರಶ್ನೆಗಳು</h2>
+
+    <div class="space-y-2" id="faqContainer">
+
+      <!-- Q1 -->
+      <div class="faq-item bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-4 py-4 text-left">
+          <span class="font-semibold text-sm text-slate-800 lang-en">How do I upload my Tippani document?</span>
+          <span class="font-semibold text-sm text-slate-800 lang-kn">ನನ್ನ ಟಿಪ್ಪಣಿ ದಾಖಲೆಯನ್ನು ಹೇಗೆ ಅಪ್ಲೋಡ್ ಮಾಡಲಿ?</span>
+          <svg class="faq-chevron w-4 h-4 text-slate-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="faq-answer px-4 pb-4">
+          <p class="text-xs text-slate-500 leading-relaxed lang-en">Log in to your North-cot account and start a new order. In the document upload step, you can upload your Tippani and any other reference files (PDF scans or clear JPG photos) directly from your smartphone. Accepted file types include PDF and JPG. Your files are stored securely and are only accessible to North-cot admin and the assigned CAD operator.</p>
+          <p class="text-xs text-slate-500 leading-relaxed lang-kn">ನಿಮ್ಮ North-cot ಖಾತೆಗೆ ಲಾಗಿನ್ ಮಾಡಿ ಮತ್ತು ಹೊಸ ಆರ್ಡರ್ ಆರಂಭಿಸಿ. ದಾಖಲೆ ಅಪ್ಲೋಡ್ ಹಂತದಲ್ಲಿ, ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಟಿಪ್ಪಣಿ ಮತ್ತು ಇತರ ದಾಖಲೆಗಳು (PDF ಅಥವಾ JPG) ಅಪ್ಲೋಡ್ ಮಾಡಬಹುದು.</p>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="faq-item bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-4 py-4 text-left">
+          <span class="font-semibold text-sm text-slate-800 lang-en">What format will I receive the drawing in?</span>
+          <span class="font-semibold text-sm text-slate-800 lang-kn">ಡ್ರಾಯಿಂಗ್ ಯಾವ ಫಾರ್ಮ್ಯಾಟ್‌ನಲ್ಲಿ ಸಿಗುತ್ತದೆ?</span>
+          <svg class="faq-chevron w-4 h-4 text-slate-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="faq-answer px-4 pb-4">
+          <p class="text-xs text-slate-500 leading-relaxed lang-en">Your completed drawing is delivered in two formats: DWG (AutoCAD editable file) and PDF (print-ready). Both files are available via a secure, order-specific download link in your account. The link is exclusive to your order — not shared with anyone else.</p>
+          <p class="text-xs text-slate-500 leading-relaxed lang-kn">ನಿಮ್ಮ ಪೂರ್ಣ ಡ್ರಾಯಿಂಗ್ ಎರಡು ಫಾರ್ಮ್ಯಾಟ್‌ನಲ್ಲಿ ತಲುಪಿಸಲಾಗುತ್ತದೆ: DWG (AutoCAD ಸಂಪಾದಿಸಬಹುದಾದ ಫೈಲ್) ಮತ್ತು PDF (ಮುದ್ರಣ-ಸಿದ್ಧ).</p>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="faq-item bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-4 py-4 text-left">
+          <span class="font-semibold text-sm text-slate-800 lang-en">What if the drawing needs corrections?</span>
+          <span class="font-semibold text-sm text-slate-800 lang-kn">ಡ್ರಾಯಿಂಗ್‌ಗೆ ತಿದ್ದುಪಡಿ ಬೇಕಾದರೆ?</span>
+          <svg class="faq-chevron w-4 h-4 text-slate-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="faq-answer px-4 pb-4">
+          <p class="text-xs text-slate-500 leading-relaxed lang-en">If your drawing needs corrections after delivery, you can request a revision through your account. Your revision is routed back to the same CAD operator who prepared your original drawing. A revision fee of ₹100 applies. This fee is provisional and may be updated — check the pricing page for the current rate.</p>
+          <p class="text-xs text-slate-500 leading-relaxed lang-kn">ತಲುಪಿಕೆ ನಂತರ ಡ್ರಾಯಿಂಗ್‌ಗೆ ತಿದ್ದುಪಡಿ ಬೇಕಾದರೆ, ನಿಮ್ಮ ಖಾತೆ ಮೂಲಕ ಪರಿಷ್ಕರಣ ವಿನಂತಿ ಮಾಡಬಹುದು. ₹100 ಪರಿಷ್ಕರಣ ಶುಲ್ಕ ಅನ್ವಯಿಸುತ್ತದೆ.</p>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="faq-item bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-4 py-4 text-left">
+          <span class="font-semibold text-sm text-slate-800 lang-en">Is this service available outside Karnataka?</span>
+          <span class="font-semibold text-sm text-slate-800 lang-kn">ಈ ಸೇವೆ ಕರ್ನಾಟಕದ ಹೊರಗೆ ಲಭ್ಯವಿದೆಯೇ?</span>
+          <svg class="faq-chevron w-4 h-4 text-slate-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="faq-answer px-4 pb-4">
+          <p class="text-xs text-slate-500 leading-relaxed lang-en">No. North-cot currently serves Karnataka land surveyors only. Our CAD operators are trained specifically in Karnataka survey document types — Tippani, RR Pakka Book, Village Map, Hissa Tippan, Akarbandh, and RTC — and work with Kannada-language documents. Expansion beyond Karnataka is planned for a later phase, after the pilot is complete.</p>
+          <p class="text-xs text-slate-500 leading-relaxed lang-kn">ಇಲ್ಲ. North-cot ಪ್ರಸ್ತುತ ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗೆ ಮಾತ್ರ ಸೇವೆ ನೀಡುತ್ತದೆ. ಪ್ರಾಯೋಗಿಕ ಪೂರ್ಣವಾದ ನಂತರ ವಿಸ್ತರಣೆ ಯೋಜಿಸಲಾಗಿದೆ.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer class="bg-navy-900 text-white px-4 py-10">
+  <div class="max-w-lg mx-auto">
+
+    <!-- Brand -->
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
+        <span class="text-white font-bold text-xs">N</span>
+      </div>
+      <span class="text-white font-bold text-lg tracking-tight">North-cot</span>
+    </div>
+    <p class="text-navy-300 text-sm mb-5 lang-en">On-demand CAD drawings for Karnataka land surveyors.</p>
+    <p class="text-navy-300 text-sm mb-5 lang-kn">ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗಾಗಿ ಆನ್-ಡಿಮ್ಯಾಂಡ್ CAD ಡ್ರಾಯಿಂಗ್‌ಗಳು.</p>
+
+    <!-- Nav links -->
+    <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-navy-300 mb-6">
+      <a href="#how-it-works" class="hover:text-white transition-colors lang-en">How It Works</a>
+      <a href="#how-it-works" class="hover:text-white transition-colors lang-kn">ಹೇಗೆ ಕಾರ್ಯ</a>
+      <a href="#pricing" class="hover:text-white transition-colors lang-en">Pricing</a>
+      <a href="#pricing" class="hover:text-white transition-colors lang-kn">ಬೆಲೆ</a>
+      <a href="#for-operators" class="hover:text-white transition-colors lang-en">For Operators</a>
+      <a href="#for-operators" class="hover:text-white transition-colors lang-kn">ಆಪರೇಟರ್‌ಗಳಿಗಾಗಿ</a>
+    </div>
+
+    <!-- Contact placeholders -->
+    <div class="space-y-1 text-sm text-navy-400 mb-6">
+      <p><span class="text-navy-300 lang-en">Phone:</span><span class="text-navy-300 lang-kn">ಫೋನ್:</span> <a href="tel:+919945831469" class="text-white hover:text-orange-400 transition-colors">+91 99458 31469</a></p>
+      <p><span class="text-navy-300 lang-en">Email:</span><span class="text-navy-300 lang-kn">ಇಮೇಲ್:</span> <a href="mailto:northcot.we4@gmail.com" class="text-white hover:text-orange-400 transition-colors">northcot.we4@gmail.com</a></p>
+      <p><span class="text-navy-300 lang-en">WhatsApp:</span><span class="text-navy-300 lang-kn">WhatsApp:</span> <a href="https://wa.me/919945831469" class="text-white hover:text-orange-400 transition-colors">+91 99458 31469</a></p>
+      <p class="text-xs lang-en">SSMB Associates, Vijayanagar, Bangalore</p>
+      <p class="text-xs lang-kn">SSMB Associates, ವಿಜಯನಗರ, ಬೆಂಗಳೂರು</p>
+    </div>
+
+    <!-- Divider -->
+    <div class="border-t border-navy-700 pt-5">
+      <p class="text-navy-400 text-xs leading-relaxed lang-en">
+        SSMB Associates, Partnership Firm, Karnataka · Registered under the Indian Partnership Act, 1932
+      </p>
+      <p class="text-navy-400 text-xs leading-relaxed lang-kn">
+        SSMB Associates, ಪಾರ್ಟನರ್‌ಶಿಪ್ ಫರ್ಮ್, ಕರ್ನಾಟಕ · ಭಾರತೀಯ ಪಾರ್ಟನರ್‌ಶಿಪ್ ಕಾಯ್ದೆ, 1932 ರಡಿ ನೋಂದಾಯಿತ
+      </p>
+      <p class="text-navy-500 text-xs mt-1">© 2026 North-cot. All rights reserved.</p>
+    </div>
+
+  </div>
+</footer>
+
+
+<!-- ============================================================
+     STICKY BOTTOM CTA (mobile)
+============================================================ -->
+<div class="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-3 bg-white border-t-2 border-orange-100 shadow-[0_-8px_30px_rgba(0,0,0,0.18)]">
+  <a href="#"
+     class="block w-full max-w-lg mx-auto bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white text-center font-extrabold text-base py-3.5 rounded-xl shadow-lg shadow-orange-500/30 transition-colors">
+    <span class="lang-en">📤 Upload Your Drawing</span>
+    <span class="lang-kn">📤 ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ</span>
+  </a>
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+  // Language toggle
+  function toggleLanguage() {
+    const body = document.body;
+    const isKannada = body.classList.toggle('kannada');
+    const activeEl = document.getElementById('langActive');
+    const otherEl = document.getElementById('langOther');
+    if (isKannada) {
+      activeEl.textContent = 'ಕನ್ನಡ';
+      activeEl.classList.add('text-orange-400');
+      otherEl.textContent = 'EN';
+    } else {
+      activeEl.textContent = 'EN';
+      otherEl.textContent = 'ಕನ್ನಡ';
+    }
+  }
+
+  // FAQ accordion
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    // Close all
+    document.querySelectorAll('.faq-item').forEach(el => el.classList.remove('open'));
+    // Open clicked if it wasn't open
+    if (!wasOpen) item.classList.add('open');
+  }
+</script>
+
+</body>
+</html>

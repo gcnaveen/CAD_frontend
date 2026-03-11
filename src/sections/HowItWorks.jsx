@@ -1,16 +1,19 @@
 import React from "react";
 import { Upload, UserCheck, PenTool, Download, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
 export default function HowItWorks() {
   const navigate = useNavigate();
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const tr = translations[lang]?.howItWorks;
 
   const steps = [
     {
       number: 1,
-      title: "Upload Your Sketch",
-      description:
-        "Pay ₹99/- as an advance and upload your hand-drawn land/property sketch. You can upload from your phone or computer.",
+      title: tr?.steps?.[0]?.title,
+      description: tr?.steps?.[0]?.description,
       icon: Upload,
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
@@ -18,9 +21,8 @@ export default function HowItWorks() {
     },
     {
       number: 2,
-      title: "Our Team Reviews",
-      description:
-        "Our team reviews your sketch and assigns the best CAD designer for your project. We ensure quality at every step.",
+      title: tr?.steps?.[1]?.title,
+      description: tr?.steps?.[1]?.description,
       icon: UserCheck,
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200",
@@ -28,9 +30,8 @@ export default function HowItWorks() {
     },
     {
       number: 3,
-      title: "Designer Creates CAD",
-      description:
-        "An experienced CAD designer converts your sketch into a professional, accurate, government-ready CAD drawing.",
+      title: tr?.steps?.[2]?.title,
+      description: tr?.steps?.[2]?.description,
       icon: PenTool,
       bgColor: "bg-orange-50",
       borderColor: "border-orange-200",
@@ -38,9 +39,8 @@ export default function HowItWorks() {
     },
     {
       number: 4,
-      title: "Download Final Design",
-      description:
-        "Pay the remaining ₹399/- and download your final, government-ready CAD drawing in the required format.",
+      title: tr?.steps?.[3]?.title,
+      description: tr?.steps?.[3]?.description,
       icon: Download,
       bgColor: "bg-green-50",
       borderColor: "border-green-200",
@@ -57,26 +57,25 @@ export default function HowItWorks() {
         {/* Header */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            How It Works
+            {tr?.title}
           </h1>
           <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-            Four simple steps to get your professional CAD drawing. No technical
-            knowledge required.
+            {tr?.subtitle}
           </p>
         </div>
 
         {/* Steps Container */}
         <div className="mb-12">
           {/* Desktop Layout */}
-          <div className="hidden lg:flex items-center justify-center gap-0">
+          <div className="hidden lg:flex items-stretch justify-center gap-0">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
                 <React.Fragment key={step.number}>
                   {/* Card */}
-                  <div className="flex-1 max-w-xs">
+                  <div className="flex-1 max-w-xs flex">
                     <div
-                      className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-8 h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}
+                      className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-8 h-full flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}
                     >
                       {/* Icon */}
                       <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mb-6 shadow-sm">
@@ -107,14 +106,14 @@ export default function HowItWorks() {
           </div>
 
           {/* Tablet Layout - 2 columns */}
-          <div className="hidden md:grid lg:hidden grid-cols-2 gap-6">
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-6 items-stretch">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
                 <React.Fragment key={step.number}>
-                  <div className="relative">
+                  <div className="relative flex">
                     <div
-                      className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-8 h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}
+                      className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-8 h-full flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}
                     >
                       {/* Icon */}
                       <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mb-6 shadow-sm">
@@ -151,7 +150,7 @@ export default function HowItWorks() {
               return (
                 <React.Fragment key={step.number}>
                   <div
-                    className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg`}
+                    className={`${step.bgColor} ${step.borderColor} border-2 rounded-2xl p-6 h-full flex flex-col transition-all duration-300 hover:shadow-lg`}
                   >
                     {/* Icon */}
                     <div className="bg-white rounded-full w-14 h-14 flex items-center justify-center mb-4 shadow-sm">
@@ -188,7 +187,7 @@ export default function HowItWorks() {
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-base md:text-lg"
           >
             <Upload className="w-5 h-5" />
-            Get Started Now
+            {tr?.cta}
           </button>
         </div>
       </div>

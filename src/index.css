@@ -192,3 +192,11 @@
 .font-montserrat {
   font-family: var(--font-montserrat);
 }
+
+/* Homepage font scope (avoid impacting dashboards) */
+.homepage-font {
+  font-family: var(--font-montserrat);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

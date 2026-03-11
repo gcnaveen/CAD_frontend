@@ -1,71 +1,38 @@
 import React from "react";
 import { Shield, Ruler, Clock, Award } from "lucide-react";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
 const Benefits = () => {
-  const benefits = [
-    {
-      icon: Shield,
-      title: "Government Approval Ready",
-      description:
-        "All drawings meet government standards and specifications, ensuring acceptance on the first submission.",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-500",
-    },
-    {
-      icon: Ruler,
-      title: "Accurate Dimensions",
-      description:
-        "Precise measurements and scale drawings that comply with technical requirements and building codes.",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-500",
-    },
-    {
-      icon: Clock,
-      title: "Saves Time & Office Visits",
-      description:
-        "No more multiple trips to government offices. Get it right the first time and submit with confidence.",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-500",
-    },
-    {
-      icon: Award,
-      title: "Expert CAD Professionals",
-      description:
-        "Your drawings are prepared by experienced CAD designers with proven track records in government submissions.",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-500",
-    },
-  ];
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const tr = translations[lang]?.benefits;
 
-  const stats = [
-    {
-      value: "500+",
-      label: "Drawings Delivered",
-    },
-    {
-      value: "98%",
-      label: "Approval Rate",
-    },
-    {
-      value: "50+",
-      label: "Villages Served",
-    },
-    {
-      value: "4.8/5",
-      label: "Customer Rating",
-    },
-  ];
+  const benefits = [
+    { icon: Shield, ...tr?.cards?.[0] },
+    { icon: Ruler, ...tr?.cards?.[1] },
+    { icon: Clock, ...tr?.cards?.[2] },
+    { icon: Award, ...tr?.cards?.[3] },
+  ].map((b) => ({
+    ...b,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-500",
+  }));
+
+  const stats = tr?.stats || [];
 
   return (
-    <div className="w-full bg-gradient-to-b from-white to-gray-50 py-12 md:py-20 px-4 sm:px-6 lg:px-8">
+    <div
+      id="benefits"
+      className="w-full bg-gradient-to-b from-white to-gray-50 py-12 md:py-20 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            Key Benefits
+            {tr?.title}
           </h1>
           <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-            Why land and property owners trust our CAD design service
+            {tr?.subtitle}
           </p>
         </div>
 
@@ -91,10 +58,10 @@ const Benefits = () => {
                   {/* Content */}
                   <div className="flex-1">
                     <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">
-                      {benefit.title}
+                      {benefit.title || ""}
                     </h3>
                     <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                      {benefit.description}
+                      {benefit.description || ""}
                     </p>
                   </div>
                 </div>
@@ -108,13 +75,10 @@ const Benefits = () => {
           {/* Trust Header */}
           <div className="text-center mb-8 md:mb-10">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
-              Trusted by Rural Land Owners Across the Region
+              {tr?.trustTitle}
             </h2>
             <p className="text-sm md:text-base text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              We understand the unique challenges of rural property
-              documentation. Our platform is designed specifically for people
-              who need reliable, professional CAD services without traveling to
-              cities.
+              {tr?.trustSubtitle}
             </p>
           </div>
 

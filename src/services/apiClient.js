@@ -34,16 +34,20 @@ apiClient.interceptors.request.use(
 );
 
 // Response interceptor: Handle 401 unauthorized
+// Do NOT redirect when 401 is from the login endpoint (invalid credentials) — let LoginPage show the error and keep form values
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      if (storeRef?.dispatch) {
-        storeRef.dispatch({ type: "auth/logout" });
+      const isLoginRequest = String(error.config?.url || "").includes("/api/auth/login");
+      if (!isLoginRequest) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        if (storeRef?.dispatch) {
+          storeRef.dispatch({ type: "auth/logout" });
+        }
+        window.location.href = "/login";
       }
-      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

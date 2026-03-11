@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
 const ClientTestimonials = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const tr = translations[lang]?.testimonials;
 
   const testimonials = [
     {
@@ -92,16 +96,18 @@ const ClientTestimonials = () => {
   };
 
   return (
-    <div className="w-full bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 px-4 sm:px-6 lg:px-8">
+    <div
+      id="testimonials"
+      className="w-full bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            What Users Says
+            {tr?.title}
           </h1>
           <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-            Real stories from land and property owners who got government
-            approval on their first visit.
+            {tr?.subtitle}
           </p>
         </div>
 

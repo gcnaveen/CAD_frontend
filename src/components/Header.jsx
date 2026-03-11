@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
+import { toggleLanguage } from "../features/i18n/languageSlice";
+import { t } from "../constants/translation";
 
 const getDisplayName = (user) => {
   if (!user) return "User";
@@ -22,6 +24,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const lang = useSelector((state) => state.language?.lang || "en");
 
   useEffect(() => {
     const stored = localStorage.getItem(USER_KEY);
@@ -84,19 +87,36 @@ const Header = () => {
               onClick={() => scrollToSection("how-it-works")}
               className="text-gray-700 hover:text-gray-900 font-montserrat font-medium transition-colors duration-200 text-sm lg:text-base cursor-pointer"
             >
-              How it works
+              {t(lang, "header.nav.howItWorks")}
             </button>
             <button
               onClick={() => scrollToSection("benefits")}
               className="text-gray-700 hover:text-gray-900 font-montserrat font-medium transition-colors duration-200 text-sm lg:text-base cursor-pointer"
             >
-              Benefits
+              {t(lang, "header.nav.benefits")}
             </button>
             <button
               onClick={() => scrollToSection("testimonials")}
               className="text-gray-700 hover:text-gray-900 font-montserrat font-medium transition-colors duration-200 text-sm lg:text-base cursor-pointer"
             >
-              Testimonials
+              {t(lang, "header.nav.testimonials")}
+            </button>
+            <button
+              onClick={() => dispatch(toggleLanguage())}
+              aria-label={t(lang, "header.langToggle.ariaLabel")}
+              className="flex items-center gap-2 bg-white/70 hover:bg-white/90 border border-gray-200 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-800 transition-colors"
+            >
+              <span
+                className={`${lang === "en" ? "text-blue-700" : "text-gray-500"}`}
+              >
+                {t("en", "header.langToggle.activeEn")}
+              </span>
+              <span className="text-gray-400">|</span>
+              <span
+                className={`${lang === "kn" ? "text-blue-700" : "text-gray-600"}`}
+              >
+                {t("kn", "header.langToggle.activeKn")}
+              </span>
             </button>
             {user ? (
               <div className="flex items-center gap-3">
@@ -112,7 +132,7 @@ const Header = () => {
                   onClick={handleLogout}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 lg:px-6 py-2 rounded-md font-montserrat font-semibold transition-all duration-200 text-sm lg:text-base cursor-pointer"
                 >
-                  Logout
+                  {t(lang, "header.auth.logout")}
                 </button>
               </div>
             ) : (
@@ -123,7 +143,7 @@ const Header = () => {
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 lg:px-6 py-2 rounded-md font-montserrat font-semibold transition-all duration-200 text-sm lg:text-base cursor-pointer"
               >
-                Login
+                {t(lang, "header.auth.login")}
               </button>
             )}
           </div>
@@ -177,23 +197,46 @@ const Header = () => {
                 : "bg-white/90 backdrop-blur-md"
             } rounded-lg mt-2 mx-4`}
           >
+            <div className="px-4">
+              <button
+                onClick={() => dispatch(toggleLanguage())}
+                aria-label={t(lang, "header.langToggle.ariaLabel")}
+                className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-2 text-xs font-semibold text-gray-800 transition-colors"
+              >
+                <span
+                  className={`${
+                    lang === "en" ? "text-blue-700" : "text-gray-500"
+                  }`}
+                >
+                  {t("en", "header.langToggle.activeEn")}
+                </span>
+                <span className="text-gray-400">|</span>
+                <span
+                  className={`${
+                    lang === "kn" ? "text-blue-700" : "text-gray-600"
+                  }`}
+                >
+                  {t("kn", "header.langToggle.activeKn")}
+                </span>
+              </button>
+            </div>
             <button
               onClick={() => scrollToSection("how-it-works")}
               className="block w-full text-left px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100/50 rounded-md font-montserrat font-medium transition-colors cursor-pointer"
             >
-              How it works
+              {t(lang, "header.nav.howItWorks")}
             </button>
             <button
               onClick={() => scrollToSection("benefits")}
               className="block w-full text-left px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100/50 rounded-md font-montserrat font-medium transition-colors cursor-pointer"
             >
-              Benefits
+              {t(lang, "header.nav.benefits")}
             </button>
             <button
               onClick={() => scrollToSection("testimonials")}
               className="block w-full text-left px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100/50 rounded-md font-montserrat font-medium transition-colors cursor-pointer"
             >
-              Testimonials
+              {t(lang, "header.nav.testimonials")}
             </button>
             <div className="border-t border-gray-200 pt-4 mt-4">
               {user ? (
@@ -210,7 +253,7 @@ const Header = () => {
                     onClick={handleLogout}
                     className="block w-full text-center px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-md font-montserrat font-semibold transition-colors cursor-pointer"
                   >
-                    Logout
+                    {t(lang, "header.auth.logout")}
                   </button>
                 </>
               ) : (
@@ -221,7 +264,7 @@ const Header = () => {
                   }}
                   className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-montserrat font-semibold transition-colors cursor-pointer"
                 >
-                  Login
+                  {t(lang, "header.auth.login")}
                 </button>
               )}
             </div>

@@ -1,25 +1,27 @@
 import React from "react";
 import { Play } from "lucide-react";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
 const HowVideo = () => {
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const tr = translations[lang]?.quality;
+
   const features = [
     {
       number: 1,
-      title: "Pay ₹99/- advance & upload your sketch",
-      description:
-        "Make a quick advance payment and upload your survey sketch to start the CAD conversion process.",
+      title: tr?.points?.[0]?.title,
+      description: tr?.points?.[0]?.description,
     },
     {
       number: 2,
-      title: "We review & start drafting",
-      description:
-        "Our team reviews your sketch and begins preparing a clean, accurate CAD drawing.",
+      title: tr?.points?.[1]?.title,
+      description: tr?.points?.[1]?.description,
     },
     {
       number: 3,
-      title: "Pay ₹399/- balance & download CAD",
-      description:
-        "Complete the remaining payment and download the final government-ready CAD files.",
+      title: tr?.points?.[2]?.title,
+      description: tr?.points?.[2]?.description,
     },
   ];
 
@@ -31,17 +33,13 @@ const HowVideo = () => {
           {/* Left Content */}
           <div>
             <div className="inline-block bg-green-100 text-green-600 text-xs md:text-sm font-semibold px-4 py-2 rounded-full mb-4 md:mb-6">
-              HOW IT WORKS
+              {tr?.tag}
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight">
-              Gain more insight into
-              <br />
-              how to use
+              {tr?.title}
             </h1>
             <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-              With our integrated CRM, project management, collaboration and
-              invoicing capabilities, you can manage your business in one secure
-              platform.
+              {tr?.subtitle}
             </p>
           </div>
 

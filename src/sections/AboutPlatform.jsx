@@ -198,19 +198,23 @@ import {
   Users,
   Shield,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
 export default function AboutPlatform() {
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const featureCards = translations[lang]?.about?.featureCards || [];
+
   return (
     <div className="w-full bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            About the Platform
+            {translations[lang]?.about?.title}
           </h1>
           <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-            We understand the challenges faced by rural land and property owners
-            when dealing with government documentation.
+            {translations[lang]?.about?.subtitle}
           </p>
         </div>
 
@@ -224,39 +228,21 @@ export default function AboutPlatform() {
               </div>
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                  The Problem
+                  {translations[lang]?.about?.problemTitle}
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                  Common challenges faced by land owners
+                  {translations[lang]?.about?.problemSubtitle}
                 </p>
               </div>
             </div>
 
             <ul className="space-y-4">
-              <li className="flex gap-3">
-                <div className="w-2 h-2 bg-gray-900 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Hand-drawn sketches often get rejected at government offices
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-2 h-2 bg-gray-900 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Multiple trips to offices waste time and money
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-2 h-2 bg-gray-900 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Difficult to find reliable CAD designers in rural areas
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-2 h-2 bg-gray-900 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Unclear pricing and long waiting times
-                </p>
-              </li>
+              {(translations[lang]?.about?.problems || []).map((item, idx) => (
+                <li key={idx} className="flex gap-3">
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-700 text-sm md:text-base">{item}</p>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -268,47 +254,23 @@ export default function AboutPlatform() {
               </div>
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                  Our Solution
+                  {translations[lang]?.about?.solutionTitle}
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                  How we help you succeed
+                  {translations[lang]?.about?.solutionSubtitle}
                 </p>
               </div>
             </div>
 
             <ul className="space-y-4">
-              <li className="flex gap-3">
-                <div className="bg-blue-500 rounded-md p-1 flex-shrink-0 h-fit">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Upload sketches online from anywhere, anytime
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="bg-blue-500 rounded-md p-1 flex-shrink-0 h-fit">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Expert CAD designers prepare government-ready drawings
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="bg-blue-500 rounded-md p-1 flex-shrink-0 h-fit">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Fast turnaround with accurate dimensions and specifications
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <div className="bg-blue-500 rounded-md p-1 flex-shrink-0 h-fit">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-gray-700 text-sm md:text-base">
-                  Transparent pricing and quality assurance
-                </p>
-              </li>
+              {(translations[lang]?.about?.solutions || []).map((item, idx) => (
+                <li key={idx} className="flex gap-3">
+                  <div className="bg-blue-500 rounded-md p-1 flex-shrink-0 h-fit">
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-gray-700 text-sm md:text-base">{item}</p>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -321,10 +283,10 @@ export default function AboutPlatform() {
               <FileText className="w-8 h-8 text-blue-500" />
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
-              Accurate Documentation
+              {featureCards?.[0]?.title || ""}
             </h3>
             <p className="text-sm md:text-base text-gray-600">
-              Precise measurements and professional formatting
+              {featureCards?.[0]?.description || ""}
             </p>
           </div>
 
@@ -334,10 +296,10 @@ export default function AboutPlatform() {
               <Users className="w-8 h-8 text-blue-500" />
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
-              Expert Designers
+              {featureCards?.[1]?.title || ""}
             </h3>
             <p className="text-sm md:text-base text-gray-600">
-              Experienced CAD professionals at your service
+              {featureCards?.[1]?.description || ""}
             </p>
           </div>
 
@@ -347,10 +309,10 @@ export default function AboutPlatform() {
               <Shield className="w-8 h-8 text-blue-500" />
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
-              Quality Assured
+              {featureCards?.[2]?.title || ""}
             </h3>
             <p className="text-sm md:text-base text-gray-600">
-              Every drawing reviewed before delivery
+              {featureCards?.[2]?.description || ""}
             </p>
           </div>
         </div>
