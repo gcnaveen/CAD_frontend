@@ -129,9 +129,12 @@
 // export default Hero;
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { t } from "../constants/translation";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const lang = useSelector((state) => state.language?.lang || "en");
 
   const scrollToHowItWorks = () => {
     const element = document.getElementById("how-it-works");
@@ -141,19 +144,22 @@ const Hero = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center">
+    <div className="min-h-screen bg-white flex items-center pt-20 md:pt-24 lg:pt-28">
       <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         {/* Left Content */}
         <div className="space-y-8">
-          <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-            Convert Your Hand Sketch into Ready CAD Design
+          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span className="text-blue-700 text-xs font-semibold tracking-wide uppercase">
+              {t(lang, "hero.eyebrow")}
+            </span>
+          </div>
+          <h1 className="text-3xl md:text-4xl lg:text-4xl font-bold text-gray-900 leading-snug">
+            {t(lang, "hero.title")}
           </h1>
 
           <p className="text-lg text-gray-600 leading-relaxed">
-            Stop getting your sketches rejected at government offices. Upload
-            your hand-drawn sketch and receive a professional, accurate CAD
-            drawing prepared by expert designers—all from the comfort of your
-            home.
+            {t(lang, "hero.subtitle")}
           </p>
 
           <div className="flex flex-wrap gap-4">
@@ -174,14 +180,14 @@ const Hero = () => {
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
               </svg>
-              Upload Your Sketch
+              {t(lang, "hero.ctaPrimary")}
             </button>
 
             <button
               onClick={scrollToHowItWorks}
               className="bg-white hover:bg-gray-50 text-gray-900 px-8 py-4 rounded-lg font-medium border border-gray-300 flex items-center gap-2 transition-colors"
             >
-              How It Works
+              {t(lang, "hero.ctaSecondary")}
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -199,20 +205,38 @@ const Hero = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 pt-8">
-            <div>
-              <div className="text-4xl font-bold text-gray-900">500+</div>
-              <div className="text-sm text-gray-600 mt-1">
-                Projects Completed
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
+            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
+              <div className="text-lg md:text-xl font-semibold text-gray-900">
+                {t(lang, "hero.stats.priceValue")}
+              </div>
+              <div className="text-xs text-gray-600">
+                {t(lang, "hero.stats.priceLabel")}
               </div>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-gray-900">98%</div>
-              <div className="text-sm text-gray-600 mt-1">Approval Rate</div>
+            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
+              <div className="text-lg md:text-xl font-semibold text-gray-900">
+                {t(lang, "hero.stats.deliveryValue")}
+              </div>
+              <div className="text-xs text-gray-600">
+                {t(lang, "hero.stats.deliveryLabel")}
+              </div>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-gray-900">24hrs</div>
-              <div className="text-sm text-gray-600 mt-1">Average Delivery</div>
+            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
+              <div className="text-lg md:text-xl font-semibold text-gray-900">
+                {t(lang, "hero.stats.regionValue")}
+              </div>
+              <div className="text-xs text-gray-600">
+                {t(lang, "hero.stats.regionLabel")}
+              </div>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
+              <div className="text-lg md:text-xl font-semibold text-gray-900">
+                {t(lang, "hero.stats.qcValue")}
+              </div>
+              <div className="text-xs text-gray-600">
+                {t(lang, "hero.stats.qcLabel")}
+              </div>
             </div>
           </div>
         </div>
@@ -248,10 +272,10 @@ const Hero = () => {
               </div>
               <div>
                 <div className="font-semibold text-gray-900">
-                  Government Approved
+                  {t(lang, "hero.badge.title")}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Professional CAD Drawings
+                  {t(lang, "hero.badge.subtitle")}
                 </div>
               </div>
             </div>

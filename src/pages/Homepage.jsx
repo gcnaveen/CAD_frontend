@@ -10,7 +10,7 @@ import Footer from "../components/Footer";
 
 const Homepage = () => {
   return (
-    <div>
+    <div className="homepage-font">
       <Header />
       <Hero />
       <AboutPlatform />

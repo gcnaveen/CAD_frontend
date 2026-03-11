@@ -1,6 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import authReducer from "../features/auth/authSlice";
+import languageReducer from "../features/i18n/languageSlice";
 import { setAxiosStore } from "../config/axiosInstance";
 
 // Async localStorage adapter (redux-persist expects getItem to return a Promise)
@@ -16,9 +17,16 @@ const authPersistConfig = {
   whitelist: ["token", "user", "role"],
 };
 
+const languagePersistConfig = {
+  key: "language",
+  storage,
+  whitelist: ["lang"],
+};
+
 export const store = configureStore({
   reducer: {
     auth: persistReducer(authPersistConfig, authReducer),
+    language: persistReducer(languagePersistConfig, languageReducer),
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
