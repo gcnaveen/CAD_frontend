@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Form,
-  Input,
-  Select,
-  Button,
-  ConfigProvider,
-  Radio,
-  message as antdMessage,
-} from "antd";
-import {
   surveyorStart,
   surveyorVerifyOtp,
   surveyorComplete,
 } from "../services/auth/authService.js";
 import { getDistricts } from "../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../services/masters/talukaService.js";
+import {
+  MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, Check,
+  Phone, User, Lock, Shield,
+} from "lucide-react";
 
 function normalizeList(res) {
   const raw = res?.data ?? res;
@@ -23,45 +18,58 @@ function normalizeList(res) {
   return Array.isArray(items) ? items : [];
 }
 
-const darkTheme = {
-  token: {
-    colorBgContainer: "#27272a",
-    colorBorder: "#3f3f46",
-    colorPrimary: "#22d3ee",
-    colorText: "#fafafa",
-    colorTextPlaceholder: "#71717a",
-    colorBgElevated: "#18181b",
-    controlOutline: "rgba(34, 211, 238, 0.2)",
-  },
-  components: {
-    Input: {
-      activeBorderColor: "#22d3ee",
-      hoverBorderColor: "#52525b",
-    },
-    Select: {
-      optionSelectedBg: "rgba(34, 211, 238, 0.15)",
-    },
-    Button: {
-      primaryColor: "#000",
-    },
-  },
-};
+const STEPS = [
+  { key: 1, label: "Details", icon: <User size={14} /> },
+  { key: 2, label: "Type",    icon: <Shield size={14} /> },
+  { key: 3, label: "Password",icon: <Lock size={14} /> },
+  { key: 4, label: "Location",icon: <MapPin size={14} /> },
+];
 
-const RegisterPage = () => {
-  const [form] = Form.useForm();
+const Crosshair = ({ size = 20, opacity = 0.18 }) => (
+  <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
+    stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" style={{ opacity }}>
+    <line x1="10" y1="0"  x2="10" y2="7"  />
+    <line x1="10" y1="13" x2="10" y2="20" />
+    <line x1="0"  y1="10" x2="7"  y2="10" />
+    <line x1="13" y1="10" x2="20" y2="10" />
+    <circle cx="10" cy="10" r="2.5" />
+  </svg>
+);
+
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [otpSent, setOtpSent] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const [firstName, setFirstName]         = useState("");
+  const [lastName, setLastName]           = useState("");
+  const [phone, setPhone]                 = useState("");
+  const [otp, setOtp]                     = useState("");
+  const [otpSent, setOtpSent]             = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [districts, setDistricts] = useState([]);
-  const [talukas, setTalukas] = useState([]);
+  const [sendingOtp, setSendingOtp]       = useState(false);
+  const [verifyingOtp, setVerifyingOtp]   = useState(false);
+
+  const [accountType, setAccountType]   = useState("");
+  const [surveyorType, setSurveyorType] = useState("");
+
+  const [password, setPassword]                   = useState("");
+  const [confirmPassword, setConfirmPassword]     = useState("");
+  const [showPassword, setShowPassword]           = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [district, setDistrict]       = useState("");
+  const [taluk, setTaluk]             = useState("");
+  const [districts, setDistricts]     = useState([]);
+  const [talukas, setTalukas]         = useState([]);
   const [districtsLoading, setDistrictsLoading] = useState(false);
-  const [talukasLoading, setTalukasLoading] = useState(false);
-  const selectedDistrictId = Form.useWatch("district", form);
-  const accountType = Form.useWatch("accountType", form);
+  const [talukasLoading, setTalukasLoading]     = useState(false);
+
+  const [message, setMessage]     = useState({ type: "", text: "" });
+  const [errors, setErrors]       = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
 
   useEffect(() => {
     setDistrictsLoading(true);
@@ -72,638 +80,547 @@ const RegisterPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedDistrictId) {
-      setTalukas([]);
-      return;
-    }
-    const districtIdStr =
-      typeof selectedDistrictId === "string"
-        ? selectedDistrictId
-        : selectedDistrictId?._id ?? selectedDistrictId?.id ?? String(selectedDistrictId);
-    if (!districtIdStr || districtIdStr === "[object Object]") {
-      setTalukas([]);
-      return;
-    }
+    if (!district) { setTalukas([]); setTaluk(""); return; }
+    const id = typeof district === "string" ? district : district?._id ?? district?.id ?? "";
+    if (!id) { setTalukas([]); return; }
     setTalukasLoading(true);
-    getTalukasByDistrict(districtIdStr)
+    getTalukasByDistrict(id)
       .then((res) => setTalukas(normalizeList(res)))
       .catch(() => setTalukas([]))
       .finally(() => setTalukasLoading(false));
-  }, [selectedDistrictId]);
+  }, [district]);
 
-  const getMobile = () => {
-    const phone = form.getFieldValue("phone");
-    return (phone || "").replace(/\D/g, "").slice(0, 10);
-  };
+  const getMobile = () => (phone || "").replace(/\D/g, "").slice(0, 10);
 
-  const handleRequestOtp = async () => {
-    const firstName = form.getFieldValue("firstName")?.trim?.() ?? "";
-    const lastName = form.getFieldValue("lastName")?.trim?.() ?? "";
-    const phone = getMobile();
-    if (!firstName) {
-      antdMessage.error("Please enter your first name.");
-      return;
-    }
-    if (!lastName) {
-      antdMessage.error("Please enter your last name.");
-      return;
-    }
-    if (phone.length < 10) {
-      antdMessage.error("Please enter a valid 10-digit mobile number.");
-      return;
-    }
+  const handleSendOtp = async () => {
+    setMessage({ type: "", text: "" }); setErrors({});
+    const f = firstName?.trim() ?? "", l = lastName?.trim() ?? "", p = getMobile();
+    if (!f) { setErrors({ firstName: "First name is required" }); return; }
+    if (!l) { setErrors({ lastName: "Last name is required" }); return; }
+    if (p.length < 10) { setErrors({ phone: "Enter a valid 10-digit mobile number" }); return; }
     setSendingOtp(true);
     try {
-      await surveyorStart({
-        phone,
-        firstName,
-        lastName,
-      });
+      await surveyorStart({ phone: p, firstName: f, lastName: l });
       setOtpSent(true);
-      antdMessage.success("OTP sent successfully.");
+      setMessage({ type: "success", text: "OTP sent to your mobile." });
     } catch (err) {
-      antdMessage.error(err?.message ?? "Failed to send OTP.");
-    } finally {
-      setSendingOtp(false);
-    }
+      setMessage({ type: "error", text: err?.message ?? "Failed to send OTP." });
+    } finally { setSendingOtp(false); }
   };
 
   const handleVerifyOtp = async () => {
-    const phone = getMobile();
-    const otp = form.getFieldValue("otp")?.trim?.() ?? "";
-    if (phone.length < 10) {
-      antdMessage.error("Please enter a valid 10-digit mobile number.");
-      return;
-    }
-    if (otp.length < 4) {
-      antdMessage.error("Please enter the OTP sent to your mobile.");
-      return;
-    }
-    setVerifyingOtp(true);
+    const p = getMobile(), o = (otp || "").trim();
+    if (p.length < 10) { setErrors({ phone: "Enter a valid 10-digit mobile number" }); return; }
+    if (o.length < 4)  { setErrors({ otp: "Enter the OTP sent to your mobile" }); return; }
+    setVerifyingOtp(true); setMessage({ type: "", text: "" });
     try {
-      await surveyorVerifyOtp({ phone, otp });
-      antdMessage.success("OTP verified successfully.");
+      await surveyorVerifyOtp({ phone: p, otp: o });
       setIsOtpVerified(true);
+      setMessage({ type: "success", text: "OTP verified successfully." });
       setStep(2);
     } catch (err) {
-      antdMessage.error(err?.message ?? "OTP verification failed.");
-    } finally {
-      setVerifyingOtp(false);
-    }
+      setMessage({ type: "error", text: err?.message ?? "OTP verification failed." });
+    } finally { setVerifyingOtp(false); }
   };
 
-  const onFinishStep2 = async (values) => {
-    const phone = getMobile();
-    const category = values.accountType === "SURVEYOR" ? "SURVEYOR" : "public";
-    const payload = {
-      phone,
-      password: values.password,
-      district: values.district,
-      taluka: values.taluk,
-      category,
-    };
-    if (category === "SURVEYOR" && values.surveyorType) {
-      payload.surveyType = values.surveyorType; // LS or GS
+  const validateStep = (s) => {
+    const e = {};
+    if (s === 1) {
+      if (!firstName?.trim()) e.firstName = "First name is required";
+      if (!lastName?.trim())  e.lastName  = "Last name is required";
+      if (getMobile().length < 10) e.phone = "Valid 10-digit mobile required";
+      if (otpSent && !isOtpVerified && (otp || "").trim().length < 4) e.otp = "Enter OTP";
     }
-    setIsLoading(true);
+    if (s === 2) {
+      if (!accountType) e.accountType = "Select account type";
+      if (accountType === "SURVEYOR" && !surveyorType) e.surveyorType = "Select surveyor type";
+    }
+    if (s === 3) {
+      if (!password || password.length < 6) e.password = "Password must be at least 6 characters";
+      if (password !== confirmPassword) e.confirmPassword = "Passwords do not match";
+    }
+    if (s === 4) {
+      if (!district) e.district = "Select district";
+      if (!taluk)    e.taluk    = "Select taluk";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const goNext = () => {
+    if (step === 1 && otpSent && !isOtpVerified) { handleVerifyOtp(); return; }
+    if (step === 1) {
+      if (!validateStep(1)) return;
+      if (!isOtpVerified) { handleSendOtp(); return; }
+      setStep(2); return;
+    }
+    if (step === 2) { if (!validateStep(2)) return; setStep(3); return; }
+    if (step === 3) { if (!validateStep(3)) return; setStep(4); return; }
+  };
+
+  const goBack = () => {
+    setMessage({ type: "", text: "" }); setErrors({});
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(4)) return;
+    const category = accountType === "SURVEYOR" ? "SURVEYOR" : "public";
+    const payload = { phone: getMobile(), password, district, taluka: taluk, category };
+    if (category === "SURVEYOR" && surveyorType) payload.surveyType = surveyorType;
+    setIsSubmitting(true); setMessage({ type: "", text: "" });
     try {
       await surveyorComplete(payload);
-      antdMessage.success("Registration successful. Please login.");
-      navigate("/login", { replace: true });
+      setMessage({ type: "success", text: "Registration successful. Redirecting to login…" });
+      setTimeout(() => navigate("/login", { replace: true }), 1500);
     } catch (err) {
-      antdMessage.error(err?.message ?? "Registration failed.");
-    } finally {
-      setIsLoading(false);
-    }
+      setMessage({ type: "error", text: err?.message ?? "Registration failed." });
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    setStep(1);
-    setOtpSent(false);
-    setIsOtpVerified(false);
+  const districtOptions = districts.map((d) => ({ value: d._id ?? d.id, label: d.code ? `${d.name} (${d.code})` : d.name }));
+  const talukOptions    = talukas.map((t)    => ({ value: t._id ?? t.id, label: t.code ? `${t.name} (${t.code})` : t.name }));
+
+  // Shared label style
+  const labelStyle = {
+    display: "block", fontSize: "11px", fontWeight: 700,
+    color: "#6b5a3a", letterSpacing: "0.07em",
+    textTransform: "uppercase", marginBottom: "7px",
   };
 
-  const onValuesChange = (changed) => {
-    if ("district" in changed) {
-      form.setFieldsValue({ taluk: undefined });
-    }
-    if ("accountType" in changed) {
-      form.setFieldsValue({ surveyorType: undefined });
-    }
-  };
-
-  const districtOptions = districts.map((d) => ({
-    value: d._id ?? d.id,
-    label: d.code ? `${d.name} (${d.code})` : d.name,
-  }));
-  const talukOptions = talukas.map((t) => ({
-    value: t._id ?? t.id,
-    label: t.code ? `${t.name} (${t.code})` : t.name,
-  }));
+  const errStyle = { fontSize: "12px", color: "#c0392b", marginTop: "5px" };
 
   return (
-    <ConfigProvider theme={darkTheme}>
-      <div className="min-h-screen bg-black py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 pointer-events-none" />
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(160deg, #f7f2e8 0%, #f0ead8 35%, #e8dfc8 65%, #ddd4b8 100%)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "clamp(16px, 4vw, 32px)",
+      position: "relative", overflow: "hidden",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+    }}>
+      <style>{`
+        @keyframes ping       { 0% { transform:scale(1); opacity:.7; } 100% { transform:scale(2.2); opacity:0; } }
+        @keyframes card-in    { from { opacity:0; transform:translateY(28px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes logo-in    { from { opacity:0; transform:translateY(-14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin       { to { transform: rotate(360deg); } }
 
-        <div className="relative w-full max-w-2xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8">
-            <img
-              src="/assets/logo.png"
-              alt="Logo"
-              className="h-34 sm:h-26 w-auto mx-auto mb-4 sm:mb-6 object-contain"
-            />
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-              Create Account
-            </h1>
-            <p className="text-gray-400 text-sm sm:text-base">
-              Join us to convert your sketches into CAD designs
-            </p>
-            {step === 1 && (
-              <p className="text-cyan-400/90 text-xs sm:text-sm mt-1">
-                Step 1: Enter details & verify OTP
-              </p>
-            )}
-            {step === 2 && (
-              <p className="text-cyan-400/90 text-xs sm:text-sm mt-1">
-                Step 2: Set password & complete registration
-              </p>
-            )}
+        .rp-input {
+          width: 100%;
+          background: rgba(255,255,255,0.6);
+          border: 1.5px solid rgba(213,200,178,0.8);
+          border-radius: 12px;
+          padding: 12px 16px;
+          font-size: 14px;
+          color: #1a1a0a;
+          outline: none;
+          transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+          box-sizing: border-box;
+          backdrop-filter: blur(4px);
+        }
+        .rp-input::placeholder { color: rgba(100,90,70,0.42); }
+        .rp-input:focus {
+          border-color: rgba(201,168,76,.7);
+          box-shadow: 0 0 0 3px rgba(201,168,76,.12);
+          background: rgba(255,255,255,.85);
+        }
+        .rp-input.err { border-color: rgba(220,80,60,.6); box-shadow: 0 0 0 3px rgba(220,80,60,.08); }
+        .rp-input:disabled { opacity:.6; cursor:not-allowed; }
+
+        .rp-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23c9a84c' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          padding-right: 36px !important;
+          cursor: pointer;
+        }
+
+        .rp-btn-primary {
+          padding: 13px 22px; border-radius: 13px;
+          background: linear-gradient(135deg,#152815 0%,#1d3d1d 100%);
+          color: white; font-weight: 700; font-size: 14px; letter-spacing: .04em;
+          border: none; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+          box-shadow: 0 8px 24px rgba(21,40,21,.28);
+          transition: all .25s ease;
+        }
+        .rp-btn-primary:hover:not(:disabled) {
+          background: linear-gradient(135deg,#1d3d1d 0%,#2a5a2a 100%);
+          box-shadow: 0 12px 32px rgba(21,40,21,.38);
+          transform: translateY(-1px);
+        }
+        .rp-btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+        .rp-btn-outline {
+          padding: 12px 18px; border-radius: 12px;
+          background: rgba(255,255,255,.55); backdrop-filter: blur(6px);
+          color: #152815; font-weight: 600; font-size: 13px;
+          border: 1.5px solid rgba(213,200,178,.9); cursor: pointer;
+          display: inline-flex; align-items: center; gap: 6px;
+          transition: all .2s ease;
+          box-shadow: 0 1px 6px rgba(0,0,0,.06);
+        }
+        .rp-btn-outline:hover { background: rgba(255,255,255,.8); border-color: rgba(201,168,76,.4); }
+
+        .rp-radio-card {
+          display: flex; align-items: center; gap: 12px;
+          padding: 13px 16px; border-radius: 12px; cursor: pointer;
+          border: 1.5px solid rgba(213,200,178,.8);
+          background: rgba(255,255,255,.55); backdrop-filter: blur(4px);
+          transition: all .2s ease;
+        }
+        .rp-radio-card.active {
+          border-color: rgba(201,168,76,.65);
+          background: rgba(201,168,76,.08);
+          box-shadow: 0 0 0 3px rgba(201,168,76,.1);
+        }
+        .coord-label {
+          font-family: monospace; font-size: 10px;
+          color: rgba(154,112,32,.35); letter-spacing: .1em;
+          position: absolute; pointer-events: none; user-select: none;
+        }
+      `}</style>
+
+      {/* ── BACKGROUND ── */}
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }} aria-hidden="true">
+        <div style={{ position:"absolute", top:"-120px", left:"-100px", width:"600px", height:"600px", borderRadius:"50%", background:"radial-gradient(circle,rgba(201,168,76,.13) 0%,transparent 65%)" }} />
+        <div style={{ position:"absolute", bottom:"-80px", right:"-80px", width:"500px", height:"500px", borderRadius:"50%", background:"radial-gradient(circle,rgba(21,40,21,.08) 0%,transparent 65%)" }} />
+        <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(201,168,76,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.055) 1px,transparent 1px)", backgroundSize:"52px 52px" }} />
+        <div style={{ position:"absolute", top:"28px", left:"28px"  }}><Crosshair size={22} opacity={0.22} /></div>
+        <div style={{ position:"absolute", top:"28px", right:"28px" }}><Crosshair size={22} opacity={0.22} /></div>
+        <div style={{ position:"absolute", bottom:"28px", left:"28px"  }}><Crosshair size={22} opacity={0.22} /></div>
+        <div style={{ position:"absolute", bottom:"28px", right:"28px" }}><Crosshair size={22} opacity={0.22} /></div>
+        <span className="coord-label" style={{ top:"18px", left:"56px"   }}>12.97°N 77.59°E</span>
+        <span className="coord-label" style={{ top:"18px", right:"56px"  }}>KARNATAKA · INDIA</span>
+        <span className="coord-label" style={{ bottom:"18px", left:"56px"  }}>NORTH-COT · PLATFORM</span>
+        <span className="coord-label" style={{ bottom:"18px", right:"56px" }}>SURVEY · CAD · QC</span>
+        {/* mid-point subtle crosshairs */}
+        {[{top:"20%",left:"7%"},{top:"65%",left:"5%"},{top:"30%",right:"6%"},{top:"72%",right:"7%"}].map((pos,i)=>(
+          <div key={i} style={{ position:"absolute", ...pos }}><Crosshair size={14} opacity={0.10} /></div>
+        ))}
+      </div>
+
+      {/* ── CONTENT ── */}
+      <div style={{
+        position:"relative", zIndex:1, width:"100%", maxWidth:"520px",
+        animation: mounted ? "card-in .65s cubic-bezier(.16,1,.3,1) forwards" : "none",
+        opacity: mounted ? undefined : 0,
+      }}>
+
+        {/* LOGO */}
+        <div style={{
+          textAlign: "center", marginBottom: "28px",
+          animation: mounted ? "logo-in 0.6s ease 0.1s both" : "none",
+        }}>
+          {/* Logo container with pulsing ring */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            position: "relative", marginBottom: "14px",
+          }}>
+            {/* Outer pulse ring */}
+            <div style={{
+              position: "absolute", inset: "-10px", borderRadius: "50%",
+              border: "1px solid rgba(201,168,76,0.3)",
+              animation: "ping 2.5s ease-out infinite",
+            }} />
+            {/* Inner ring */}
+            <div style={{
+              position: "absolute", inset: "-4px", borderRadius: "50%",
+              border: "1.5px solid rgba(201,168,76,0.25)",
+            }} />
+            {/* Logo image */}
+            <div style={{
+              width: "110px", height: "110px", borderRadius: "50%",
+              background: "#000",
+              backdropFilter: "blur(8px)",
+              border: "2px solid rgba(201,168,76,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 8px 28px rgba(201,168,76,0.18), 0 2px 8px rgba(0,0,0,0.08)",
+              overflow: "hidden",
+            }}>
+              <img
+                src="/assets/logo.png"
+                alt="North-cot"
+                style={{ width: "80px", height: "80px", objectFit: "contain" }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentElement.innerHTML = `
+                    <span style="font-family:'IBM Plex Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:22px;color:#c9a84c;">NC</span>
+                  `;
+                }}
+              />
+            </div>
           </div>
 
-          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 backdrop-blur-sm">
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={(values) => {
-                if (step === 2 && isOtpVerified) {
-                  onFinishStep2(values);
-                }
-              }}
-              onValuesChange={onValuesChange}
-              requiredMark={false}
-              initialValues={{ state: "Karnataka" }}
-              className="register-form"
-            >
-              {/* STEP 1: Name, Mobile, OTP */}
-              {step === 1 && (
-                <div className="mb-6 sm:mb-8">
-                  <h2 className="text-base sm:text-lg font-semibold text-white border-b border-zinc-700 pb-2 mb-4 sm:mb-5">
-                    Basic Details & OTP Verification
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                    <Form.Item
-                      name="firstName"
-                      label={
-                        <span className="text-gray-300 text-sm">First Name</span>
-                      }
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter your first name",
-                        },
-                      ]}
-                      className="mb-0"
-                    >
-                      <Input
-                        placeholder="Enter first name"
-                        size="large"
-                        className="rounded-lg"
-                        disabled={isOtpVerified}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      name="lastName"
-                      label={
-                        <span className="text-gray-300 text-sm">Last Name</span>
-                      }
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter your last name",
-                        },
-                      ]}
-                      className="mb-0"
-                    >
-                      <Input
-                        placeholder="Enter last name"
-                        size="large"
-                        className="rounded-lg"
-                        disabled={isOtpVerified}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      name="phone"
-                      label={
-                        <span className="text-gray-300 text-sm">
-                          Mobile Number
-                        </span>
-                      }
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter your mobile number",
-                        },
-                        {
-                          validator: (_, value) => {
-                            const digits = (value || "").replace(/\D/g, "");
-                            if (digits.length !== 10) {
-                              return Promise.reject(
-                                new Error("Mobile must be 10 digits")
-                              );
-                            }
-                            return Promise.resolve();
-                          },
-                        },
-                      ]}
-                      className="mb-0 sm:col-span-2"
-                    >
-                      <Input
-                        placeholder="9876543210"
-                        size="large"
-                        className="rounded-lg"
-                        addonBefore={
-                          <span className="text-gray-400">+91</span>
-                        }
-                        maxLength={10}
-                        disabled={isOtpVerified}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-                          form.setFieldValue("phone", v);
-                        }}
-                      />
-                    </Form.Item>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "6px" }}>
+            <div style={{ height: "1px", width: "32px", background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.5))" }} />
+            <span style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic", fontWeight: 700,
+              fontSize: "28px", color: "#0d1f0d", letterSpacing: "0.02em",
+            }}>
+              North-cot
+            </span>
+            <div style={{ height: "1px", width: "50px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
+          </div>
 
-                    {otpSent && (
-                      <>
-                        <Form.Item
-                          name="otp"
-                          label={
-                            <span className="text-gray-300 text-sm">
-                              Enter OTP
-                            </span>
-                          }
-                          rules={[
-                            {
-                              required: true,
-                              message: "Please enter the OTP sent to your mobile",
-                            },
-                            {
-                              min: 4,
-                              message: "Enter a valid OTP",
-                            },
-                          ]}
-                          className="mb-0 sm:col-span-2"
-                        >
-                          <Input
-                            placeholder="Enter OTP"
-                            size="large"
-                            className="rounded-lg"
-                            maxLength={8}
-                            disabled={isOtpVerified}
-                          />
-                        </Form.Item>
-                        {!isOtpVerified && (
-                          <div className="flex flex-wrap gap-2 sm:col-span-2">
-                            <Button
-                              type="primary"
-                              size="large"
-                              loading={verifyingOtp}
-                              onClick={handleVerifyOtp}
-                              className="rounded-xl bg-cyan-500 hover:!bg-cyan-400 !text-black font-semibold border-0 shadow-lg shadow-cyan-500/25"
-                            >
-                              {verifyingOtp ? "Verifying..." : "Verify OTP"}
-                            </Button>
-                            <Button
-                              size="large"
-                              loading={sendingOtp}
-                              onClick={handleRequestOtp}
-                              className="rounded-xl border-zinc-600 text-gray-300 hover:!border-zinc-500 hover:!text-white hover:!bg-zinc-800"
-                            >
-                              {sendingOtp ? "Sending..." : "Resend OTP"}
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+            <MapPin size={10} color="#9a7020" />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#9a7020", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              Land Survey & Revenue Documentation
+            </span>
+          </div>
+        </div>
 
-                    {!otpSent && !isOtpVerified && (
-                      <div className="sm:col-span-2">
-                        <Button
-                          type="primary"
-                          size="large"
-                          loading={sendingOtp}
-                          onClick={handleRequestOtp}
-                          className="w-full sm:w-auto rounded-xl bg-cyan-500 hover:!bg-cyan-400 !text-black font-semibold border-0 shadow-lg shadow-cyan-500/25"
-                        >
-                          {sendingOtp ? "Sending OTP..." : "Send OTP"}
-                        </Button>
-                      </div>
-                    )}
+        {/* STEP INDICATOR */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"22px", padding:"0 4px" }}>
+          {STEPS.map((s, i) => {
+            const isDone   = step > s.key;
+            const isActive = step === s.key;
+            return (
+              <React.Fragment key={s.key}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
+                  <div style={{
+                    width:"38px", height:"38px", borderRadius:"50%",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:"13px", fontWeight:700, marginBottom:"6px",
+                    transition:"all .3s ease",
+                    background: isDone ? "rgba(201,168,76,.18)" : isActive ? "#c9a84c" : "rgba(255,255,255,.55)",
+                    color:       isDone ? "#9a7020"              : isActive ? "#0d1f0d" : "rgba(100,90,70,.5)",
+                    border: `2px solid ${isDone ? "rgba(201,168,76,.45)" : isActive ? "#c9a84c" : "rgba(213,200,178,.7)"}`,
+                    boxShadow: isActive ? "0 4px 14px rgba(201,168,76,.3)" : "none",
+                    backdropFilter: "blur(4px)",
+                  }}>
+                    {isDone ? <Check size={16} strokeWidth={2.5} /> : s.icon}
                   </div>
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      type="default"
-                      size="large"
-                      onClick={handleCancel}
-                      className="rounded-xl border-zinc-600 text-gray-300 hover:!border-zinc-500 hover:!text-white hover:!bg-zinc-800"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+                  <span style={{ fontSize:"10px", fontWeight:600, letterSpacing:".04em", textAlign:"center", maxWidth:"60px", color: step >= s.key ? "#6b5a3a" : "rgba(107,90,58,.45)" }}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div style={{
+                    flex:1, height:"2px", margin:"0 4px 22px",
+                    background: step > s.key
+                      ? "linear-gradient(90deg, rgba(201,168,76,.5), rgba(201,168,76,.3))"
+                      : "rgba(213,200,178,.5)",
+                    borderRadius:1, transition:"background .4s ease",
+                  }} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* FORM CARD */}
+        <div style={{
+          background:"rgba(255,255,255,.68)", backdropFilter:"blur(20px)",
+          border:"1px solid rgba(232,226,216,.9)", borderRadius:"24px",
+          padding:"clamp(24px,5vw,36px)",
+          boxShadow:"0 20px 60px rgba(0,0,0,.10), 0 4px 16px rgba(201,168,76,.10), 0 0 0 1px rgba(201,168,76,.08)",
+          position:"relative", overflow:"hidden",
+        }}>
+          {/* Gold top accent */}
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:"3px", background:"linear-gradient(90deg,transparent,#c9a84c 30%,#c9a84c 70%,transparent)" }} />
+
+          {/* Card heading */}
+          <div style={{ marginBottom:"20px" }}>
+            <h2 style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"#0d1f0d", lineHeight:1.2, marginBottom:"5px" }}>
+              {step === 1 && "Basic Details & Verification"}
+              {step === 2 && "Account Type"}
+              {step === 3 && "Set Your Password"}
+              {step === 4 && "Location Details"}
+            </h2>
+            <p style={{ fontSize:"13px", color:"#8a7a60", lineHeight:1.55, margin:0 }}>
+              {step === 1 && "Enter your name and mobile, then verify with OTP."}
+              {step === 2 && "Choose how you'll use the platform."}
+              {step === 3 && "Create a secure password for your account."}
+              {step === 4 && "Select your district and taluk in Karnataka."}
+            </p>
+          </div>
+
+          {/* Message banner */}
+          {message.text && (
+            <div style={{
+              padding:"10px 14px", borderRadius:"10px", marginBottom:"18px",
+              background: message.type==="success" ? "rgba(42,110,42,.09)" : "rgba(192,57,43,.09)",
+              border:`1px solid ${message.type==="success" ? "rgba(42,110,42,.25)" : "rgba(192,57,43,.25)"}`,
+              fontSize:"13px", fontWeight:500,
+              color: message.type==="success" ? "#1a5a1a" : "#9b2a1a",
+            }}>
+              {message.text}
+            </div>
+          )}
+
+          {/* ── STEP 1 ── */}
+          {step === 1 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
+                <div>
+                  <label style={labelStyle}>First Name</label>
+                  <input type="text" value={firstName} onChange={(e)=>setFirstName(e.target.value)} placeholder="First name" className={`rp-input${errors.firstName?" err":""}`} disabled={isOtpVerified} />
+                  {errors.firstName && <p style={errStyle}>{errors.firstName}</p>}
+                </div>
+                <div>
+                  <label style={labelStyle}>Last Name</label>
+                  <input type="text" value={lastName} onChange={(e)=>setLastName(e.target.value)} placeholder="Last name" className={`rp-input${errors.lastName?" err":""}`} disabled={isOtpVerified} />
+                  {errors.lastName && <p style={errStyle}>{errors.lastName}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Mobile Number</label>
+                <div style={{ display:"flex", borderRadius:"12px", overflow:"hidden", border:`1.5px solid ${errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,.8)"}`, background:"rgba(255,255,255,.6)", transition:"border-color .2s, box-shadow .2s" }}
+                  onFocusCapture={e=>{ e.currentTarget.style.borderColor="rgba(201,168,76,.7)"; e.currentTarget.style.boxShadow="0 0 0 3px rgba(201,168,76,.12)"; }}
+                  onBlurCapture={e=>{ e.currentTarget.style.borderColor="rgba(213,200,178,.8)"; e.currentTarget.style.boxShadow="none"; }}>
+                  <span style={{ display:"flex", alignItems:"center", padding:"0 14px", fontSize:"14px", fontWeight:700, color:"#9a7020", background:"rgba(201,168,76,.08)", borderRight:"1.5px solid rgba(213,200,178,.7)", minWidth:"54px", flexShrink:0 }}>+91</span>
+                  <input type="tel" value={phone} onChange={(e)=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="98765 43210" style={{ flex:1, background:"transparent", border:"none", outline:"none", padding:"12px 14px", fontSize:"14px", color:"#1a1a0a" }} disabled={isOtpVerified} />
+                </div>
+                {errors.phone && <p style={errStyle}>{errors.phone}</p>}
+              </div>
+
+              {otpSent && (
+                <div>
+                  <label style={labelStyle}>Enter OTP</label>
+                  <input type="text" value={otp} onChange={(e)=>setOtp(e.target.value.replace(/\D/g,"").slice(0,8))} placeholder="Enter OTP sent to your mobile" className={`rp-input${errors.otp?" err":""}`} disabled={isOtpVerified} />
+                  {errors.otp && <p style={errStyle}>{errors.otp}</p>}
+                  {!isOtpVerified && (
+                    <div style={{ display:"flex", gap:"10px", marginTop:"12px", flexWrap:"wrap" }}>
+                      <button type="button" className="rp-btn-primary" onClick={handleVerifyOtp} disabled={verifyingOtp}>
+                        {verifyingOtp ? "Verifying…" : "Verify OTP"}<ArrowRight size={16}/>
+                      </button>
+                      <button type="button" className="rp-btn-outline" onClick={handleSendOtp} disabled={sendingOtp}>
+                        {sendingOtp ? "Sending…" : "Resend OTP"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* STEP 2: Remaining fields (only after OTP verified) */}
-              {step === 2 && isOtpVerified && (
-                <>
-                  <div className="mb-6 sm:mb-8">
-                    <h2 className="text-base sm:text-lg font-semibold text-white border-b border-zinc-700 pb-2 mb-4 sm:mb-5">
-                      Complete Your Profile
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <Form.Item
-                        name="accountType"
-                        label={
-                          <span className="text-gray-300 text-sm">
-                            Account Type
-                          </span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please select account type",
-                          },
-                        ]}
-                        className="mb-0 sm:col-span-2"
-                      >
-                        <Radio.Group className="text-gray-300 w-full">
-                          <Radio value="public">
-                            General Public / Citizen
-                          </Radio>
-                          <Radio value="SURVEYOR">Surveyor</Radio>
-                        </Radio.Group>
-                      </Form.Item>
-                      {accountType === "SURVEYOR" && (
-                        <Form.Item
-                          name="surveyorType"
-                          label={
-                            <span className="text-gray-300 text-sm">
-                              Surveyor Type
-                            </span>
-                          }
-                          rules={[
-                            {
-                              required: true,
-                              message: "Please select your surveyor type",
-                            },
-                          ]}
-                          className="mb-0 sm:col-span-2"
-                        >
-                          <Radio.Group className="text-gray-300">
-                            <Radio value="LS">Licensed Surveyor (LS)</Radio>
-                            <Radio value="GS">Government Surveyor (GS)</Radio>
-                          </Radio.Group>
-                        </Form.Item>
-                      )}
-                      <Form.Item
-                        name="password"
-                        label={
-                          <span className="text-gray-300 text-sm">
-                            Password
-                          </span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please enter password",
-                          },
-                          {
-                            min: 6,
-                            message: "Password must be at least 6 characters",
-                          },
-                        ]}
-                        className="mb-0"
-                      >
-                        <Input.Password
-                          placeholder="Enter password"
-                          size="large"
-                          className="rounded-lg"
-                        />
-                      </Form.Item>
-                      <Form.Item
-                        name="confirmPassword"
-                        label={
-                          <span className="text-gray-300 text-sm">
-                            Confirm Password
-                          </span>
-                        }
-                        dependencies={["password"]}
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please confirm password",
-                          },
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              if (
-                                !value ||
-                                getFieldValue("password") === value
-                              ) {
-                                return Promise.resolve();
-                              }
-                              return Promise.reject(
-                                new Error("Passwords do not match")
-                              );
-                            },
-                          }),
-                        ]}
-                        className="mb-0"
-                      >
-                        <Input.Password
-                          placeholder="Confirm password"
-                          size="large"
-                          className="rounded-lg"
-                        />
-                      </Form.Item>
-                    </div>
-                  </div>
-
-                  {/* Location Details */}
-                  <div className="mb-6 sm:mb-8">
-                    <h2 className="text-base sm:text-lg font-semibold text-white border-b border-zinc-700 pb-2 mb-4 sm:mb-5">
-                      Location Details
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <Form.Item
-                        name="state"
-                        label={
-                          <span className="text-gray-300 text-sm">State</span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please select state",
-                          },
-                        ]}
-                        className="mb-0"
-                      >
-                        <Input size="large" disabled value="Karnataka" />
-                      </Form.Item>
-                      <Form.Item
-                        name="district"
-                        label={
-                          <span className="text-gray-300 text-sm">
-                            District
-                          </span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please select district",
-                          },
-                        ]}
-                        className="mb-0"
-                      >
-                        <Select
-                          placeholder="Select district"
-                          size="large"
-                          className="w-full rounded-lg register-select"
-                          allowClear
-                          loading={districtsLoading}
-                          showSearch
-                          optionFilterProp="label"
-                          filterOption={(input, option) =>
-                            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                          }
-                          options={districtOptions}
-                        />
-                      </Form.Item>
-                      <Form.Item
-                        name="taluk"
-                        label={
-                          <span className="text-gray-300 text-sm">Taluk</span>
-                        }
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please select taluk",
-                          },
-                        ]}
-                        className="mb-0"
-                        dependencies={["district"]}
-                      >
-                        <Select
-                          placeholder={
-                            selectedDistrictId
-                              ? "Select taluk"
-                              : "Select district first"
-                          }
-                          size="large"
-                          className="w-full rounded-lg register-select"
-                          allowClear
-                          disabled={!selectedDistrictId}
-                          loading={talukasLoading}
-                          showSearch
-                          optionFilterProp="label"
-                          filterOption={(input, option) =>
-                            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                          }
-                          options={talukOptions}
-                        />
-                      </Form.Item>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2 sm:pt-4">
-                    <Button
-                      type="default"
-                      size="large"
-                      onClick={() => setStep(1)}
-                      className="flex-1 h-12 rounded-xl border-zinc-600 text-gray-300 hover:!border-zinc-500 hover:!text-white hover:!bg-zinc-800"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      size="large"
-                      loading={isLoading}
-                      className="flex-1 h-12 rounded-xl bg-cyan-500 hover:!bg-cyan-400 !text-black font-semibold border-0 shadow-lg shadow-cyan-500/25"
-                    >
-                      {isLoading ? "Registering..." : "Register"}
-                    </Button>
-                  </div>
-                </>
+              {!otpSent && !isOtpVerified && (
+                <button type="button" className="rp-btn-primary" onClick={handleSendOtp} disabled={sendingOtp} style={{ width:"100%" }}>
+                  {sendingOtp ? <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:"spin .8s linear infinite"}}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Sending OTP…</> : <>Send OTP <ArrowRight size={16}/></>}
+                </button>
               )}
-            </Form>
-          </div>
+              {isOtpVerified && (
+                <button type="button" className="rp-btn-primary" onClick={()=>setStep(2)} style={{ width:"100%" }}>
+                  Next: Account Type <ArrowRight size={16}/>
+                </button>
+              )}
+            </div>
+          )}
 
-          <p className="text-center text-xs sm:text-sm text-gray-500 mt-4 sm:mt-6">
-            By registering, you agree to our Terms of Service and Privacy Policy
-          </p>
+          {/* ── STEP 2 ── */}
+          {step === 2 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              <div>
+                <label style={labelStyle}>Account Type</label>
+                <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+                  {[{value:"public",label:"General Public / Citizen",sub:"For land owners and property buyers"},{value:"SURVEYOR",label:"Licensed Surveyor",sub:"For Karnataka licensed surveyors"}].map((opt)=>(
+                    <label key={opt.value} className={`rp-radio-card${accountType===opt.value?" active":""}`} onClick={()=>{setAccountType(opt.value);setSurveyorType("");}}>
+                      <input type="radio" name="accountType" value={opt.value} checked={accountType===opt.value} onChange={()=>{setAccountType(opt.value);setSurveyorType("");}} style={{ accentColor:"#c9a84c", flexShrink:0 }} />
+                      <div>
+                        <p style={{ fontSize:"14px", fontWeight:600, color:"#0d1f0d", margin:0 }}>{opt.label}</p>
+                        <p style={{ fontSize:"12px", color:"#8a7a60", margin:0, marginTop:"2px" }}>{opt.sub}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {errors.accountType && <p style={errStyle}>{errors.accountType}</p>}
+              </div>
 
-          <p className="text-center text-sm text-gray-400 pt-2">
+              {accountType === "SURVEYOR" && (
+                <div>
+                  <label style={labelStyle}>Surveyor Type</label>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+                    {[{value:"LS",label:"Licensed Surveyor (LS)"},{value:"GS",label:"Government Surveyor (GS)"}].map((opt)=>(
+                      <label key={opt.value} className={`rp-radio-card${surveyorType===opt.value?" active":""}`} onClick={()=>setSurveyorType(opt.value)}>
+                        <input type="radio" name="surveyorType" value={opt.value} checked={surveyorType===opt.value} onChange={()=>setSurveyorType(opt.value)} style={{ accentColor:"#c9a84c" }} />
+                        <span style={{ fontSize:"14px", color:"#1a1a0a", fontWeight:500 }}>{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.surveyorType && <p style={errStyle}>{errors.surveyorType}</p>}
+                </div>
+              )}
+
+              <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
+                <button type="button" className="rp-btn-outline" onClick={goBack}><ArrowLeft size={16}/>Back</button>
+                <button type="button" className="rp-btn-primary" onClick={goNext} style={{ flex:1 }}>Next: Password <ArrowRight size={16}/></button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3 ── */}
+          {step === 3 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              {[{label:"Password",val:password,set:setPassword,show:showPassword,toggle:()=>setShowPassword(p=>!p),err:errors.password,ph:"At least 6 characters"},{label:"Confirm Password",val:confirmPassword,set:setConfirmPassword,show:showConfirmPassword,toggle:()=>setShowConfirmPassword(p=>!p),err:errors.confirmPassword,ph:"Confirm password"}].map((f,i)=>(
+                <div key={i}>
+                  <label style={labelStyle}>{f.label}</label>
+                  <div style={{ position:"relative" }}>
+                    <input type={f.show?"text":"password"} value={f.val} onChange={(e)=>f.set(e.target.value)} placeholder={f.ph} className={`rp-input${f.err?" err":""}`} style={{ paddingRight:"44px" }} />
+                    <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="#9a7020";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
+                      {f.show ? <EyeOff size={17}/> : <Eye size={17}/>}
+                    </button>
+                  </div>
+                  {f.err && <p style={errStyle}>{f.err}</p>}
+                </div>
+              ))}
+              <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
+                <button type="button" className="rp-btn-outline" onClick={goBack}><ArrowLeft size={16}/>Back</button>
+                <button type="button" className="rp-btn-primary" onClick={goNext} style={{ flex:1 }}>Next: Location <ArrowRight size={16}/></button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 4 ── */}
+          {step === 4 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              <div>
+                <label style={labelStyle}>State</label>
+                <input type="text" value="Karnataka" className="rp-input" disabled style={{ opacity:.75 }} />
+              </div>
+              <div>
+                <label style={labelStyle}>District</label>
+                <select value={district} onChange={(e)=>setDistrict(e.target.value)} className={`rp-input rp-select${errors.district?" err":""}`}>
+                  <option value="">{districtsLoading ? "Loading…" : "Select district"}</option>
+                  {districtOptions.map((o)=>(<option key={o.value} value={o.value}>{o.label}</option>))}
+                </select>
+                {errors.district && <p style={errStyle}>{errors.district}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Taluk</label>
+                <select value={taluk} onChange={(e)=>setTaluk(e.target.value)} className={`rp-input rp-select${errors.taluk?" err":""}`} disabled={!district}>
+                  <option value="">{!district ? "Select district first" : talukasLoading ? "Loading…" : "Select taluk"}</option>
+                  {talukOptions.map((o)=>(<option key={o.value} value={o.value}>{o.label}</option>))}
+                </select>
+                {errors.taluk && <p style={errStyle}>{errors.taluk}</p>}
+              </div>
+              <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
+                <button type="button" className="rp-btn-outline" onClick={goBack}><ArrowLeft size={16}/>Back</button>
+                <button type="button" className="rp-btn-primary" onClick={handleSubmit} disabled={isSubmitting} style={{ flex:1 }}>
+                  {isSubmitting ? <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:"spin .8s linear infinite"}}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Creating Account…</> : <>Create Account <Check size={16}/></>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer links */}
+        <div style={{ textAlign:"center", marginTop:"20px" }}>
+          <p style={{ fontSize:"13px", color:"rgba(107,90,58,.65)", margin:"0 0 6px" }}>
             Already have an account?{" "}
-            <a
-              href="/login"
-              className="text-cyan-400 hover:text-cyan-300 font-medium"
-            >
+            <a href="/login" style={{ color:"#9a7020", fontWeight:700, textDecoration:"none" }}
+              onMouseEnter={e=>{e.currentTarget.style.color="#c9a84c";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="#9a7020";}}>
               Login here
             </a>
           </p>
+          <p style={{ fontSize:"11px", color:"rgba(107,90,58,.4)", margin:0 }}>
+            By registering, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
-
-      <style>{`
-        .register-form .ant-input,
-        .register-form .ant-select-selector,
-        .register-form .ant-input-affix-wrapper {
-          border-radius: 0.5rem !important;
-          background: #27272a !important;
-          border-color: #3f3f46 !important;
-          color: #fafafa !important;
-        }
-        .register-form .ant-input::placeholder,
-        .register-form .ant-select-selection-placeholder {
-          color: #71717a !important;
-        }
-        .register-form .ant-input:hover,
-        .register-form .ant-select-selector:hover,
-        .register-form .ant-input-affix-wrapper:hover {
-          border-color: #52525b !important;
-        }
-        .register-form .ant-input:focus,
-        .register-form .ant-input-focused,
-        .register-form .ant-select-focused .ant-select-selector {
-          border-color: #22d3ee !important;
-          box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2) !important;
-        }
-        .register-form .ant-form-item-label > label {
-          color: #d4d4d8 !important;
-        }
-        .register-form .ant-form-item-explain-error {
-          color: #f87171 !important;
-        }
-        .register-select.ant-select-single.ant-select-open .ant-select-selector {
-          border-color: #22d3ee !important;
-        }
-        .register-form .ant-input-group-addon {
-          background: #27272a !important;
-          border-color: #3f3f46 !important;
-          color: #a1a1aa !important;
-          border-radius: 0.5rem 0 0 0.5rem !important;
-        }
-        @media (max-width: 640px) {
-          .register-form .ant-form-item {
-            margin-bottom: 16px;
-          }
-        }
-      `}</style>
-    </ConfigProvider>
+    </div>
   );
-};
-
-export default RegisterPage;
+}

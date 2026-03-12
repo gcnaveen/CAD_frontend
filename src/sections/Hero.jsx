@@ -1,288 +1,333 @@
-// import React from "react";
-
-// const Hero = () => {
-//   const scrollToSection = (sectionId) => {
-//     const element = document.getElementById(sectionId);
-//     if (element) {
-//       element.scrollIntoView({ behavior: "smooth" });
-//     }
-//   };
-
-//   return (
-//     <section className="min-h-screen flex items-center pt-20 md:pt-24 lg:pt-28 pb-12 md:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 bg-white">
-//       <div className="container mx-auto">
-//         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-//           {/* Left Section - Text Content */}
-//           <div className="order-2 lg:order-1 space-y-6 md:space-y-8">
-//             {/* Main Heading */}
-//             <h1 className="font-ibm text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
-//               Convert Your Hand Sketch into Ready CAD Design
-//             </h1>
-
-//             {/* Description */}
-//             <p className="font-montserrat text-base sm:text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl">
-//               Stop getting your sketches rejected at government offices. Upload your hand-drawn sketch and receive a professional, accurate CAD drawing prepared by expert designers—all from the comfort of your home.
-//             </p>
-
-//             {/* Call to Action Buttons */}
-//             <div className="flex flex-col sm:flex-row gap-4 sm:gap-4 pt-2">
-//               <button
-//                 onClick={() => scrollToSection("upload")}
-//                 className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-montserrat font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-//               >
-//                 <span>Upload Your Sketch</span>
-//                 <svg
-//                   className="w-5 h-5"
-//                   fill="none"
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   strokeWidth="2"
-//                   viewBox="0 0 24 24"
-//                   stroke="currentColor"
-//                 >
-//                   <path d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-//                 </svg>
-//               </button>
-//               <button
-//                 onClick={() => scrollToSection("how-it-works")}
-//                 className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-montserrat font-semibold text-base sm:text-lg transition-all duration-200"
-//               >
-//                 <span>How It Works</span>
-//                 <svg
-//                   className="w-5 h-5"
-//                   fill="none"
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                   strokeWidth="2"
-//                   viewBox="0 0 24 24"
-//                   stroke="currentColor"
-//                 >
-//                   <path d="M9 5l7 7-7 7"></path>
-//                 </svg>
-//               </button>
-//             </div>
-
-//             {/* Statistics */}
-//             <div className="grid grid-cols-3 gap-4 sm:gap-6 md:gap-8 pt-4 md:pt-6">
-//               <div className="text-center sm:text-left">
-//                 <div className="font-ibm text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">
-//                   500+
-//                 </div>
-//                 <div className="font-montserrat text-xs sm:text-sm md:text-base text-gray-600 mt-1">
-//                   Projects Completed
-//                 </div>
-//               </div>
-//               <div className="text-center sm:text-left">
-//                 <div className="font-ibm text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">
-//                   98%
-//                 </div>
-//                 <div className="font-montserrat text-xs sm:text-sm md:text-base text-gray-600 mt-1">
-//                   Approval Rate
-//                 </div>
-//               </div>
-//               <div className="text-center sm:text-left">
-//                 <div className="font-ibm text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">
-//                   24hrs
-//                 </div>
-//                 <div className="font-montserrat text-xs sm:text-sm md:text-base text-gray-600 mt-1">
-//                   Average Delivery
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Right Section - Image */}
-//           <div className="order-1 lg:order-2 relative">
-//             <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-2xl">
-//               <img
-//                 src="/assets/hero.png"
-//                 alt="CAD Design Example"
-//                 className="w-full h-full object-cover"
-//               />
-//               {/* Overlay Box */}
-//               <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white/95 backdrop-blur-sm px-4 sm:px-5 py-3 sm:py-4 rounded-lg shadow-lg max-w-[200px] sm:max-w-[240px] md:max-w-[280px]">
-//                 <div className="flex items-start gap-2 sm:gap-3">
-//                   <svg
-//                     className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 shrink-0 mt-0.5"
-//                     fill="none"
-//                     strokeLinecap="round"
-//                     strokeLinejoin="round"
-//                     strokeWidth="2"
-//                     viewBox="0 0 24 24"
-//                     stroke="currentColor"
-//                   >
-//                     <path d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-//                   </svg>
-//                   <p className="font-montserrat text-xs sm:text-sm md:text-base font-medium text-gray-800 leading-tight">
-//                     Government Approved Professional CAD Drawings
-//                   </p>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </section>
-//   );
-// };
-
-// export default Hero;
-import React from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { t } from "../constants/translation";
+import { ArrowRight, MapPin, Clock, ShieldCheck, IndianRupee } from "lucide-react";
+import SurveyingBackground from "../components/SurveyingBackground";
 
 const Hero = () => {
   const navigate = useNavigate();
   const lang = useSelector((state) => state.language?.lang || "en");
+  const rootRef = useRef(null);
 
   const scrollToHowItWorks = () => {
     const element = document.getElementById("how-it-works");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Magnetic button effect
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const btns = root.querySelectorAll(".magnetic-btn");
+    const handlers = [];
+    btns.forEach((btn) => {
+      const onMove = (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        btn.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px) scale(1.02)`;
+      };
+      const onLeave = () => { btn.style.transform = ""; };
+      btn.addEventListener("mousemove", onMove);
+      btn.addEventListener("mouseleave", onLeave);
+      handlers.push({ btn, onMove, onLeave });
+    });
+    return () => handlers.forEach(({ btn, onMove, onLeave }) => {
+      btn.removeEventListener("mousemove", onMove);
+      btn.removeEventListener("mouseleave", onLeave);
+    });
+  }, []);
+
+  // Stagger stat cards on mount
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const cards = root.querySelectorAll(".stat-card-anim");
+    cards.forEach((card, i) => {
+      card.style.opacity = "0";
+      card.style.transform = "translateY(20px)";
+      setTimeout(() => {
+        card.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+        card.style.opacity = "1";
+        card.style.transform = "translateY(0)";
+      }, 300 + i * 100);
+    });
+  }, [lang]);
+
+  // Hero text reveal
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const els = root.querySelectorAll(".reveal-up");
+    els.forEach((el, i) => {
+      el.style.opacity = "0";
+      el.style.transform = "translateY(30px)";
+      setTimeout(() => {
+        el.style.transition = "opacity 0.7s ease, transform 0.7s ease";
+        el.style.opacity = "1";
+        el.style.transform = "translateY(0)";
+      }, i * 120);
+    });
+  }, [lang]);
+
+  const stats = useMemo(() => [
+    { icon: <IndianRupee size={16} />, value: t(lang, "hero.stats.priceValue"), label: t(lang, "hero.stats.priceLabel") },
+    { icon: <Clock size={16} />, value: t(lang, "hero.stats.deliveryValue"), label: t(lang, "hero.stats.deliveryLabel") },
+    { icon: <MapPin size={16} />, value: t(lang, "hero.stats.regionValue"), label: t(lang, "hero.stats.regionLabel") },
+    { icon: <ShieldCheck size={16} />, value: t(lang, "hero.stats.qcValue"), label: t(lang, "hero.stats.qcLabel") },
+  ], [lang]);
+
+  const marqueeItems = useMemo(() => [
+    "Licensed Land Surveyors", "AutoCAD Drawings", "₹500 Fixed Price",
+    "48-Hour Delivery", "Karnataka Only", "QC-Assured Process",
+    "Tippani · RTC · Survey", "North-cot Platform",
+  ], []);
+
   return (
-    <div className="min-h-screen bg-white flex items-center pt-20 md:pt-24 lg:pt-28">
-      <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* Left Content */}
-        <div className="space-y-8">
-          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            <span className="text-blue-700 text-xs font-semibold tracking-wide uppercase">
+    <section
+      ref={rootRef}
+      className="relative overflow-hidden flex flex-col"
+      style={{
+        background: "linear-gradient(160deg, #f7f2e8 0%, #f0ead8 40%, #ede5d0 100%)",
+        minHeight: "100vh",
+        paddingTop: "70px",
+      }}
+    >
+      {/* Decorative background elements */}
+      <SurveyingBackground />
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        {/* Large ambient orb top-left */}
+        <div style={{
+          position: "absolute", top: "-120px", left: "-100px",
+          width: "600px", height: "600px", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 65%)",
+        }} />
+        {/* Bottom right orb */}
+        <div style={{
+          position: "absolute", bottom: "60px", right: "-80px",
+          width: "500px", height: "500px", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(21,40,21,0.07) 0%, transparent 65%)",
+        }} />
+        {/* Subtle grid pattern */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `
+            linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "60px 60px",
+        }} />
+        {/* Gold accent line top */}
+        <div style={{
+          position: "absolute", top: "70px", left: 0, right: 0, height: "1px",
+          background: "linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.3) 30%, rgba(201,168,76,0.3) 70%, transparent 100%)",
+        }} />
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div
+        className="flex-1 relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+        style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "40px", display: "flex", flexDirection: "column", justifyContent: "center" }}
+      >
+        {/* Eyebrow badge */}
+        <div className="reveal-up flex items-center gap-3 mb-5">
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "6px 16px", borderRadius: "100px",
+            background: "rgba(201,168,76,0.12)",
+            border: "1px solid rgba(201,168,76,0.35)",
+          }}>
+            <span style={{ position: "relative", display: "flex", width: "8px", height: "8px" }}>
+              <span style={{
+                position: "absolute", inset: 0, borderRadius: "50%",
+                background: "#c9a84c", opacity: 0.6, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
+              }} />
+              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "#c9a84c" }} />
+            </span>
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9a7020" }}>
               {t(lang, "hero.eyebrow")}
             </span>
           </div>
-          <h1 className="text-3xl md:text-4xl lg:text-4xl font-bold text-gray-900 leading-snug">
+        </div>
+
+        {/* HERO TITLE — large, dramatic */}
+        <div className="reveal-up mb-5" style={{ maxWidth: "820px" }}>
+          <h1 style={{
+            fontFamily: "'IBM Plex Serif', Georgia, serif",
+            fontStyle: "italic",
+            fontWeight: 600,
+            lineHeight: 1.12,
+            fontSize: "clamp(38px, 5.5vw, 72px)",
+            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 40%, #2a5a2a 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            letterSpacing: "-0.01em",
+          }}>
             {t(lang, "hero.title")}
           </h1>
+        </div>
 
-          <p className="text-lg text-gray-600 leading-relaxed">
+        {/* Decorative divider */}
+        <div className="reveal-up flex items-center gap-2 mb-5">
+          <div style={{ height: "2px", width: "32px", background: "#c9a84c", borderRadius: "2px" }} />
+          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c" }} />
+          <div style={{ height: "1px", width: "200px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
+        </div>
+
+        {/* Subtitle */}
+        <div className="reveal-up mb-8" style={{ maxWidth: "560px" }}>
+          <p style={{
+            fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
+            lineHeight: 1.8,
+            color: "#000",
+            fontWeight: 400,
+          }}>
             {t(lang, "hero.subtitle")}
           </p>
-
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => navigate("/login")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-2 transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              {t(lang, "hero.ctaPrimary")}
-            </button>
-
-            <button
-              onClick={scrollToHowItWorks}
-              className="bg-white hover:bg-gray-50 text-gray-900 px-8 py-4 rounded-lg font-medium border border-gray-300 flex items-center gap-2 transition-colors"
-            >
-              {t(lang, "hero.ctaSecondary")}
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
-            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
-              <div className="text-lg md:text-xl font-semibold text-gray-900">
-                {t(lang, "hero.stats.priceValue")}
-              </div>
-              <div className="text-xs text-gray-600">
-                {t(lang, "hero.stats.priceLabel")}
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
-              <div className="text-lg md:text-xl font-semibold text-gray-900">
-                {t(lang, "hero.stats.deliveryValue")}
-              </div>
-              <div className="text-xs text-gray-600">
-                {t(lang, "hero.stats.deliveryLabel")}
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
-              <div className="text-lg md:text-xl font-semibold text-gray-900">
-                {t(lang, "hero.stats.regionValue")}
-              </div>
-              <div className="text-xs text-gray-600">
-                {t(lang, "hero.stats.regionLabel")}
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white/60 px-4 py-3 flex flex-col gap-0.5">
-              <div className="text-lg md:text-xl font-semibold text-gray-900">
-                {t(lang, "hero.stats.qcValue")}
-              </div>
-              <div className="text-xs text-gray-600">
-                {t(lang, "hero.stats.qcLabel")}
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Right Content - Video */}
-        <div className="relative">
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-            <video
-              src="/assets/bgvid2.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
+        {/* CTA Buttons */}
+        <div className="reveal-up flex flex-col sm:flex-row gap-3 mb-10">
+          <button
+            onClick={() => navigate("/login")}
+            className="magnetic-btn"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
+              padding: "14px 32px", borderRadius: "14px",
+              background: "linear-gradient(135deg, #152815 0%, #1d3d1d 100%)",
+              color: "white", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
+              boxShadow: "0 8px 32px rgba(21,40,21,0.30), 0 2px 8px rgba(21,40,21,0.15)",
+              border: "none", cursor: "pointer",
+              transition: "all 0.25s ease",
+              width: "auto",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 12px 40px rgba(21,40,21,0.40), 0 4px 12px rgba(21,40,21,0.2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(21,40,21,0.30), 0 2px 8px rgba(21,40,21,0.15)"; }}
+          >
+            {t(lang, "hero.ctaPrimary")}
+            <ArrowRight size={16} />
+          </button>
 
-            {/* Overlay Badge */}
-            <div className="absolute bottom-8 left-8 bg-white rounded-xl shadow-lg p-4 flex items-start gap-3">
-              <div className="bg-blue-100 rounded-lg p-3">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
+          <button
+            onClick={scrollToHowItWorks}
+            className="magnetic-btn"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
+              padding: "14px 28px", borderRadius: "14px",
+              background: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)",
+              color: "#152815", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
+              border: "1.5px solid rgba(213,207,196,0.8)", cursor: "pointer",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              transition: "all 0.25s ease",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.9)"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.7)"; e.currentTarget.style.borderColor = "rgba(213,207,196,0.8)"; }}
+          >
+            <span style={{
+              width: "30px", height: "30px", borderRadius: "50%",
+              background: "white", border: "1px solid rgba(0,0,0,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#152815"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            {t(lang, "hero.ctaSecondary")}
+          </button>
+        </div>
+
+        {/* STAT CARDS */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: "12px",
+            maxWidth: "720px",
+          }}
+        >
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className="stat-card-anim"
+              style={{
+                background: "rgba(255,255,255,0.75)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(232,226,216,0.9)",
+                borderRadius: "16px",
+                padding: "16px",
+                cursor: "default",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-3px)";
+                e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.10)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)";
+              }}
+            >
+              <div style={{
+                width: "34px", height: "34px", borderRadius: "10px",
+                background: "rgba(201,168,76,0.12)", color: "#c9a84c",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: "10px",
+              }}>
+                {stat.icon}
               </div>
-              <div>
-                <div className="font-semibold text-gray-900">
-                  {t(lang, "hero.badge.title")}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {t(lang, "hero.badge.subtitle")}
-                </div>
+              <div style={{
+                fontFamily: "'IBM Plex Serif', Georgia, serif",
+                fontWeight: 600, fontSize: "20px", color: "#0d1f0d",
+                lineHeight: 1, marginBottom: "4px",
+              }}>
+                {stat.value}
+              </div>
+              <div style={{ fontSize: "11px", fontWeight: 500, color: "#b5aa98", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {stat.label}
               </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
-    </div>
+
+      {/* MARQUEE TICKER */}
+      <div style={{
+        flexShrink: 0, overflow: "hidden",
+        borderTop: "1px solid rgba(26,52,25,0.9)",
+        background: "linear-gradient(90deg, #0d1f0d 0%, #152815 100%)",
+        padding: "12px 0",
+      }}>
+        <style>{`
+          @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+          @keyframes ping { 0% { transform: scale(1); opacity: 0.75; } 75%, 100% { transform: scale(2); opacity: 0; } }
+          .marquee-track { display: flex; animation: marquee 28s linear infinite; width: max-content; }
+          .marquee-track:hover { animation-play-state: paused; }
+        `}</style>
+        <div className="marquee-track">
+          {[0, 1].map((dup) => (
+            <div key={dup} style={{ display: "flex", alignItems: "center", flexShrink: 0 }} aria-hidden={dup === 1}>
+              {marqueeItems.map((item, i) => (
+                <React.Fragment key={`${dup}-${i}`}>
+                  <span style={{
+                    padding: "0 28px", fontWeight: 500, letterSpacing: "0.15em",
+                    textTransform: "uppercase", fontSize: "11px", color: "rgba(255,255,255,0.45)",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {item}
+                  </span>
+                  <span style={{ color: "#c9a84c", fontSize: "9px" }}>◆</span>
+                </React.Fragment>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 };
 

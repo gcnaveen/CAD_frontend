@@ -1,148 +1,287 @@
 import React from "react";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
+import { useSelector } from "react-redux";
+import { translations } from "../constants/translation";
 
-const Footer = () => {
-  const quickLinks = [
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Benefits", href: "#benefits" },
-    { name: "Testimonials", href: "#testimonials" },
-    { name: "Upload Sketch", href: "#upload" },
-  ];
+const QUICK_LINKS = [
+  { name: "How It Works", href: "#how-it-works" },
+  { name: "Benefits", href: "#benefits" },
+  { name: "Testimonials", href: "#testimonials" },
+  { name: "Upload Drawing", href: "#upload" },
+];
 
-  const supportLinks = [
-    { name: "FAQ", href: "#faq" },
-    { name: "Privacy Policy", href: "#privacy" },
-    { name: "Terms of Service", href: "#terms" },
-    { name: "Refund Policy", href: "#refund" },
-  ];
+const SUPPORT_LINKS = [
+  { name: "FAQ", href: "#faq" },
+  { name: "Privacy Policy", href: "#privacy" },
+  { name: "Terms of Service", href: "#terms" },
+  { name: "Refund Policy", href: "#refund" },
+];
+
+export default function Footer() {
+  const lang = useSelector((state) => state.language?.lang || "en");
+  const tr = translations[lang]?.footer;
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id.replace("#", ""));
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <footer className="bg-slate-900 text-gray-300 border-t-4 border-blue-500">
-      {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-          {/* Brand Section */}
-          <div className="lg:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
-              {/* Logo */}
-              <div className="flex items-center">
-                <img
-                  src="/assets/logo.png"
-                  alt="CAD Design Service"
-                  className="w-26 h-26 rounded-lg object-contain"
-                  onError={(e) => {
-                    // Fallback if image doesn't load
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML =
-                      '<div class="w-8 h-8 bg-white rounded-full"></div>';
-                  }}
-                />
-              </div>
-             
-            </div>
-            <p className="text-sm leading-relaxed">
-              Professional CAD drawings for rural land and property owners.
-              Government-approved and reliable.
-            </p>
-          </div>
+    <footer style={{
+      background: "linear-gradient(170deg, #0a1a0a 0%, #0d1f0d 50%, #111f11 100%)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <style>{`
+        .footer-link {
+          font-size: 13px;
+          color: rgba(255,255,255,0.42);
+          text-decoration: none;
+          font-weight: 500;
+          transition: color 0.2s ease;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          text-align: left;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .footer-link:hover { color: #c9a84c; }
+        .footer-link-icon { opacity: 0; transition: opacity 0.2s ease; }
+        .footer-link:hover .footer-link-icon { opacity: 1; }
+        .contact-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 7px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .contact-item:last-child { border-bottom: none; }
+        .footer-col-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(201,168,76,0.7);
+          margin-bottom: 16px;
+        }
+      `}</style>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-bold text-white mb-4">Quick Links</h4>
-            <ul className="space-y-3">
-              {quickLinks.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-sm hover:text-blue-400 transition-colors duration-300 hover:underline"
-                  >
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="text-lg font-bold text-white mb-4">Support</h4>
-            <ul className="space-y-3">
-              {supportLinks.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-sm hover:text-blue-400 transition-colors duration-300 hover:underline"
-                  >
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Us */}
-          <div>
-            <h4 className="text-lg font-bold text-white mb-4">Contact Us</h4>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <a
-                  href="tel:+919876543210"
-                  className="text-sm hover:text-blue-400 transition-colors duration-300"
-                >
-                  +91 98765 43210
-                </a>
-              </li>
-              <li className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <a
-                  href="mailto:support@caddesignservice.com"
-                  className="text-sm hover:text-blue-400 transition-colors duration-300 break-all"
-                >
-                  support@caddesignservice.com
-                </a>
-              </li>
-              <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">Available across India</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+      {/* Background decoration */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }} aria-hidden="true">
+        <div style={{
+          position: "absolute", top: "-100px", left: "50%", transform: "translateX(-50%)",
+          width: "800px", height: "400px",
+          background: "radial-gradient(ellipse, rgba(201,168,76,0.05) 0%, transparent 65%)",
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(circle, rgba(201,168,76,0.07) 1px, transparent 1px)",
+          backgroundSize: "36px 36px", opacity: 0.5,
+        }} />
+        {/* Top gold line */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: "1px",
+          background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.35) 30%, rgba(201,168,76,0.35) 70%, transparent)",
+        }} />
       </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-400 text-center md:text-left">
-              © 2026 CAD Design Service. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <a
-                href="#privacy"
-                className="text-sm text-gray-400 hover:text-blue-400 transition-colors duration-300"
-              >
-                Privacy
-              </a>
-              <a
-                href="#terms"
-                className="text-sm text-gray-400 hover:text-blue-400 transition-colors duration-300"
-              >
-                Terms
-              </a>
-              <a
-                href="#cookies"
-                className="text-sm text-gray-400 hover:text-blue-400 transition-colors duration-300"
-              >
-                Cookies
-              </a>
+      {/* MAIN CONTENT */}
+      <div style={{
+        maxWidth: "1100px", margin: "0 auto",
+        padding: "clamp(48px, 7vw, 72px) clamp(16px, 4vw, 32px) 0",
+        position: "relative", zIndex: 1,
+      }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "clamp(24px, 4vw, 48px)",
+          paddingBottom: "clamp(40px, 6vw, 60px)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+        }}>
+
+          {/* BRAND */}
+          <div style={{ gridColumn: "span 1" }}>
+            <div style={{ marginBottom: "16px" }}>
+              <img
+                src="/assets/logo.png"
+                alt="North-cot"
+                style={{ height: "52px", width: "auto" }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentElement.innerHTML = `
+                    <div style="display:inline-flex;align-items:center;gap:8px;">
+                      <div style="width:32px;height:32px;borderRadius:8px;background:rgba(201,168,76,0.15);display:flex;align-items:center;justify-content:center;">
+                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='#c9a84c' strokeWidth='2'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg>
+                      </div>
+                      <span style='font-family:IBM Plex Serif,serif;font-style:italic;font-weight:700;font-size:18px;color:white;'>North-cot</span>
+                    </div>
+                  `;
+                }}
+              />
             </div>
+            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: "220px" }}>
+              {tr?.tagline}
+            </p>
+            {/* Decorative gold divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "20px" }}>
+              <div style={{ width: "20px", height: "1.5px", background: "#c9a84c", borderRadius: "2px" }} />
+              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c9a84c" }} />
+              <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
+            </div>
+            {/* Karnataka badge */}
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              marginTop: "16px", padding: "5px 12px", borderRadius: "100px",
+              background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)",
+            }}>
+              <MapPin size={10} color="#c9a84c" />
+              <span style={{ fontSize: "11px", fontWeight: 600, color: "rgba(201,168,76,0.75)", letterSpacing: "0.1em" }}>
+                Karnataka Only
+              </span>
+            </div>
+          </div>
+
+          {/* QUICK LINKS */}
+          <div>
+            <p className="footer-col-label">{tr?.quickLinksTitle || "Quick Links"}</p>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+              {QUICK_LINKS.map((link) => (
+                <li key={link.name}>
+                  <button
+                    className="footer-link"
+                    onClick={() => scrollTo(link.href)}
+                  >
+                    {link.name}
+                    <ArrowUpRight size={11} className="footer-link-icon" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* SUPPORT */}
+          <div>
+            <p className="footer-col-label">{tr?.supportTitle || "Support"}</p>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+              {SUPPORT_LINKS.map((link) => (
+                <li key={link.name}>
+                  <a href={link.href} className="footer-link">
+                    {link.name}
+                    <ArrowUpRight size={11} className="footer-link-icon" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* CONTACT */}
+          <div>
+            <p className="footer-col-label">{tr?.contactTitle || "Contact Us"}</p>
+            <div>
+              <div className="contact-item">
+                <div style={{
+                  width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
+                  background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Phone size={13} color="#c9a84c" />
+                </div>
+                <a href="tel:+919876543210" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
+                  +91 98765 43210
+                </a>
+              </div>
+              <div className="contact-item">
+                <div style={{
+                  width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
+                  background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Mail size={13} color="#c9a84c" />
+                </div>
+                <a href="mailto:support@northcot.in" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
+                  support@northcot.in
+                </a>
+              </div>
+              <div className="contact-item">
+                <div style={{
+                  width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
+                  background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <MapPin size={13} color="#c9a84c" />
+                </div>
+                <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", paddingTop: "6px" }}>
+                  Karnataka, India
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* BOTTOM BAR */}
+        <div style={{
+          display: "flex", flexWrap: "wrap",
+          alignItems: "center", justifyContent: "space-between",
+          gap: "12px",
+          padding: "20px 0",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", margin: 0 }}>
+              © 2026 North-cot. All rights reserved.
+            </p>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)", margin: 0 }}>
+              Designed & developed by{" "}
+              <a
+                href="https://www.naviinfo.tech/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "rgba(201,168,76,0.55)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  letterSpacing: "0.02em",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "rgba(201,168,76,0.55)"; }}
+              >
+                Navi Infotech ↗
+              </a>
+            </p>
+          </div>
+
+          {/* Gold divider dot */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: "6px",
+          }}>
+            <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(201,168,76,0.4)", display: "inline-block" }} />
+            <span style={{ fontSize: "11px", color: "rgba(201,168,76,0.45)", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              Karnataka Land Surveyors
+            </span>
+            <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(201,168,76,0.4)", display: "inline-block" }} />
+          </div>
+
+          <div style={{ display: "flex", gap: "20px" }}>
+            {["Privacy", "Terms", "Cookies"].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`}
+                style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", textDecoration: "none", transition: "color 0.2s ease" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.22)"; }}
+              >
+                {item}
+              </a>
+            ))}
           </div>
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}
