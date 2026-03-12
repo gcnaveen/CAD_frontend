@@ -1,202 +1,372 @@
-import React, { useState, useEffect } from "react";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, MapPin, Quote } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
 
-const ClientTestimonials = () => {
+const TESTIMONIALS = [
+  {
+    name: "Ramesh Kumar",
+    location: "Village Rampur, UP",
+    role: "Land Owner",
+    initials: "RK",
+    text: "I was visiting the tehsil office 4 times with my hand-drawn sketch. Every time they rejected it. With this service, I uploaded my sketch and got a perfect CAD drawing in 2 days. Approved in first visit!",
+  },
+  {
+    name: "Sunita Devi",
+    location: "Dharwad, Karnataka",
+    role: "Property Owner",
+    initials: "SD",
+    text: "Very easy process. I don't know computers much, but my son helped me upload the sketch from phone. The CAD drawing came exactly as needed for property registration. Saved us many trips to taluk office.",
+  },
+  {
+    name: "Prakash Patil",
+    location: "Nashik, Maharashtra",
+    role: "Farmer",
+    initials: "PP",
+    text: "Government office always said my drawing is not proper. Now with professional CAD design, they accepted immediately. Good service and helpful team. Highly recommend for all farmers and land owners.",
+  },
+  {
+    name: "Lakshmi Reddy",
+    location: "Anantapur, Andhra Pradesh",
+    role: "Land Owner",
+    initials: "LR",
+    text: "Saved me so much time and money! The local CAD person wanted ₹5000 and 15 days. Here I got it in 3 days at half the price. The drawing quality is excellent and passed government check first time.",
+  },
+  {
+    name: "Mohan Singh",
+    location: "Alwar, Rajasthan",
+    role: "Farmer",
+    initials: "MS",
+    text: "I have 5 acres of agricultural land. Making proper boundary map was very difficult. This service made everything easy. They called me to clarify measurements and delivered perfect government-ready drawing.",
+  },
+  {
+    name: "Kavita Sharma",
+    location: "Satara, Maharashtra",
+    role: "Property Owner",
+    initials: "KS",
+    text: "My husband passed away and I needed property transfer documents. The team was very understanding and helped me throughout. Got all CAD drawings for mutation within one week. Very grateful for their support.",
+  },
+  {
+    name: "Rajesh Patel",
+    location: "Mehsana, Gujarat",
+    role: "Land Owner",
+    initials: "RP",
+    text: "Best decision to use this service! The designer called me twice to confirm all details. Final drawing had every dimension perfect. Revenue office approved without a single question.",
+  },
+  {
+    name: "Suresh Yadav",
+    location: "Bhopal, Madhya Pradesh",
+    role: "Farmer",
+    initials: "SY",
+    text: "Very professional service. I uploaded sketch on Sunday night, got a call on Monday morning, and received drawing by Tuesday evening. The speed and quality both are excellent. Will use again.",
+  },
+  {
+    name: "Anjali Desai",
+    location: "Valsad, Gujarat",
+    role: "Builder",
+    initials: "AD",
+    text: "Local person wanted ₹8000 and said come after 20 days. Found this service online, paid ₹3500 and got drawing in 4 days. Municipality accepted it without any changes!",
+  },
+];
+
+const COLORS = [
+  { bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.3)", text: "#9a7020" },
+  { bg: "rgba(42,110,42,0.10)", border: "rgba(42,110,42,0.25)", text: "#1a5a1a" },
+  { bg: "rgba(139,90,43,0.10)", border: "rgba(139,90,43,0.22)", text: "#6b4a20" },
+];
+
+const ITEMS_PER_PAGE = 3;
+
+export default function ClientTestimonials() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.testimonials;
+  const sectionRef = useRef(null);
+  const totalPages = Math.ceil(TESTIMONIALS.length / ITEMS_PER_PAGE);
 
-  const testimonials = [
-    {
-      name: "Ramesh Kumar",
-      location: "Village Rampur, UP",
-      rating: 5,
-      text: "I was visiting the tehsil office 4 times with my hand-drawn sketch. Every time they rejected it. With this service, I uploaded my sketch and got perfect CAD drawing in 2 days. Approved in first visit!",
-    },
-    {
-      name: "Sunita Devi",
-      location: "Dharwad, Karnataka",
-      rating: 5,
-      text: "Very easy process. I don't know computers much, but my son helped me upload the sketch from phone. The CAD drawing came exactly as needed for property registration. Saved us many trips to taluk office.",
-    },
-    {
-      name: "Prakash Patil",
-      location: "Nashik, Maharashtra",
-      rating: 5,
-      text: "Government office always said my drawing is not proper. Now with professional CAD design, they accepted immediately. Good service and helpful team. Highly recommend for all farmers and land owners.",
-    },
-    {
-      name: "Lakshmi Reddy",
-      location: "Anantapur, Andhra Pradesh",
-      rating: 5,
-      text: "Saved me so much time and money! The local CAD person wanted ₹5000 and 15 days. Here I got it in 3 days at half the price. The drawing quality is excellent and passed government check first time.",
-    },
-    {
-      name: "Mohan Singh",
-      location: "Alwar, Rajasthan",
-      rating: 5,
-      text: "I have 5 acres of agricultural land. Making proper boundary map was very difficult. This service made everything easy. They called me to clarify measurements and delivered perfect government-ready drawing.",
-    },
-    {
-      name: "Kavita Sharma",
-      location: "Satara, Maharashtra",
-      rating: 5,
-      text: "My husband passed away and I needed property transfer documents. The team was very understanding and helped me throughout. Got all CAD drawings for mutation within one week. Very grateful for their support.",
-    },
-    {
-      name: "Rajesh Patel",
-      location: "Mehsana, Gujarat",
-      rating: 5,
-      text: "Best decision to use this service! I was worried about accuracy of measurements. The designer called me twice to confirm all details. Final drawing had every dimension perfect. Revenue office approved without single question.",
-    },
-    {
-      name: "Suresh Yadav",
-      location: "Bhopal, Madhya Pradesh",
-      rating: 5,
-      text: "Very professional service. I uploaded sketch on Sunday night, got call on Monday morning, and received drawing by Tuesday evening. The speed and quality both are excellent. Will use again for my other properties.",
-    },
-    {
-      name: "Anjali Desai",
-      location: "Valsad, Gujarat",
-      rating: 5,
-      text: "I needed CAD drawing for building permission. Local person wanted ₹8000 and said come after 20 days. Found this service online, paid ₹3500 and got drawing in 4 days. Municipality accepted it without any changes!",
-    },
-  ];
-
-  const itemsPerPage = 3;
-  const totalPages = Math.ceil(testimonials.length / itemsPerPage);
-
-  // Auto-play carousel
   useEffect(() => {
     if (isPaused) return;
-
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % totalPages);
-    }, 5000); // Change slide every 5 seconds
-
+      handleNext();
+    }, 5500);
     return () => clearInterval(interval);
-  }, [isPaused, totalPages]);
+  }, [isPaused, currentIndex]);
 
-  const goToPrevious = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? totalPages - 1 : prevIndex - 1,
+  // Header reveal
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const items = section.querySelectorAll(".test-reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            setTimeout(() => {
+              el.style.opacity = "1";
+              el.style.transform = "translateY(0)";
+            }, Number(el.dataset.delay || 0));
+            observer.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
+    items.forEach((el) => {
+      el.style.opacity = "0";
+      el.style.transform = "translateY(20px)";
+      el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+      observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const handleNext = () => {
+    if (animating) return;
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 400);
+    setCurrentIndex((p) => (p + 1) % totalPages);
   };
 
-  const goToNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % totalPages);
+  const handlePrev = () => {
+    if (animating) return;
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 400);
+    setCurrentIndex((p) => (p === 0 ? totalPages - 1 : p - 1));
   };
 
-  const getCurrentTestimonials = () => {
-    const startIndex = currentIndex * itemsPerPage;
-    return testimonials.slice(startIndex, startIndex + itemsPerPage);
-  };
+  const currentCards = TESTIMONIALS.slice(
+    currentIndex * ITEMS_PER_PAGE,
+    currentIndex * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+  );
 
   return (
-    <div
+    <section
       id="testimonials"
-      className="w-full bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 px-4 sm:px-6 lg:px-8"
+      ref={sectionRef}
+      style={{
+        background: "linear-gradient(180deg, #f7f2e8 0%, #f0ead8 60%, #ede5d0 100%)",
+        padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12 md:mb-16">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+      <style>{`
+        .test-card {
+          background: rgba(255,255,255,0.75);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(232,226,216,0.85);
+          border-radius: 20px;
+          padding: 28px 24px;
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.055);
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .test-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 36px rgba(0,0,0,0.10);
+          border-color: rgba(201,168,76,0.25);
+        }
+        .test-cards-wrap {
+          opacity: 1;
+          transition: opacity 0.3s ease;
+        }
+        .test-cards-wrap.fading {
+          opacity: 0;
+        }
+        .nav-btn {
+          width: 44px; height: 44px; border-radius: 50%;
+          background: rgba(255,255,255,0.8);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(232,226,216,0.9);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+          transition: all 0.2s ease;
+          color: #152815;
+        }
+        .nav-btn:hover {
+          background: #152815;
+          border-color: #152815;
+          color: white;
+          box-shadow: 0 4px 16px rgba(21,40,21,0.25);
+          transform: scale(1.05);
+        }
+        .dot-btn {
+          height: 6px; border-radius: 3px;
+          border: none; cursor: pointer;
+          transition: all 0.3s ease;
+        }
+      `}</style>
+
+      {/* Background decorations */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
+        <div style={{
+          position: "absolute", top: "-80px", left: "50%", transform: "translateX(-50%)",
+          width: "800px", height: "400px",
+          background: "radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 65%)",
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(circle, rgba(201,168,76,0.10) 1px, transparent 1px)",
+          backgroundSize: "44px 44px", opacity: 0.45,
+        }} />
+      </div>
+
+      <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+
+        {/* HEADER */}
+        <div className="test-reveal" data-delay="0" style={{ textAlign: "center", marginBottom: "clamp(36px, 5vw, 60px)" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "6px 18px", borderRadius: "100px",
+            background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)",
+            marginBottom: "20px",
+          }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9a7020" }}>
+              Testimonials
+            </span>
+          </div>
+          <h2 style={{
+            fontFamily: "'IBM Plex Serif', Georgia, serif",
+            fontStyle: "italic", fontWeight: 600,
+            fontSize: "clamp(28px, 3.8vw, 50px)", lineHeight: 1.15,
+            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 50%, #2a5a2a 100%)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+            marginBottom: "14px", letterSpacing: "-0.01em",
+          }}>
             {tr?.title}
-          </h1>
-          <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
+          </h2>
+          <p style={{ fontSize: "clamp(14px, 1.1vw, 16px)", color: "#6b6252", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
 
-        {/* Carousel Container */}
+        {/* TESTIMONIAL CARDS */}
         <div
-          className="relative"
+          className={`test-cards-wrap${animating ? " fading" : ""}`}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "16px",
+            marginBottom: "32px",
+          }}
         >
-          {/* Testimonials Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
-            {getCurrentTestimonials().map((testimonial, index) => (
-              <div
-                key={`${currentIndex}-${index}`}
-                className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 hover:shadow-xl transition-all duration-300 flex flex-col"
-              >
-                {/* Star Rating */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5 fill-yellow-400 text-yellow-400"
-                    />
+          {currentCards.map((t, idx) => {
+            const color = COLORS[idx % COLORS.length];
+            return (
+              <div key={`${currentIndex}-${idx}`} className="test-card">
+                {/* Ghost quote mark */}
+                <div style={{
+                  position: "absolute", top: "12px", right: "16px",
+                  opacity: 0.06, color: "#152815",
+                  transform: "scale(3)", transformOrigin: "top right",
+                  pointerEvents: "none",
+                }}>
+                  <Quote size={28} />
+                </div>
+
+                {/* Stars */}
+                <div style={{ display: "flex", gap: "3px", marginBottom: "14px" }}>
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="#c9a84c" aria-hidden="true">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
                   ))}
                 </div>
 
-                {/* Testimonial Text */}
-                <p className="text-sm md:text-base text-gray-700 italic leading-relaxed mb-6 flex-grow">
-                  "{testimonial.text}"
+                {/* Quote */}
+                <p style={{
+                  fontSize: "13.5px", color: "#4a4238",
+                  lineHeight: 1.75, fontStyle: "italic",
+                  flex: 1, marginBottom: "20px",
+                }}>
+                  "{t.text}"
                 </p>
 
-                {/* Author Info */}
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="font-bold text-gray-900 text-base md:text-lg">
-                    {testimonial.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {testimonial.location}
-                  </p>
+                {/* Divider */}
+                <div style={{ height: "1px", background: "rgba(232,226,216,0.7)", marginBottom: "16px" }} />
+
+                {/* Author */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: "38px", height: "38px", borderRadius: "50%", flexShrink: 0,
+                    background: color.bg, border: `1.5px solid ${color.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span style={{
+                      fontSize: "11px", fontWeight: 700, color: color.text,
+                      fontFamily: "'IBM Plex Serif', Georgia, serif",
+                    }}>
+                      {t.initials}
+                    </span>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "13.5px", fontWeight: 700, color: "#0d1f0d", margin: 0 }}>{t.name}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <MapPin size={10} color="#b5aa98" />
+                      <p style={{ fontSize: "11.5px", color: "#b5aa98", margin: 0 }}>{t.location}</p>
+                    </div>
+                  </div>
+                  {/* Role badge */}
+                  <div style={{
+                    marginLeft: "auto", padding: "3px 9px",
+                    background: color.bg, border: `1px solid ${color.border}`,
+                    borderRadius: "20px",
+                  }}>
+                    <span style={{ fontSize: "10px", fontWeight: 600, color: color.text }}>{t.role}</span>
+                  </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* NAVIGATION */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+          <button className="nav-btn" onClick={handlePrev} aria-label="Previous">
+            <ChevronLeft size={18} />
+          </button>
+
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                className="dot-btn"
+                onClick={() => setCurrentIndex(i)}
+                style={{
+                  width: i === currentIndex ? "28px" : "6px",
+                  background: i === currentIndex ? "#c9a84c" : "rgba(201,168,76,0.25)",
+                }}
+                aria-label={`Go to page ${i + 1}`}
+              />
             ))}
           </div>
 
-          {/* Navigation Arrows */}
-          <div className="flex items-center justify-center gap-4">
-            {/* Previous Button */}
-            <button
-              onClick={goToPrevious}
-              className="bg-white hover:bg-gray-50 border-2 border-gray-300 rounded-full p-3 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 shadow-md hover:shadow-lg"
-              aria-label="Previous testimonials"
-            >
-              <ChevronLeft className="w-6 h-6 text-gray-700" />
-            </button>
-
-            {/* Dots Indicator */}
-            <div className="flex gap-2">
-              {[...Array(totalPages)].map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    index === currentIndex
-                      ? "w-8 bg-blue-600"
-                      : "w-2 bg-gray-300 hover:bg-gray-400"
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-
-            {/* Next Button */}
-            <button
-              onClick={goToNext}
-              className="bg-white hover:bg-gray-50 border-2 border-gray-300 rounded-full p-3 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 shadow-md hover:shadow-lg"
-              aria-label="Next testimonials"
-            >
-              <ChevronRight className="w-6 h-6 text-gray-700" />
-            </button>
-          </div>
-
-          {/* Page Counter */}
-          <div className="text-center mt-4 text-sm text-gray-500">
-            Page {currentIndex + 1} of {totalPages}
-          </div>
+          <button className="nav-btn" onClick={handleNext} aria-label="Next">
+            <ChevronRight size={18} />
+          </button>
         </div>
-      </div>
-    </div>
-  );
-};
 
-export default ClientTestimonials;
+        {/* Page label */}
+        <p style={{
+          textAlign: "center", marginTop: "12px",
+          fontSize: "11px", fontWeight: 600, color: "#b5aa98",
+          letterSpacing: "0.1em", textTransform: "uppercase",
+        }}>
+          {currentIndex + 1} / {totalPages}
+        </p>
+
+      </div>
+    </section>
+  );
+}
