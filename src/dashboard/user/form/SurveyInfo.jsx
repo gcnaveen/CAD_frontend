@@ -13,7 +13,27 @@ function normalizeList(res) {
   return Array.isArray(items) ? items : [];
 }
 
-const SurveyInfo = ({ form }) => {
+function idOf(entity) {
+  if (!entity) return null;
+  return entity.id ?? entity._id ?? null;
+}
+
+function idFromValue(value) {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  return value.id ?? value._id ?? null;
+}
+
+function upsertEntity(list, entity) {
+  const id = idOf(entity);
+  if (!id) return list;
+  const exists = Array.isArray(list) && list.some((x) => (x.id ?? x._id) === id);
+  if (exists) return list;
+  const normalized = { ...entity, id };
+  return Array.isArray(list) ? [normalized, ...list] : [normalized];
+}
+
+const SurveyInfo = ({ form, prefillEntities = null }) => {
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
   const [hoblis, setHoblis] = useState([]);
@@ -23,6 +43,11 @@ const SurveyInfo = ({ form }) => {
   const district = Form.useWatch("district", form);
   const taluka = Form.useWatch("taluka", form);
   const hobli = Form.useWatch("hobli", form);
+  const village = Form.useWatch("village", form);
+
+  const prefillDistrictId = idFromValue(prefillEntities?.district) || idOf(prefillEntities?.district);
+  const prefillTalukaId = idFromValue(prefillEntities?.taluka) || idOf(prefillEntities?.taluka);
+  const prefillHobliId = idFromValue(prefillEntities?.hobli) || idOf(prefillEntities?.hobli);
 
   // Load districts on mount
   useEffect(() => {
@@ -42,65 +67,120 @@ const SurveyInfo = ({ form }) => {
   // Load talukas when district changes
   useEffect(() => {
     if (!district) {
-      setTalukas([]);
-      form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+      setTalukas((prev) => upsertEntity(prev, prefillEntities?.taluka));
+      // When prefilling drafts, backend may send district=null but still provide downstream fields.
+      // Avoid wiping already-set values; keep the existing cascade-clear behavior otherwise.
+      const hasDownstream =
+        !!form.getFieldValue("taluka") ||
+        !!form.getFieldValue("hobli") ||
+        !!form.getFieldValue("village");
+      if (!hasDownstream) {
+        form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+      }
       return;
     }
     setLoading((prev) => ({ ...prev, talukas: true }));
     getTalukasByDistrict(district)
       .then((res) => {
         const items = normalizeList(res);
-        setTalukas(items.map((r) => ({ ...r, id: r.id ?? r._id })));
+        setTalukas(upsertEntity(items.map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.taluka));
       })
       .catch((err) => {
         message.error(err.message || "Failed to load talukas");
-        setTalukas([]);
+        setTalukas((prev) => upsertEntity([], prefillEntities?.taluka));
       })
       .finally(() => setLoading((prev) => ({ ...prev, talukas: false })));
-    form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
-  }, [district, form]);
+    // Clear downstream only when user actually changes district.
+    // During draft prefill, keep the already-set values so Select can render labels.
+    const currentDistrictId = idFromValue(district);
+    const currentTalukaId = idFromValue(form.getFieldValue("taluka"));
+    const isDraftPrefillState =
+      !!prefillEntities &&
+      !!prefillDistrictId &&
+      currentDistrictId === prefillDistrictId &&
+      (!!currentTalukaId && currentTalukaId === prefillTalukaId);
+
+    if (!isDraftPrefillState) {
+      form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+    }
+  }, [district, form, prefillEntities, prefillDistrictId, prefillTalukaId]);
 
   // Load hoblis when taluka changes
   useEffect(() => {
     if (!taluka) {
-      setHoblis([]);
-      form.setFieldsValue({ hobli: undefined, village: undefined });
+      setHoblis((prev) => upsertEntity(prev, prefillEntities?.hobli));
+      const hasDownstream = !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
+      if (!hasDownstream) {
+        form.setFieldsValue({ hobli: undefined, village: undefined });
+      }
       return;
     }
     setLoading((prev) => ({ ...prev, hoblis: true }));
     getHoblisByTaluka(taluka)
       .then((res) => {
         const items = normalizeList(res);
-        setHoblis(items.map((r) => ({ ...r, id: r.id ?? r._id })));
+        setHoblis(upsertEntity(items.map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.hobli));
       })
       .catch((err) => {
         message.error(err.message || "Failed to load hoblis");
-        setHoblis([]);
+        setHoblis((prev) => upsertEntity([], prefillEntities?.hobli));
       })
       .finally(() => setLoading((prev) => ({ ...prev, hoblis: false })));
-    form.setFieldsValue({ hobli: undefined, village: undefined });
-  }, [taluka, form]);
+    const currentTalukaId = idFromValue(taluka);
+    const currentHobliId = idFromValue(form.getFieldValue("hobli"));
+    const isDraftPrefillState =
+      !!prefillEntities &&
+      !!prefillTalukaId &&
+      currentTalukaId === prefillTalukaId &&
+      (!!currentHobliId && currentHobliId === prefillHobliId);
+
+    if (!isDraftPrefillState) {
+      form.setFieldsValue({ hobli: undefined, village: undefined });
+    }
+  }, [taluka, form, prefillEntities, prefillTalukaId, prefillHobliId]);
 
   // Load villages when hobli changes
   useEffect(() => {
     if (!hobli) {
-      setVillages([]);
-      form.setFieldsValue({ village: undefined });
+      setVillages((prev) => upsertEntity(prev, prefillEntities?.village));
+      const hasVillage = !!form.getFieldValue("village");
+      if (!hasVillage) {
+        form.setFieldsValue({ village: undefined });
+      }
       return;
     }
     setLoading((prev) => ({ ...prev, villages: true }));
     getVillages({ hobliId: hobli })
       .then((res) => {
         const items = normalizeList(res);
-        setVillages(items.map((r) => ({ ...r, id: r.id ?? r._id })));
+        setVillages(upsertEntity(items.map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.village));
       })
       .catch((err) => {
         message.error(err.message || "Failed to load villages");
-        setVillages([]);
+        setVillages((prev) => upsertEntity([], prefillEntities?.village));
       })
       .finally(() => setLoading((prev) => ({ ...prev, villages: false })));
-    form.setFieldsValue({ village: undefined });
-  }, [hobli, form]);
+    const currentHobliId = idFromValue(hobli);
+    const currentVillageId = idFromValue(form.getFieldValue("village"));
+    const prefillVillageId = idFromValue(prefillEntities?.village) || idOf(prefillEntities?.village);
+    const isDraftPrefillState =
+      !!prefillEntities &&
+      !!prefillHobliId &&
+      currentHobliId === prefillHobliId &&
+      (!!currentVillageId && currentVillageId === prefillVillageId);
+
+    if (!isDraftPrefillState) {
+      form.setFieldsValue({ village: undefined });
+    }
+  }, [hobli, form, prefillEntities, prefillHobliId]);
+
+  // Ensure prefilled entities appear with labels even if parent chain is missing (e.g., district=null)
+  useEffect(() => {
+    if (!prefillEntities) return;
+    if (taluka) setTalukas((prev) => upsertEntity(prev, prefillEntities.taluka));
+    if (hobli) setHoblis((prev) => upsertEntity(prev, prefillEntities.hobli));
+    if (village) setVillages((prev) => upsertEntity(prev, prefillEntities.village));
+  }, [prefillEntities, taluka, hobli, village]);
 
   return (
     <div className="w-full">
@@ -157,7 +237,7 @@ const SurveyInfo = ({ form }) => {
             allowClear
             size="large"
             className="w-full"
-            disabled={!district}
+            disabled={!district && !taluka}
             showSearch
             optionFilterProp="label"
             filterOption={(input, option) =>
@@ -181,7 +261,7 @@ const SurveyInfo = ({ form }) => {
             allowClear
             size="large"
             className="w-full"
-            disabled={!taluka}
+            disabled={!taluka && !hobli}
             showSearch
             optionFilterProp="label"
             filterOption={(input, option) =>
@@ -205,7 +285,7 @@ const SurveyInfo = ({ form }) => {
             allowClear
             size="large"
             className="w-full"
-            disabled={!hobli}
+            disabled={!hobli && !village}
             showSearch
             optionFilterProp="label"
             filterOption={(input, option) =>

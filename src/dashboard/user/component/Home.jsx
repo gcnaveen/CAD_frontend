@@ -1,8 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import DraftList from "../../../components/drafts/DraftList.jsx";
 
 const Home = () => {
   const navigate = useNavigate();
+  const role = useSelector((state) => state.auth?.role);
+  const isSurveyor = role === "SURVEYOR";
 
   const topCards = [
     {
@@ -146,6 +150,12 @@ const Home = () => {
             path={bottomCard.path}
           />
         </div>
+
+        {isSurveyor ? (
+          <div className="mt-10 md:mt-12">
+            <DraftList />
+          </div>
+        ) : null}
       </div>
     </div>
   );

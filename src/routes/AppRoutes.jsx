@@ -24,6 +24,7 @@ import CADHomePage from "../dashboard/cad/CADHomePage";
 import ViewCurrentOrders from "../dashboard/cad/orders/ViewCurrentOrders";
 import ViewAllOrders from "../dashboard/cad/orders/ViewAllOrders";
 import Wallet from "../dashboard/cad/wallet/Wallet";
+import AdminAssignmentsPage from "../pages/AdminAssignmentsPage.jsx";
 
 export default function AppRoutes() {
   return (
@@ -51,6 +52,7 @@ export default function AppRoutes() {
         <Route path="admin-users" element={<ViewAdminUsers />} />
         <Route path="cad-centers" element={<ViewCadCenters />} />
         <Route path="cad-users" element={<ViewCadUsers />} />
+        <Route path="assignments" element={<AdminAssignmentsPage />} />
         <Route path="districts" element={<ViewDistricts />} />
         <Route path="talukas" element={<ViewTalukas />} />
         <Route path="hoblis" element={<ViewHoblis />} />
