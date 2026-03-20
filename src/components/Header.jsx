@@ -5,7 +5,7 @@ import { logout } from "../features/auth/authSlice";
 import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
 import { toggleLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
-import { ArrowUpRight, LogOut, User } from "lucide-react";
+import { ArrowUpRight, User } from "lucide-react";
 
 const getDisplayName = (user) => {
   if (!user) return "User";
@@ -13,7 +13,12 @@ const getDisplayName = (user) => {
   if (user.name && typeof user.name === "object") {
     const first = user.name.first ?? "";
     const last = user.name.last ?? "";
-    return [first, last].filter(Boolean).join(" ") || user.auth?.email || user.email || "User";
+    return (
+      [first, last].filter(Boolean).join(" ") ||
+      user.auth?.email ||
+      user.email ||
+      "User"
+    );
   }
   return user.auth?.email || user.email || "User";
 };
@@ -36,8 +41,11 @@ const Header = () => {
   useEffect(() => {
     const stored = localStorage.getItem(USER_KEY);
     if (stored) {
-      try { setUser(JSON.parse(stored)); }
-      catch { setUser(null); }
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        setUser(null);
+      }
     } else {
       setUser(null);
     }
@@ -49,11 +57,19 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    setUser(null);
+  const getRedirectForRole = (role) => {
+    const r = (role || "").toUpperCase();
+    if (r === "SUPER_ADMIN" || r === "ADMIN") return "/superadmin";
+    if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
+    if (r === "SURVEYOR" || r === "USER" || r === "CUSTOMER")
+      return "/dashboard/user";
+    return "/login";
+  };
+
+  const handleLoginClick = () => {
+    const dest = user?.role ? getRedirectForRole(user.role) : "/login";
     setIsMobileMenuOpen(false);
-    navigate("/login", { replace: true });
+    navigate(dest);
   };
 
   const scrollToSection = (sectionId) => {
@@ -123,14 +139,20 @@ const Header = () => {
 
       <header
         style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
           transition: "all 0.3s ease",
         }}
       >
         {/* Main nav bar */}
         <nav
           style={{
-            background: isScrolled ? "rgba(244,239,230,0.95)" : "rgba(244,239,230,0.88)",
+            background: isScrolled
+              ? "rgba(244,239,230,0.95)"
+              : "rgba(244,239,230,0.88)",
             backdropFilter: "blur(20px)",
             borderBottom: isScrolled
               ? "1px solid rgba(201,168,76,0.2)"
@@ -141,10 +163,13 @@ const Header = () => {
         >
           <div
             style={{
-              maxWidth: "1380px", margin: "0 auto",
+              maxWidth: "1380px",
+              margin: "0 auto",
               padding: "0 clamp(16px, 3vw, 32px)",
               height: "70px",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               gap: "24px",
             }}
           >
@@ -154,24 +179,41 @@ const Header = () => {
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               aria-label="Go to top"
               style={{
-                display: "flex", alignItems: "center", gap: "10px",
-                background: "none", border: "none", cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
                 flexShrink: 0,
               }}
             >
               <img
                 src="/assets/logoblack.png"
                 alt="Logo"
-                style={{ height: "52px", width: "auto", transition: "transform 0.2s ease" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.02)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                style={{
+                  height: "52px",
+                  width: "auto",
+                  transition: "transform 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
               />
             </button>
 
             {/* Desktop Nav */}
             <div
               className="desktop-nav"
-              style={{ alignItems: "center", gap: "32px", flex: 1, justifyContent: "center" }}
+              style={{
+                alignItems: "center",
+                gap: "32px",
+                flex: 1,
+                justifyContent: "center",
+              }}
             >
               {NAV_LINKS.map(({ key, section }) => (
                 <button
@@ -194,86 +236,61 @@ const Header = () => {
                 onClick={() => dispatch(toggleLanguage())}
                 aria-label={t(lang, "header.langToggle.ariaLabel")}
                 style={{
-                  display: "flex", alignItems: "center",
-                  background: "rgba(232,226,216,0.7)", borderRadius: "10px",
-                  padding: "3px", gap: "2px", border: "none", cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  background: "rgba(232,226,216,0.7)",
+                  borderRadius: "10px",
+                  padding: "3px",
+                  gap: "2px",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
                 {["en", "kn"].map((l) => (
                   <span
                     key={l}
-                    className={lang === l ? "lang-btn-active" : "lang-btn-inactive"}
+                    className={
+                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
+                    }
                     style={{
-                      padding: "5px 12px", borderRadius: "7px",
-                      fontSize: "12px", transition: "all 0.2s ease",
+                      padding: "5px 12px",
+                      borderRadius: "7px",
+                      fontSize: "12px",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    {t(l, l === "en" ? "header.langToggle.activeEn" : "header.langToggle.activeKn")}
+                    {t(
+                      l,
+                      l === "en"
+                        ? "header.langToggle.activeEn"
+                        : "header.langToggle.activeKn",
+                    )}
                   </span>
                 ))}
               </button>
 
-              {user ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: "8px",
-                    padding: "6px 14px", borderRadius: "10px",
-                    background: "rgba(255,255,255,0.7)", border: "1px solid rgba(232,226,216,0.9)",
-                  }}>
-                    <div style={{
-                      width: "26px", height: "26px", borderRadius: "50%",
-                      background: "rgba(201,168,76,0.15)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#c9a84c",
-                    }}>
-                      <User size={13} />
-                    </div>
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#152815" }}>
-                      {getDisplayName(user)}
-                    </span>
-                    {user.role && (
-                      <span style={{
-                        fontSize: "11px", color: "#9a7020", fontWeight: 500,
-                        background: "rgba(201,168,76,0.1)", padding: "2px 7px",
-                        borderRadius: "20px",
-                      }}>
-                        {user.role}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "6px",
-                      padding: "8px 16px", borderRadius: "10px",
-                      background: "#dc2626", color: "white",
-                      fontWeight: 600, fontSize: "13px", border: "none", cursor: "pointer",
-                      transition: "background 0.2s ease",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#b91c1c"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#dc2626"; }}
-                  >
-                    <LogOut size={13} />
-                    {t(lang, "header.auth.logout")}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate("/login")}
-                  className="header-cta-btn"
-                  style={{
-                    display: "flex", alignItems: "center", gap: "7px",
-                    padding: "9px 22px", borderRadius: "11px",
-                    background: "#152815", color: "white",
-                    fontWeight: 600, fontSize: "13px", letterSpacing: "0.03em",
-                    border: "none", cursor: "pointer",
-                    boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
-                  }}
-                >
-                  {t(lang, "header.auth.login")}
-                  <ArrowUpRight size={14} />
-                </button>
-              )}
+              <button
+                onClick={handleLoginClick}
+                className="header-cta-btn"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "9px 22px",
+                  borderRadius: "11px",
+                  background: "#152815",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  letterSpacing: "0.03em",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
+                }}
+              >
+                {t(lang, "header.auth.login")}
+                <ArrowUpRight size={14} />
+              </button>
             </div>
 
             {/* Mobile toggle button */}
@@ -283,20 +300,41 @@ const Header = () => {
               aria-label="Toggle menu"
               style={{
                 display: "none",
-                alignItems: "center", justifyContent: "center",
-                width: "40px", height: "40px", borderRadius: "10px",
-                background: "rgba(255,255,255,0.8)", border: "1px solid rgba(232,226,216,0.9)",
-                cursor: "pointer", color: "#152815",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "40px",
+                height: "40px",
+                borderRadius: "10px",
+                background: "rgba(255,255,255,0.8)",
+                border: "1px solid rgba(232,226,216,0.9)",
+                cursor: "pointer",
+                color: "#152815",
                 boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
               }}
             >
               {isMobileMenuOpen ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M6 18L18 6M6 6l12 12"/>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M4 6h16M4 12h16M4 18h16"/>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
             </button>
@@ -324,28 +362,50 @@ const Header = () => {
             }}
           >
             {/* Mobile lang toggle */}
-            <div style={{ padding: "4px 0 8px", borderBottom: "1px solid rgba(232,226,216,0.7)", marginBottom: "8px" }}>
+            <div
+              style={{
+                padding: "4px 0 8px",
+                borderBottom: "1px solid rgba(232,226,216,0.7)",
+                marginBottom: "8px",
+              }}
+            >
               <button
                 onClick={() => dispatch(toggleLanguage())}
                 aria-label={t(lang, "header.langToggle.ariaLabel")}
                 style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  width: "100%", background: "rgba(232,226,216,0.6)",
-                  borderRadius: "10px", padding: "3px", gap: "2px",
-                  border: "none", cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                  background: "rgba(232,226,216,0.6)",
+                  borderRadius: "10px",
+                  padding: "3px",
+                  gap: "2px",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
                 {["en", "kn"].map((l) => (
                   <span
                     key={l}
-                    className={lang === l ? "lang-btn-active" : "lang-btn-inactive"}
+                    className={
+                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
+                    }
                     style={{
-                      flex: 1, textAlign: "center",
-                      padding: "7px 12px", borderRadius: "7px",
-                      fontSize: "12px", transition: "all 0.2s ease",
+                      flex: 1,
+                      textAlign: "center",
+                      padding: "7px 12px",
+                      borderRadius: "7px",
+                      fontSize: "12px",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    {t(l, l === "en" ? "header.langToggle.activeEn" : "header.langToggle.activeKn")}
+                    {t(
+                      l,
+                      l === "en"
+                        ? "header.langToggle.activeEn"
+                        : "header.langToggle.activeKn",
+                    )}
                   </span>
                 ))}
               </button>
@@ -357,73 +417,61 @@ const Header = () => {
                 key={key}
                 onClick={() => scrollToSection(section)}
                 style={{
-                  display: "block", width: "100%", textAlign: "left",
-                  padding: "11px 14px", borderRadius: "10px",
-                  fontSize: "14px", fontWeight: 500, color: "#152815",
-                  background: "none", border: "none", cursor: "pointer",
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "11px 14px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: "#152815",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
                   transition: "background 0.15s ease",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.7)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.7)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
               >
                 {t(lang, key)}
               </button>
             ))}
 
             {/* Mobile auth */}
-            <div style={{ borderTop: "1px solid rgba(232,226,216,0.7)", marginTop: "8px", paddingTop: "12px" }}>
-              {user ? (
-                <>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: "8px",
-                    padding: "8px 14px 12px",
-                  }}>
-                    <div style={{
-                      width: "28px", height: "28px", borderRadius: "50%",
-                      background: "rgba(201,168,76,0.15)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#c9a84c",
-                    }}>
-                      <User size={14} />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#152815", margin: 0 }}>
-                        {getDisplayName(user)}
-                      </p>
-                      {user.role && (
-                        <p style={{ fontSize: "11px", color: "#9a7020", margin: 0 }}>{user.role}</p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                      width: "100%", padding: "11px", borderRadius: "10px",
-                      background: "#dc2626", color: "white",
-                      fontWeight: 600, fontSize: "14px", border: "none", cursor: "pointer",
-                    }}
-                  >
-                    <LogOut size={14} />
-                    {t(lang, "header.auth.logout")}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => { setIsMobileMenuOpen(false); navigate("/login"); }}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                    width: "100%", padding: "13px",
-                    borderRadius: "12px", background: "#152815", color: "white",
-                    fontWeight: 600, fontSize: "14px", border: "none", cursor: "pointer",
-                    boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  {t(lang, "header.auth.login")}
-                  <ArrowUpRight size={14} />
-                </button>
-              )}
+            <div
+              style={{
+                borderTop: "1px solid rgba(232,226,216,0.7)",
+                marginTop: "8px",
+                paddingTop: "12px",
+              }}
+            >
+              <button
+                onClick={handleLoginClick}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "13px",
+                  borderRadius: "12px",
+                  background: "#152815",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                {t(lang, "header.auth.login")}
+                <ArrowUpRight size={14} />
+              </button>
             </div>
           </div>
         </div>
