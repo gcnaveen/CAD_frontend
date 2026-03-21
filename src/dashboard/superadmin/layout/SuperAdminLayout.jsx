@@ -19,6 +19,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
+import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import "./superadminlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -348,18 +349,21 @@ const SuperAdminLayout = () => {
               </Text>
             </div>
 
-            <Button
-              type="default"
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-              className="superadmin-logout"
-              style={{
-                borderColor: HEADER_BORDER,
-                color: "#475569",
-              }}
-            >
-              Logout
-            </Button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <NotificationBell layout="superadmin" />
+              <Button
+                type="default"
+                icon={<LogoutOutlined />}
+                onClick={handleLogout}
+                className="superadmin-logout"
+                style={{
+                  borderColor: HEADER_BORDER,
+                  color: "#475569",
+                }}
+              >
+                Logout
+              </Button>
+            </div>
           </Header>
 
           <Content

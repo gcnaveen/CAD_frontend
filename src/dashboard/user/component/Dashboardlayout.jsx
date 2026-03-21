@@ -3,6 +3,7 @@ import React from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
+import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 
 /* ─── Icons ─── */
 const HomeIcon = ({ active }) => (
@@ -133,7 +134,8 @@ const DashboardLayout = () => {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <NotificationBell layout="user" />
             <button
               className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-500 transition-colors shadow-sm"
               onClick={handleLogout}
