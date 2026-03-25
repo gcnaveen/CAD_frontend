@@ -33,7 +33,6 @@ const FieldLabel = ({ kn, en, required, optional }) => (
 );
 
 const DrawingStep = ({ form, onAudioChange, audioData }) => {
-  const village = Form.useWatch("village", form);
   const audioField = Form.useWatch("audio", form);
 
   const [isRecording, setIsRecording]   = useState(false);
@@ -79,11 +78,12 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
 
   const handleUploadRecorded = async () => {
     if (!audioBlob) return;
-    if (!village) { message.warning("Please select village first"); return; }
+    const villageId = form.getFieldValue("village");
+    if (!villageId) { message.warning("Please select village first"); return; }
     setUpAudio(true);
     try {
       const file = new File([audioBlob], `audio-${Date.now()}.webm`, { type: audioBlob.type });
-      const { fileUrl, key } = await uploadAudioToS3(file, village);
+      const { fileUrl, key } = await uploadAudioToS3(file, villageId);
       const val = { fileUrl, key, fileName: file.name, mimeType: file.type, size: file.size };
       form.setFieldsValue({ audio: val });
       onAudioChange?.(val);
@@ -95,12 +95,13 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
   };
 
   const handleAudioFile = async (file) => {
-    if (!village) { message.warning("Please select village first"); return false; }
+    const villageId = form.getFieldValue("village");
+    if (!villageId) { message.warning("Please select village first"); return false; }
     if (file.size > AUDIO_MAX_SIZE_BYTES) { message.error(`Max ${AUDIO_MAX_SIZE_BYTES / 1024 / 1024}MB`); return false; }
     setUpAudio(true);
     try {
       const actual = file instanceof File ? file : (file.originFileObj instanceof File ? file.originFileObj : file);
-      const { fileUrl, key } = await uploadAudioToS3(actual, village);
+      const { fileUrl, key } = await uploadAudioToS3(actual, villageId);
       const val = { fileUrl, key, fileName: actual.name, mimeType: actual.type, size: actual.size };
       form.setFieldsValue({ audio: val });
       onAudioChange?.(val);
@@ -143,11 +144,6 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       />
 
       <div className="space-y-5">
-        {/* Upload Mode - kept as radio but styled as cards */}
-        <Form.Item name="uploadMode" initialValue="normal" noStyle>
-          <input type="hidden" />
-        </Form.Item>
-
         {/* Google Superimpose checkbox */}
         <Form.Item name="googleSuperimpose" valuePropName="checked">
           <button

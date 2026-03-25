@@ -139,6 +139,7 @@ export default function NotificationList({
   markingId,
   markingAll,
   layout = "antd",
+  inModal = false,
 }) {
   const slice = useMemo(
     () => notifications.slice(0, VISIBLE_CAP),
@@ -156,7 +157,12 @@ export default function NotificationList({
   }, [hasUnread, onMarkAllAsRead]);
 
   const panelStyle =
-    layout === "user"
+    inModal
+      ? {
+          width: "100%",
+          maxWidth: "100%",
+        }
+      : layout === "user"
       ? {
           width: "min(calc(100vw - 24px), 380px)",
           maxWidth: "min(calc(100vw - 24px), 380px)",
@@ -171,10 +177,10 @@ export default function NotificationList({
       className="notification-dropdown-panel"
       style={{
         ...panelStyle,
-        background: "#fff",
-        borderRadius: 12,
+        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+        borderRadius: inModal ? 20 : 12,
         boxShadow:
-          "0 10px 40px rgba(15, 23, 42, 0.12), 0 0 1px rgba(15, 23, 42, 0.08)",
+          "0 12px 36px rgba(15, 23, 42, 0.12), 0 0 1px rgba(15, 23, 42, 0.08)",
         overflow: "hidden",
         border: "1px solid #e2e8f0",
       }}
@@ -182,7 +188,7 @@ export default function NotificationList({
     >
       <div
         style={{
-          padding: "12px 14px",
+          padding: inModal ? "14px 16px" : "12px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -190,7 +196,7 @@ export default function NotificationList({
           borderBottom: "1px solid #f1f5f9",
         }}
       >
-        <Title level={5} style={{ margin: 0, fontSize: 14 }}>
+        <Title level={5} style={{ margin: 0, fontSize: inModal ? 15 : 14 }}>
           Notifications
         </Title>
         <Button
@@ -213,7 +219,7 @@ export default function NotificationList({
 
       <div
         style={{
-          maxHeight: LIST_MAX_HEIGHT,
+          maxHeight: inModal ? "min(70vh, 420px)" : LIST_MAX_HEIGHT,
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
         }}

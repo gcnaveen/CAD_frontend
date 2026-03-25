@@ -22,7 +22,7 @@ const LoginPageEmail = () => {
   };
 
   const validatePassword = (password) => {
-    return password.length >= 6;
+    return /^\d{4}$/.test(password || "");
   };
 
   const handleChange = (e) => {
@@ -49,7 +49,7 @@ const LoginPageEmail = () => {
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "Password must be exactly 4 digits";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -153,13 +153,21 @@ const LoginPageEmail = () => {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setFormData((prev) => ({ ...prev, password: value }));
+                    if (errors.password) {
+                      setErrors((prev) => ({ ...prev, password: "" }));
+                    }
+                  }}
+                  placeholder="Enter 4-digit password"
                   className={`w-full px-4 py-3.5 pr-12 bg-zinc-800 border ${
                     errors.password
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500/50"
                       : "border-zinc-700 focus:border-cyan-500 focus:ring-cyan-500/50"
                   } rounded-xl text-white placeholder-gray-500 outline-none focus:ring-1 transition-all text-base`}
+                  inputMode="numeric"
+                  maxLength={4}
                   disabled={isLoading}
                 />
                 <button

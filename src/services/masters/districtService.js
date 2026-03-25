@@ -17,10 +17,10 @@ export async function createDistrict(payload) {
   }
 }
 
-/** GET /api/masters/districts - List Districts */
-export async function getDistricts() {
+/** GET /api/masters/districts - List Districts (optional page, limit, etc.) */
+export async function getDistricts(params = {}) {
   try {
-    const { data } = await apiClient.get(BASE);
+    const { data } = await apiClient.get(BASE, { params });
     return data;
   } catch (error) {
     handleError(error, "Failed to fetch districts");

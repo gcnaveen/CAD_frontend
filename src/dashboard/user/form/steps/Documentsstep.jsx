@@ -44,8 +44,29 @@ const SectionHeader = ({ icon, titleKn, titleEn, subtitle }) => (
 const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocumentUpload, onOtherDocumentRemove }) => {
   const [activeCategory, setActiveCategory] = useState("moolaTippani");
   const [uploading,      setUploading]       = useState({});
-  const village   = Form.useWatch("village", form);
   const uploadMode = Form.useWatch("uploadMode", form) ?? "normal";
+  const handleUploadModeChange = (mode) => {
+    form.setFieldValue("uploadMode", mode);
+    // Keep mode transitions clean so backend doesn't infer wrong path.
+    if (mode === "single") {
+      // Clear normal-mode document uploads (both from the form and parent state).
+      CATEGORIES.map((c) => c.key).forEach((field) => {
+        if (field === "other_documents") return;
+        form.setFieldValue(field, []);
+        onDocumentRemove?.(field);
+      });
+
+      // Clear single-mode file + types as well (prevents leftovers from earlier visits).
+      form.setFieldValue("singleUpload", []);
+      form.setFieldValue("documentTypes", []);
+      onDocumentRemove?.("singleUpload");
+    } else {
+      form.setFieldValue("singleUpload", []);
+      form.setFieldValue("documentTypes", []);
+      onDocumentRemove?.("singleUpload");
+    }
+  };
+
 
   const isAudio = (file) => file.type?.startsWith("audio/");
 
@@ -60,15 +81,16 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
 
   const handleUpload = async (file, fieldName) => {
     const fileObj = file instanceof File ? file : (file.originFileObj instanceof File ? file.originFileObj : file);
-    if (!village) { message.warning("Please select village first (go back to Location step)"); return false; }
+    const villageId = form.getFieldValue("village");
+    if (!villageId) { message.warning("Please select village first (go back to Location step)"); return false; }
     const maxSize = isAudio(file) ? AUDIO_MAX_SIZE_BYTES : MAX_FILE_SIZE;
     if (file.size > maxSize) { message.error(`Max ${maxSize / 1024 / 1024}MB`); return false; }
     setUploading((p) => ({ ...p, [fieldName]: true }));
     try {
       const actual = fileObj instanceof File ? fileObj : file;
       const result = isAudio(actual)
-        ? await getAudioPresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: village })
-        : await getImagePresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: village });
+        ? await getAudioPresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: villageId })
+        : await getImagePresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: villageId });
       const { uploadUrl, fileUrl, key } = result?.data ?? result;
       if (!uploadUrl || !fileUrl) throw new Error("Failed to get upload URL");
       const res = await fetch(uploadUrl, { method: "PUT", body: actual, headers: { "Content-Type": actual.type } });
@@ -123,12 +145,12 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
       {/* Upload Mode toggle */}
       <div className="flex gap-2 mb-5">
         {["normal", "single"].map((m) => {
-          const active = (Form.useWatch("uploadMode", form) ?? "normal") === m;
+          const active = uploadMode === m;
           return (
             <button
               key={m}
               type="button"
-              onClick={() => form.setFieldValue("uploadMode", m)}
+              onClick={() => handleUploadModeChange(m)}
               className={`flex-1 py-2 rounded-xl border-2 text-sm font-extrabold transition-all ${
                 active ? "border-orange-500 bg-orange-50 text-orange-700" : "border-slate-200 bg-white text-slate-500 hover:border-orange-200"
               }`}

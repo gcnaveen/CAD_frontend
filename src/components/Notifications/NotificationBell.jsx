@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Dropdown, Badge, Button, App } from "antd";
+import { Badge, Button, App, Modal } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications.js";
@@ -76,7 +76,7 @@ export default function NotificationBell({ layout = "user" }) {
     [layout, markAsRead, navigate],
   );
 
-  const dropdownRender = useCallback(
+  const modalContent = useCallback(
     () => (
       <NotificationList
         notifications={notifications}
@@ -88,6 +88,7 @@ export default function NotificationBell({ layout = "user" }) {
         markingId={markingId}
         markingAll={markingAll}
         layout={layout === "user" ? "user" : "antd"}
+        inModal
       />
     ),
     [
@@ -128,18 +129,47 @@ export default function NotificationBell({ layout = "user" }) {
   );
 
   return (
-    <Dropdown
-      open={open}
-      onOpenChange={handleOpenChange}
-      trigger={["click"]}
-      placement="bottomRight"
-      popupRender={dropdownRender}
-      getPopupContainer={() => document.body}
-      styles={{
-        root: { zIndex: 1050 },
-      }}
-    >
-      {trigger}
-    </Dropdown>
+    <>
+      <button
+        type="button"
+        onClick={() => handleOpenChange(true)}
+        aria-label="Open notifications"
+        className="bg-transparent border-0 p-0 m-0 inline-flex"
+      >
+        {trigger}
+      </button>
+
+      <Modal
+        open={open}
+        onCancel={() => handleOpenChange(false)}
+        footer={null}
+        centered
+        title={null}
+        closeIcon={null}
+        width="min(96vw, 480px)"
+        maskClosable
+        destroyOnClose
+        styles={{
+          mask: {
+            background: "rgba(15, 23, 42, 0.32)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          },
+          content: {
+            padding: 0,
+            borderRadius: 20,
+            overflow: "hidden",
+            background: "transparent",
+            boxShadow:
+              "0 24px 60px rgba(15, 23, 42, 0.24), 0 0 1px rgba(15, 23, 42, 0.1)",
+          },
+          body: {
+            padding: 0,
+          },
+        }}
+      >
+        {modalContent()}
+      </Modal>
+    </>
   );
 }

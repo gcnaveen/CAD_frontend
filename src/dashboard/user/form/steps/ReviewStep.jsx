@@ -32,13 +32,25 @@ const Section = ({ title, children }) => (
   </div>
 );
 
-const ReviewStep = ({ form, uploadedDocs, audioData }) => {
+const ReviewStep = ({ form, uploadedDocs, audioData, locationLabels = {} }) => {
   const values = form.getFieldsValue(true);
+  const uploadMode = values.uploadMode ?? "normal";
 
   const docFields = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
-  const uploadedDocNames = docFields
-    .filter((f) => uploadedDocs?.[f]?.fileUrl)
-    .map((f) => uploadedDocs[f].fileName || f);
+  const uploadedDocNames =
+    uploadMode === "normal"
+      ? docFields
+          .filter((f) => uploadedDocs?.[f]?.fileUrl)
+          .map((f) => uploadedDocs[f].fileName || f)
+      : [];
+
+  const singleUploadName =
+    uploadMode === "single"
+      ? uploadedDocs?.singleUpload?.fileName ||
+        values?.singleUpload?.[0]?.fileName ||
+        values?.singleUpload?.[0]?.name ||
+        null
+      : null;
 
   const otherDocsList = form.getFieldValue("other_documents");
   const otherCount    = Array.isArray(otherDocsList) ? otherDocsList.filter((f) => f.status === "done").length : 0;
@@ -59,10 +71,10 @@ const ReviewStep = ({ form, uploadedDocs, audioData }) => {
       <Section title="Location">
         <Row label="Drawing Type" value={values.surveyType === "joint_flat" ? "Joint Sketch" : values.surveyType === "single_flat" ? "Single Sketch" : null} />
         <Row label="Survey No."   value={values.surveyNo} />
-        <Row label="Village"      value={values.village} />
-        <Row label="Hobli"        value={values.hobli} />
-        <Row label="Taluka"       value={values.taluka} />
-        <Row label="District"     value={values.district} />
+        <Row label="Village"      value={locationLabels.village || values.villageLabel || values.village} />
+        <Row label="Hobli"        value={locationLabels.hobli || values.hobliLabel || values.hobli} />
+        <Row label="Taluka"       value={locationLabels.taluka || values.talukaLabel || values.taluka} />
+        <Row label="District"     value={locationLabels.district || values.districtLabel || values.district} />
       </Section>
 
       {/* Drawing summary */}
@@ -74,7 +86,15 @@ const ReviewStep = ({ form, uploadedDocs, audioData }) => {
 
       {/* Documents summary */}
       <Section title="Documents">
-        {uploadedDocNames.length > 0 ? (
+        {uploadMode === "single" ? (
+          singleUploadName ? (
+            <Row label="Single Document" value={singleUploadName} />
+          ) : (
+            <div className="py-3">
+              <p className="text-sm text-slate-400 font-semibold text-center">No document uploaded</p>
+            </div>
+          )
+        ) : uploadedDocNames.length > 0 ? (
           uploadedDocNames.map((name, i) => <Row key={i} label={`Doc ${i + 1}`} value={name} />)
         ) : (
           <div className="py-3">

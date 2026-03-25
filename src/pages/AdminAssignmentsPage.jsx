@@ -48,13 +48,21 @@ function extractUploadsResponse(payload) {
     Array.isArray(root?.data) ? root.data :
     [];
 
-  const meta = root?.meta ?? root?.pagination ?? root;
-  const page = Number(meta?.page ?? meta?.currentPage ?? 1) || 1;
-  const limit = Number(meta?.limit ?? meta?.perPage ?? 10) || 10;
+  const metaRoot = root?.meta ?? root?.pagination ?? root;
+  const pager =
+    metaRoot?.pagination && typeof metaRoot.pagination === "object"
+      ? metaRoot.pagination
+      : metaRoot;
+  const page = Number(pager?.page ?? metaRoot?.page ?? pager?.currentPage ?? 1) || 1;
+  const limit = Number(pager?.limit ?? metaRoot?.limit ?? pager?.perPage ?? 10) || 10;
   const total =
-    Number(meta?.total ?? meta?.totalItems ?? meta?.count ?? uploads.length) || uploads.length;
+    Number(
+      pager?.total ?? metaRoot?.total ?? pager?.totalItems ?? pager?.count ?? uploads.length
+    ) || uploads.length;
   const totalPages =
-    Number(meta?.totalPages ?? meta?.pages ?? (limit ? Math.ceil(total / limit) : 1)) || 1;
+    Number(
+      pager?.totalPages ?? metaRoot?.totalPages ?? pager?.pages ?? (limit ? Math.ceil(total / limit) : 1)
+    ) || 1;
 
   return { uploads, meta: { page, limit, total, totalPages } };
 }

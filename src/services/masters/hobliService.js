@@ -18,9 +18,11 @@ export async function createHobli(payload) {
 }
 
 /** GET /api/masters/talukas/{talukaId}/hoblis - List Hoblis by Taluka */
-export async function getHoblisByTaluka(talukaId) {
+export async function getHoblisByTaluka(talukaId, params = {}) {
   try {
-    const { data } = await apiClient.get(`${BASE}/talukas/${talukaId}/hoblis`);
+    const { data } = await apiClient.get(`${BASE}/talukas/${talukaId}/hoblis`, {
+      params,
+    });
     return data;
   } catch (error) {
     handleError(error, "Failed to fetch hoblis");

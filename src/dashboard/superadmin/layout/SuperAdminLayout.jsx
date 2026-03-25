@@ -20,6 +20,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
+import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import "./superadminlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -43,11 +44,11 @@ const allMenuItems = [
     label: "View Admin Users",
     roles: ["SUPER_ADMIN"],
   },
-  {
-    key: "/superadmin/cad-centers",
-    icon: <BankOutlined />,
-    label: "View CAD Centers",
-  },
+  // {
+  //   key: "/superadmin/cad-centers",
+  //   icon: <BankOutlined />,
+  //   label: "View CAD Centers",
+  // },
   {
     key: "/superadmin/cad-users",
     icon: <DesktopOutlined />,
@@ -69,11 +70,11 @@ const allMenuItems = [
     icon: <ProjectOutlined />,
     label: "View Projects",
   },
-  {
-    key: "/superadmin/projects-history",
-    icon: <HistoryOutlined />,
-    label: "View Projects History",
-  },
+  // {
+  //   key: "/superadmin/projects-history",
+  //   icon: <HistoryOutlined />,
+  //   label: "View Projects History",
+  // },
   {
     key: "/superadmin/user-surveyor-details",
     icon: <SearchOutlined />,
@@ -350,6 +351,13 @@ const SuperAdminLayout = () => {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <InstallButton
+                size="middle"
+                style={{
+                  borderColor: HEADER_BORDER,
+                  color: "#475569",
+                }}
+              />
               <NotificationBell layout="superadmin" />
               <Button
                 type="default"

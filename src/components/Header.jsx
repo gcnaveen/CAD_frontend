@@ -6,6 +6,7 @@ import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
 import { toggleLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
 import { ArrowUpRight, User } from "lucide-react";
+import InstallButton from "./pwa/InstallButton.jsx";
 
 const getDisplayName = (user) => {
   if (!user) return "User";
@@ -269,6 +270,15 @@ const Header = () => {
                 ))}
               </button>
 
+              <InstallButton
+                size="middle"
+                showLabel={false}
+                style={{
+                  borderColor: "rgba(21,40,21,0.28)",
+                  color: "#152815",
+                }}
+              />
+
               <button
                 onClick={handleLoginClick}
                 className="header-cta-btn"
@@ -447,8 +457,27 @@ const Header = () => {
                 borderTop: "1px solid rgba(232,226,216,0.7)",
                 marginTop: "8px",
                 paddingTop: "12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
               }}
             >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <InstallButton
+                  size="middle"
+                  showLabel
+                  style={{
+                    borderColor: "rgba(21,40,21,0.28)",
+                    color: "#152815",
+                    width: "100%",
+                  }}
+                />
+              </div>
               <button
                 onClick={handleLoginClick}
                 style={{

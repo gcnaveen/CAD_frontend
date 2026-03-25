@@ -1,25 +1,253 @@
-import React, { useState } from "react";
-import { Typography, Table, Button, Tag } from "antd";
+import React, { useCallback, useEffect, useState } from "react";
+import { Typography, Table, Button, Tag, Space, message } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import OrderDetailDrawer from "./OrderDetailDrawer";
+import {
+  deliverCadAssignment,
+  formatUserDisplayLabel,
+  getCadAssignments,
+  getCadSketchUpload,
+  respondCadAssignment,
+} from "../../../services/assignmentApi";
+import { uploadImageToS3 } from "../../../services/upload/upload.service";
 
 const { Title } = Typography;
 
 const STATUS_TAG = {
-  approved: { color: "green", text: "Approved" },
-  rejected: { color: "red", text: "Rejected" },
-  need_changes: { color: "orange", text: "Need Changes" },
-  pending: { color: "blue", text: "Pending" },
+  ASSIGNED: { color: "blue", text: "Assigned" },
+  IN_PROGRESS: { color: "orange", text: "In Progress" },
+  COMPLETED: { color: "green", text: "Completed" },
+  ON_HOLD: { color: "gold", text: "On Hold" },
+  CANCELLED: { color: "red", text: "Cancelled" },
 };
 
 const ViewCurrentOrders = () => {
   const [orders, setOrders] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [tableLoading, setTableLoading] = useState(false);
+  const [actionLoadingById, setActionLoadingById] = useState({});
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const handleViewDetails = (record) => {
-    setSelectedOrder(record);
-    setDrawerOpen(true);
+  const setActionLoading = (assignmentId, value) => {
+    setActionLoadingById((prev) => ({ ...prev, [assignmentId]: value }));
+  };
+
+  const mapUploadedFiles = (documents = {}) =>
+    Object.values(documents || {})
+      .filter((file) => file?.url)
+      .map((file, index) => ({
+        id: `${file.fileName || "file"}-${index}`,
+        name: file.fileName || `Document ${index + 1}`,
+        url: file.url,
+      }));
+
+  const mapAssignmentToOrder = useCallback((assignment, sketch) => {
+    if (!assignment) return null;
+    const upload =
+      typeof assignment.surveyorSketchUpload === "object" && assignment.surveyorSketchUpload
+        ? assignment.surveyorSketchUpload
+        : {};
+    const sketchFromApi =
+      sketch && typeof sketch === "object" && Object.keys(sketch).length > 0 ? sketch : {};
+    const sketchData = { ...upload, ...sketchFromApi };
+
+    const locationLine = [sketchData.district, sketchData.taluka, sketchData.village]
+      .map((loc) => {
+        if (loc == null) return null;
+        if (typeof loc === "string") return loc;
+        if (typeof loc === "object") {
+          return loc.name || loc.code || loc._id || loc.id || null;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(" · ");
+
+    const summaryBits = [
+      sketchData.surveyNo && `Survey No: ${sketchData.surveyNo}`,
+      sketchData.applicationId && `Application: ${sketchData.applicationId}`,
+    ].filter(Boolean);
+
+    const uploadedFromDocuments = mapUploadedFiles(sketchData?.documents);
+    const uploadedFromSingle =
+      sketchData?.singleUpload?.url
+        ? [
+            {
+              id: "single-upload",
+              name: sketchData.singleUpload.fileName || "Uploaded document",
+              url: sketchData.singleUpload.url,
+              mimeType: sketchData.singleUpload.mimeType,
+              size: sketchData.singleUpload.size,
+              uploadedAt: sketchData.singleUpload.uploadedAt,
+            },
+          ]
+        : [];
+
+    return {
+      id: assignment._id,
+      assignmentId: assignment._id,
+      rawAssignment: assignment,
+      uploadId:
+        typeof assignment.surveyorSketchUpload === "string"
+          ? assignment.surveyorSketchUpload
+          : upload._id,
+      orderId: sketchData.applicationId || upload.applicationId || assignment._id || "-",
+      applicationId: sketchData.applicationId || upload.applicationId || "—",
+      surveyNo: sketchData.surveyNo || upload.surveyNo || "—",
+      locationSummary: locationLine || "—",
+      dueDate: assignment.dueDate || "",
+      assignedByLabel: formatUserDisplayLabel(assignment.assignedBy) || "—",
+      orderDate: assignment.assignedAt || assignment.createdAt || "",
+      customerName:
+        sketchData.surveyorName ||
+        formatUserDisplayLabel(sketchData.surveyor) ||
+        "—",
+      phoneNumber:
+        sketchData.phoneNumber ||
+        sketchData.surveyorPhone ||
+        sketchData.surveyor?.auth?.phone ||
+        "—",
+      status: assignment.status || "ASSIGNED",
+      note: assignment.notes ?? "",
+      sketchStatusNote: sketchData.statusNote ?? null,
+      sketchUpload: sketchData,
+      sketchDetails: {
+        description:
+          sketchData?.others ||
+          (summaryBits.length ? summaryBits.join(" · ") : null) ||
+          locationLine ||
+          "Survey sketch details",
+        uploadedFiles: uploadedFromSingle.length ? uploadedFromSingle : uploadedFromDocuments,
+        isSingleMode: Boolean(sketchData?.singleUpload?.url),
+      },
+      audio: sketchData?.audio || null,
+      cadFiles: sketchData?.cadDeliverable?.url
+        ? [{ name: sketchData.cadDeliverable.fileName || "CAD Deliverable", url: sketchData.cadDeliverable.url }]
+        : [],
+    };
+  }, []);
+
+  const fetchAssignments = useCallback(async ({ page = 1, limit = 10 } = {}) => {
+    setTableLoading(true);
+    try {
+      const response = await getCadAssignments({ page, limit });
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.data)
+          ? response.data.data
+          : [];
+      const meta = response?.meta || response?.pagination || {};
+      const pager =
+        meta?.pagination && typeof meta.pagination === "object"
+          ? meta.pagination
+          : meta;
+      const total = Number(pager.total ?? meta.total ?? rows.length) || 0;
+      const resolvedPage = Number(pager.page ?? meta.page ?? page) || page;
+      const resolvedLimit = Number(pager.limit ?? meta.limit ?? limit) || limit;
+      setOrders(
+        rows
+          .map((assignment) => mapAssignmentToOrder(assignment))
+          .filter(Boolean)
+      );
+      setPagination({ page: resolvedPage, limit: resolvedLimit, total });
+    } catch (error) {
+      message.error(error?.message || "Failed to load current orders");
+    } finally {
+      setTableLoading(false);
+    }
+  }, [mapAssignmentToOrder]);
+
+  useEffect(() => {
+    fetchAssignments({ page: 1, limit: 10 });
+  }, [fetchAssignments]);
+
+  const handleViewDetails = async (record) => {
+    const uploadId = record?.uploadId;
+    if (!uploadId) {
+      setSelectedOrder(record);
+      setDrawerOpen(true);
+      return;
+    }
+    setActionLoading(record.assignmentId, true);
+    try {
+      const sketch = await getCadSketchUpload(uploadId);
+      const raw = record.rawAssignment;
+      setSelectedOrder(
+        mapAssignmentToOrder(
+          raw || {
+            _id: record.assignmentId,
+            surveyorSketchUpload: { _id: uploadId, applicationId: record.orderId },
+            status: record.status,
+            notes: record.note,
+            assignedAt: record.orderDate,
+          },
+          sketch
+        )
+      );
+      setDrawerOpen(true);
+    } catch (error) {
+      message.error(error?.message || "Failed to load order details");
+      setSelectedOrder(record);
+      setDrawerOpen(true);
+    } finally {
+      setActionLoading(record.assignmentId, false);
+    }
+  };
+
+  const handleAssignmentAction = async (assignmentId, action) => {
+    setActionLoading(assignmentId, true);
+    try {
+      await respondCadAssignment(assignmentId, action);
+      message.success(action === "accept" ? "Order accepted" : "Order rejected");
+      await fetchAssignments({ page: pagination.page, limit: pagination.limit });
+      if (selectedOrder?.assignmentId === assignmentId) {
+        setDrawerOpen(false);
+        setSelectedOrder(null);
+      }
+    } catch (error) {
+      message.error(error?.message || "Failed to update order status");
+    } finally {
+      setActionLoading(assignmentId, false);
+    }
+  };
+
+  const handleAccept = (record) => handleAssignmentAction(record.assignmentId, "accept");
+  const handleReject = (record) => handleAssignmentAction(record.assignmentId, "reject");
+
+  const handleUploadCad = async (orderId, files) => {
+    const target = orders.find((o) => o.id === orderId);
+    if (!target?.assignmentId) return;
+    if (!files?.length) {
+      message.warning("Please select a CAD file to deliver.");
+      return;
+    }
+    const file = files[0];
+    setActionLoading(target.assignmentId, true);
+    try {
+      const { fileUrl } = await uploadImageToS3(file, target.uploadId || target.assignmentId);
+      await deliverCadAssignment(target.assignmentId, {
+        url: fileUrl,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        size: file.size || 0,
+      });
+      message.success("CAD deliverable submitted successfully");
+      await fetchAssignments({ page: pagination.page, limit: pagination.limit });
+      setDrawerOpen(false);
+      setSelectedOrder(null);
+    } catch (error) {
+      message.error(error?.message || "Failed to deliver CAD file");
+    } finally {
+      setActionLoading(target.assignmentId, false);
+    }
+  };
+
+  const handleTableChange = (nextPagination) => {
+    fetchAssignments({
+      page: nextPagination.current,
+      limit: nextPagination.pageSize,
+    });
   };
 
   const handleDrawerClose = () => {
@@ -27,79 +255,123 @@ const ViewCurrentOrders = () => {
     setSelectedOrder(null);
   };
 
-  const handleUploadCad = (orderId, files) => {
-    const names = files.map((f) => ({ name: f.name, url: "#" }));
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? { ...o, cadFiles: [...(o.cadFiles || []), ...names] }
-          : o
-      )
-    );
-    setSelectedOrder((prev) =>
-      prev && prev.id === orderId
-        ? {
-            ...prev,
-            cadFiles: [...(prev.cadFiles || []), ...names],
-          }
-        : prev
-    );
-  };
-
   const columns = [
     {
       title: "Sl. No",
       key: "slNo",
       width: 80,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
-      title: "Order Date",
+      title: "Assigned at",
       dataIndex: "orderDate",
       key: "orderDate",
-      width: 120,
-      sorter: (a, b) => new Date(a.orderDate) - new Date(b.orderDate),
+      width: 180,
+      render: (value) => (value ? new Date(value).toLocaleString("en-IN") : "—"),
+      sorter: (a, b) => new Date(a.orderDate || 0) - new Date(b.orderDate || 0),
     },
     {
-      title: "Order ID",
-      dataIndex: "orderId",
-      key: "orderId",
-      width: 120,
+      title: "Application ID",
+      dataIndex: "applicationId",
+      key: "applicationId",
+      width: 200,
+      ellipsis: true,
     },
+    // {
+    //   title: "Survey No",
+    //   dataIndex: "surveyNo",
+    //   key: "surveyNo",
+    //   width: 110,
+    // },
+    // {
+    //   title: "Location (refs)",
+    //   dataIndex: "locationSummary",
+    //   key: "locationSummary",
+    //   ellipsis: true,
+    //   width: 220,
+    // },
     {
-      title: "Customer Name",
-      dataIndex: "customerName",
-      key: "customerName",
-      sorter: (a, b) => a.customerName.localeCompare(b.customerName),
+      title: "Due date",
+      dataIndex: "dueDate",
+      key: "dueDate",
+      width: 170,
+      render: (value) => (value ? new Date(value).toLocaleString("en-IN") : "—"),
+      sorter: (a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0),
     },
-    {
-      title: "Phone",
-      dataIndex: "phoneNumber",
-      key: "phoneNumber",
-      width: 140,
-    },
+    // {
+    //   title: "Assigned by",
+    //   dataIndex: "assignedByLabel",
+    //   key: "assignedByLabel",
+    //   ellipsis: true,
+    //   width: 160,
+    // },
     {
       title: "Status",
       key: "status",
-      width: 130,
+      width: 140,
       render: (_, record) => {
-        const config = STATUS_TAG[record.status] || STATUS_TAG.pending;
+        const config = STATUS_TAG[record.status] || STATUS_TAG.ASSIGNED;
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     {
-      title: "Action",
-      key: "action",
-      width: 140,
+      title: "Details",
+      key: "details",
+      width: 160,
       render: (_, record) => (
         <Button
           type="link"
           icon={<EyeOutlined />}
           onClick={() => handleViewDetails(record)}
+          loading={!!actionLoadingById[record.assignmentId]}
         >
           View Details
         </Button>
       ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 260,
+      render: (_, record) => {
+        const status = String(record?.status || "").toUpperCase();
+
+        return (
+          <Space>
+            {status === "ASSIGNED" && (
+              <>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => handleAccept(record)}
+                  loading={!!actionLoadingById[record.assignmentId]}
+                >
+                  Accept
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  onClick={() => handleReject(record)}
+                  loading={!!actionLoadingById[record.assignmentId]}
+                >
+                  Reject
+                </Button>
+              </>
+            )}
+
+            {status === "IN_PROGRESS" && (
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => handleViewDetails(record)}
+                loading={!!actionLoadingById[record.assignmentId]}
+              >
+                Upload Drawing
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -109,20 +381,24 @@ const ViewCurrentOrders = () => {
         View Current Projects
       </Title>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        Orders assigned to your CAD center. Open details to view sketch files,
-        upload CAD files, and see status or change notes.
+        Survey sketch assignments for your CAD account. Open details to view files,
+        upload CAD deliverables, and see notes.
       </Typography.Paragraph>
 
       <Table
         columns={columns}
         dataSource={orders}
         rowKey="id"
+        loading={tableLoading}
+        onChange={handleTableChange}
         pagination={{
-          pageSize: 10,
+          current: pagination.page,
+          pageSize: pagination.limit,
+          total: pagination.total,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} orders`,
         }}
-        scroll={{ x: 800 }}
+        scroll={{ x: 1200 }}
       />
 
       <OrderDetailDrawer
