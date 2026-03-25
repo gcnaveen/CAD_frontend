@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Drawer,
   Typography,
@@ -17,11 +17,12 @@ import {
 import {
   FileOutlined,
   LinkOutlined,
-  BankOutlined,
+  UserOutlined,
   DollarOutlined,
   SoundOutlined,
 } from "@ant-design/icons";
 import apiClient from "../../../services/apiClient.js";
+import { getCadUsers, formatUserDisplayLabel } from "../../../services/assignmentApi.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -125,6 +126,17 @@ const formatDate = (dateString) => {
   }
 };
 
+/**
+ * Convert a Date into the local `datetime-local` input format: `YYYY-MM-DDTHH:mm`
+ * (no timezone information in the string).
+ */
+const toDatetimeLocalValue = (date) => {
+  const pad2 = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(
+    date.getHours()
+  )}:${pad2(date.getMinutes())}`;
+};
+
 const ProjectOrderDetailDrawer = ({
   open,
   onClose,
@@ -133,40 +145,49 @@ const ProjectOrderDetailDrawer = ({
   readOnly = false,
   loading = false,
 }) => {
-  const [assignedCadCenter, setAssignedCadCenter] = useState(null);
+  const [assignedCadUser, setAssignedCadUser] = useState(null);
   const [status, setStatus] = useState("approved");
   const [note, setNote] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [cadCenters, setCadCenters] = useState([]);
-  const [cadCentersLoading, setCadCentersLoading] = useState(false);
+  const [minDueDate, setMinDueDate] = useState("");
+  const [cadUsers, setCadUsers] = useState([]);
+  const [cadUsersLoading, setCadUsersLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const clearedDueDateWarningShownRef = useRef(false);
 
-  // Fetch CAD centers when drawer opens
+  // Fetch CAD users when drawer opens
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    const fetchCadCenters = async () => {
-      setCadCentersLoading(true);
+    const fetchCadUsers = async () => {
+      setCadUsersLoading(true);
       try {
-        const { data } = await apiClient.get("/api/masters/cad-centers");
-        const list = Array.isArray(data) ? data : data?.data ?? data?.cadCenters ?? [];
-        if (!cancelled) setCadCenters(list);
+        const filteredCadUsers = await getCadUsers();
+        if (!cancelled) setCadUsers(filteredCadUsers);
       } catch (err) {
         if (!cancelled) {
-          message.error(err.response?.data?.message || "Failed to load CAD centers");
-          setCadCenters([]);
+          message.error(err.response?.data?.message || "Failed to load CAD users");
+          setCadUsers([]);
         }
       } finally {
-        if (!cancelled) setCadCentersLoading(false);
+        if (!cancelled) setCadUsersLoading(false);
       }
     };
-    fetchCadCenters();
+    fetchCadUsers();
     return () => { cancelled = true; };
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
+    const min = new Date();
+    min.setSeconds(0, 0);
+    setMinDueDate(toDatetimeLocalValue(min));
+    clearedDueDateWarningShownRef.current = false;
+  }, [open]);
+
+  useEffect(() => {
     if (order) {
-      setAssignedCadCenter(order.assignedCadCenterId || null);
+      setAssignedCadUser(order.assignedCadCenterId || null);
       // Map API status to drawer status format
       const statusMap = {
         PENDING: "approved",
@@ -176,24 +197,70 @@ const ProjectOrderDetailDrawer = ({
       };
       setStatus(statusMap[order.status] || order.status || "approved");
       setNote(order.statusNote || order.note || "");
-      setDueDate(order.dueDate ? (order.dueDate.slice(0, 16)) : "");
+
+      if (!order.dueDate) {
+        setDueDate("");
+        return;
+      }
+
+      // Convert API ISO date (UTC) -> local `datetime-local` string.
+      const apiDueDateDate = new Date(order.dueDate);
+      if (Number.isNaN(apiDueDateDate.getTime())) {
+        setDueDate("");
+        return;
+      }
+
+      const apiDueDateValue = toDatetimeLocalValue(apiDueDateDate);
+
+      // Prevent showing/using a dueDate that is already in the past.
+      // `datetime-local` is local time, so we compare using local Date parsing.
+      const minDate = minDueDate ? new Date(minDueDate) : (() => {
+        const d = new Date();
+        d.setSeconds(0, 0);
+        return d;
+      })();
+
+      if (apiDueDateDate < minDate) {
+        setDueDate("");
+        if (!readOnly && !clearedDueDateWarningShownRef.current) {
+          clearedDueDateWarningShownRef.current = true;
+          message.warning("Existing due date is in the past. Please select an upcoming due date.");
+        }
+        return;
+      }
+
+      setDueDate(apiDueDateValue);
     }
-  }, [order]);
+  }, [order, minDueDate, readOnly]);
 
   const handleSave = async () => {
     if (!order?._id) {
       message.error("Order not loaded.");
       return;
     }
-    if (!assignedCadCenter) {
-      message.warning("Please select a CAD Center.");
+    if (!assignedCadUser) {
+      message.warning("Please select a CAD user.");
       return;
     }
     setSaveLoading(true);
     try {
+      // Guard against saving a past dueDate.
+      if (dueDate) {
+        const selected = new Date(dueDate);
+        const minDate = minDueDate ? new Date(minDueDate) : (() => {
+          const d = new Date();
+          d.setSeconds(0, 0);
+          return d;
+        })();
+        if (selected < minDate) {
+          message.error("Due date must be an upcoming date/time.");
+          return;
+        }
+      }
+
       const payload = {
         surveyorSketchUploadId: order._id,
-        cadCenterId: assignedCadCenter,
+        cadCenterId: assignedCadUser,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         notes: typeof note === "string" ? note : String(note ?? ""),
       };
@@ -202,7 +269,7 @@ const ProjectOrderDetailDrawer = ({
       if (onSave) {
         onSave({
           ...order,
-          assignedCadCenterId: assignedCadCenter,
+          assignedCadCenterId: assignedCadUser,
           status,
           note: status === "need_changes" ? note : "",
           dueDate: payload.dueDate,
@@ -609,32 +676,53 @@ const ProjectOrderDetailDrawer = ({
 
           <Divider style={{ margin: "8px 0" }} />
 
-          {/* Assigned to - CAD Center */}
+          {/* Assigned to - CAD User */}
           <Card size="small" title="Assigned To">
             <Space direction="vertical" style={{ width: "100%" }} size="middle">
               <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>CAD Center</Text>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>CAD User</Text>
                 <Select
-                  placeholder="Select CAD Center"
+                  placeholder="Select CAD User"
                   style={{ width: "100%", maxWidth: 400 }}
-                  value={assignedCadCenter}
-                  onChange={setAssignedCadCenter}
+                  value={assignedCadUser}
+                  onChange={setAssignedCadUser}
                   disabled={readOnly}
-                  loading={cadCentersLoading}
-                  options={cadCenters.map((c) => ({
-                    value: c.id || c._id,
-                    label: c.name,
+                  loading={cadUsersLoading}
+                  options={cadUsers.map((u) => ({
+                    value: u.id || u._id,
+                    label: formatUserDisplayLabel(u) || String(u.id || u._id),
                   }))}
-                  suffixIcon={<BankOutlined />}
+                  suffixIcon={<UserOutlined />}
                 />
               </div>
               <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>Due Date</Text>
                 <Input
                   type="datetime-local"
+                      min={minDueDate || undefined}
+                      step={60}
                   style={{ width: "100%", maxWidth: 400 }}
                   value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (!value) {
+                          setDueDate("");
+                          return;
+                        }
+
+                        const selected = new Date(value);
+                        const minDate = minDueDate ? new Date(minDueDate) : (() => {
+                          const d = new Date();
+                          d.setSeconds(0, 0);
+                          return d;
+                        })();
+                        if (selected < minDate) {
+                          message.warning("Due date must be an upcoming date/time.");
+                          return;
+                        }
+
+                        setDueDate(value);
+                      }}
                   disabled={readOnly}
                 />
               </div>

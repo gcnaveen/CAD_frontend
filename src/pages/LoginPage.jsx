@@ -250,6 +250,7 @@ import { useDispatch } from "react-redux";
 import { setCredentials } from "../features/auth/authSlice";
 import { userLogin } from "../services/user/userService";
 import { Eye, EyeOff, ArrowRight, Phone, Mail, MapPin, Shield } from "lucide-react";
+import InstallButton from "../components/pwa/InstallButton.jsx";
 
 const getRedirectForRole = (role) => {
   const r = (role || "").toUpperCase();
@@ -300,6 +301,7 @@ export default function LoginPage() {
       if (!validateEmail(email)) { setErrors({ email: "Please enter a valid email" }); return; }
     }
     if (!password) { setErrors({ password: "Password is required" }); return; }
+    if (!/^\d{4}$/.test(password)) { setErrors({ password: "Password must be exactly 4 digits" }); return; }
     setIsLoading(true);
     try {
       const payload = loginMode === "phone"
@@ -337,6 +339,25 @@ export default function LoginPage() {
       position: "relative", overflow: "hidden",
       fontFamily: "system-ui, -apple-system, sans-serif",
     }}>
+      <div
+        style={{
+          position: "absolute",
+          top: "max(16px, env(safe-area-inset-top))",
+          right: "max(16px, env(safe-area-inset-right))",
+          zIndex: 20,
+        }}
+      >
+        <InstallButton
+          size="middle"
+          showLabel={false}
+          style={{
+            borderColor: "rgba(21,40,21,0.28)",
+            color: "#152815",
+            background: "rgba(255,255,255,0.75)",
+            backdropFilter: "blur(8px)",
+          }}
+        />
+      </div>
       <style>{`
         @keyframes ping { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.2); opacity: 0; } }
         @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -686,10 +707,12 @@ export default function LoginPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="Enter 4-digit password"
                     className={`lp-input${errors.password ? " error" : ""}`}
                     style={{ paddingRight: "46px" }}
+                    inputMode="numeric"
+                    maxLength={4}
                   />
                   <button
                     type="button"

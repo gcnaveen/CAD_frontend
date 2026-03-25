@@ -18,9 +18,11 @@ export async function createTaluka(payload) {
 }
 
 /** GET /api/masters/districts/{districtId}/talukas - List Talukas by District */
-export async function getTalukasByDistrict(districtId) {
+export async function getTalukasByDistrict(districtId, params = {}) {
   try {
-    const { data } = await apiClient.get(`${BASE}/districts/${districtId}/talukas`);
+    const { data } = await apiClient.get(`${BASE}/districts/${districtId}/talukas`, {
+      params,
+    });
     return data;
   } catch (error) {
     handleError(error, "Failed to fetch talukas");

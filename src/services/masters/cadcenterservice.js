@@ -17,10 +17,10 @@ export async function createCadCenter(payload) {
   }
 }
 
-/** GET /api/masters/cad-centers - List CAD Centers */
-export async function getCadCenters() {
+/** GET /api/masters/cad-centers - List CAD Centers (optional page, limit, etc.) */
+export async function getCadCenters(params = {}) {
   try {
-    const { data } = await apiClient.get(BASE);
+    const { data } = await apiClient.get(BASE, { params });
     return data;
   } catch (error) {
     handleError(error, "Failed to fetch CAD centers");

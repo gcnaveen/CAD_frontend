@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Typography, Table, Button, Space, Spin, Empty, message, Tag, Select, Drawer, Input, Form } from "antd";
+import { Typography, Table, Button, Space, Spin, Empty, message, Tag, Select, Drawer, Input, Form, Switch } from "antd";
 import { EyeOutlined, EditOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ProjectOrderDetailDrawer from "./ProjectOrderDetailDrawer";
 import { getSketchUploadById } from "../../../services/surveyor/sketchUploadService.js";
 import apiClient from "../../../services/apiClient.js";
+import {
+  getAssignmentFlow,
+  getCadUsers,
+  updateAssignmentFlow,
+  formatUserDisplayLabel,
+} from "../../../services/assignmentApi.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -32,6 +38,17 @@ const EDIT_STATUS_OPTIONS = [
 const ViewCurrentProject = () => {
   const navigate = useNavigate();
   const userRole = useSelector((state) => state.auth?.role);
+  const currentRole =
+    userRole ||
+    (() => {
+      try {
+        const stored = localStorage.getItem("user");
+        return stored ? JSON.parse(stored)?.role : null;
+      } catch {
+        return null;
+      }
+    })();
+  const isSuperAdmin = currentRole === "SUPER_ADMIN";
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,9 +56,9 @@ const ViewCurrentProject = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
-  const [cadCenterFilter, setCadCenterFilter] = useState("");
-  const [cadCenters, setCadCenters] = useState([]);
-  const [cadCentersLoading, setCadCentersLoading] = useState(false);
+  const [cadUserFilter, setCadUserFilter] = useState("");
+  const [cadUsers, setCadUsers] = useState([]);
+  const [cadUsersLoading, setCadUsersLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -54,36 +71,64 @@ const ViewCurrentProject = () => {
   const [editForm] = Form.useForm();
   const [editLoading, setEditLoading] = useState(false);
   const [editSaveLoading, setEditSaveLoading] = useState(false);
+  const [autoAssign, setAutoAssign] = useState(false);
+  const [autoAssignLoading, setAutoAssignLoading] = useState(false);
 
   // Check role access - only ADMIN and SUPER_ADMIN
   useEffect(() => {
-    const currentRole = userRole || (() => {
-      try {
-        const stored = localStorage.getItem("user");
-        return stored ? JSON.parse(stored)?.role : null;
-      } catch {
-        return null;
-      }
-    })();
-
     if (currentRole !== "ADMIN" && currentRole !== "SUPER_ADMIN") {
       message.error("Access denied. Admin or Super Admin access required.");
       navigate("/superadmin/home");
     }
-  }, [userRole, navigate]);
+  }, [currentRole, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAutoAssign = async () => {
+      try {
+        const flow = await getAssignmentFlow();
+        const enabled =
+          flow?.autoAssignEnabled ??
+          flow?.data?.autoAssignEnabled ??
+          flow?.value?.autoAssignEnabled;
+        if (!cancelled) setAutoAssign(Boolean(enabled));
+      } catch (err) {
+        if (cancelled) return;
+        message.error(err?.message || "Failed to load auto assign setting");
+      }
+    };
+    loadAutoAssign();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAutoAssignChange = async (checked) => {
+    const prev = autoAssign;
+    setAutoAssign(checked);
+    setAutoAssignLoading(true);
+    try {
+      await updateAssignmentFlow({ autoAssignEnabled: checked });
+      message.success("Auto assign setting updated");
+    } catch (err) {
+      setAutoAssign(prev);
+      message.error(err?.message || "Failed to update auto assign setting");
+    } finally {
+      setAutoAssignLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      setCadCentersLoading(true);
+      setCadUsersLoading(true);
       try {
-        const { data } = await apiClient.get("/api/masters/cad-centers");
-        const list = Array.isArray(data) ? data : data?.data ?? data?.cadCenters ?? [];
-        if (!cancelled) setCadCenters(list);
+        const filteredCadUsers = await getCadUsers();
+        if (!cancelled) setCadUsers(filteredCadUsers);
       } catch (err) {
-        if (!cancelled) message.error(err.response?.data?.message || "Failed to load CAD centers");
+        if (!cancelled) message.error(err.response?.data?.message || "Failed to load CAD users");
       } finally {
-        if (!cancelled) setCadCentersLoading(false);
+        if (!cancelled) setCadUsersLoading(false);
       }
     };
     load();
@@ -92,25 +137,26 @@ const ViewCurrentProject = () => {
 
   useEffect(() => {
     fetchAssignments(1, pagination.limit);
-  }, [statusFilter, cadCenterFilter]);
+  }, [statusFilter, cadUserFilter]);
 
   const fetchAssignments = async (page = 1, limit = 10) => {
     setLoading(true);
     try {
       const params = { page, limit };
       if (statusFilter) params.status = statusFilter;
-      if (cadCenterFilter) params.cadCenterId = cadCenterFilter;
+      if (cadUserFilter) params.assignedToUserId = cadUserFilter;
       const { data: body } = await apiClient.get("/api/surveyor/sketch-uploads", {
         params,
       });
 
       const list = body?.data ?? [];
       const meta = body?.meta ?? body?.pagination ?? {};
+      const pager = meta?.pagination && typeof meta.pagination === "object" ? meta.pagination : meta;
       setAssignments(Array.isArray(list) ? list : []);
       setPagination({
-        page: meta.page ?? page,
-        limit: meta.limit ?? limit,
-        total: meta.total ?? list?.length ?? 0,
+        page: pager.page ?? meta.page ?? page,
+        limit: pager.limit ?? meta.limit ?? limit,
+        total: pager.total ?? meta.total ?? list?.length ?? 0,
       });
     } catch (error) {
       console.error("Failed to fetch sketch uploads:", error);
@@ -403,8 +449,8 @@ const ViewCurrentProject = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handleCadCenterFilterChange = (value) => {
-    setCadCenterFilter(value ?? "");
+  const handleCadUserFilterChange = (value) => {
+    setCadUserFilter(value ?? "");
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
@@ -425,20 +471,30 @@ const ViewCurrentProject = () => {
               placeholder="All statuses"
             />
           </Space>
+          {isSuperAdmin && (
+            <Space align="center" style={{ marginLeft: 4 }}>
+              <Text type="secondary">Auto assign</Text>
+              <Switch
+                checked={autoAssign}
+                onChange={handleAutoAssignChange}
+                disabled={autoAssignLoading}
+              />
+            </Space>
+          )}
           <Space>
-            <span>CAD Center:</span>
+            <span>CAD User:</span>
             <Select
-              value={cadCenterFilter || undefined}
-              onChange={handleCadCenterFilterChange}
-              loading={cadCentersLoading}
-              placeholder="All CAD centers"
+              value={cadUserFilter || undefined}
+              onChange={handleCadUserFilterChange}
+              loading={cadUsersLoading}
+              placeholder="All CAD users"
               allowClear
               style={{ minWidth: 200 }}
               options={[
-                { value: "", label: "All CAD centers" },
-                ...cadCenters.map((c) => ({
-                  value: c.id || c._id,
-                  label: c.name,
+                { value: "", label: "All CAD users" },
+                ...cadUsers.map((u) => ({
+                  value: u.id || u._id,
+                  label: formatUserDisplayLabel(u) || String(u.id || u._id),
                 })),
               ]}
             />
@@ -509,8 +565,18 @@ const ViewCurrentProject = () => {
                 allowClear
               />
             </Form.Item>
-            <Form.Item name="assignedToUserId" label="Assigned To (User ID)">
-              <Input placeholder="User ID (optional)" />
+            <Form.Item name="assignedToUserId" label="Assigned To (CAD User)">
+              <Select
+                placeholder="Select CAD user (optional)"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                loading={cadUsersLoading}
+                options={cadUsers.map((u) => ({
+                  value: u.id || u._id,
+                  label: formatUserDisplayLabel(u) || String(u.id || u._id),
+                }))}
+              />
             </Form.Item>
             <Form.Item name="dueDate" label="Due Date">
               <Input type="datetime-local" style={{ width: "100%" }} />

@@ -1,4 +1,5 @@
 import React from "react";
+import { formatUserDisplayLabel } from "../../services/assignmentApi.js";
 
 function getStatusBadgeClasses(status) {
   const s = String(status || "").toUpperCase();
@@ -64,22 +65,19 @@ export default function SketchTable({
                 );
 
                 const assignedUserName =
-                  row?.assignedCadUser?.name ??
-                  row?.cadCenter?.name ??
-                  row?.assignment?.cadCenter?.name ??
-                  row?.assignment?.cadCenterId?.name ??
-                  row?.assignment?.cadUser?.name ??
-                  row?.cadCenterId?.name ??
+                  formatUserDisplayLabel(row?.assignedCadUser) ||
+                  formatUserDisplayLabel(row?.assignment?.cadUser) ||
+                  formatUserDisplayLabel(row?.assignment?.cadCenterId) ||
+                  formatUserDisplayLabel(row?.cadCenterId) ||
+                  formatUserDisplayLabel(row?.cadCenter) ||
+                  formatUserDisplayLabel(row?.assignment?.cadCenter) ||
                   "-";
 
                 const uploadedBy =
-                  row?.uploadedBy?.name ??
-                  row?.uploadedBy?.fullName ??
-                  row?.surveyor?.name ??
-                  row?.surveyor?.fullName ??
-                  row?.user?.name ??
-                  row?.user?.fullName ??
-                  row?.uploadedBy ??
+                  formatUserDisplayLabel(row?.uploadedBy) ||
+                  formatUserDisplayLabel(row?.surveyor) ||
+                  formatUserDisplayLabel(row?.user) ||
+                  (typeof row?.uploadedBy === "string" ? row.uploadedBy : "") ||
                   "-";
 
                 const id = row?._id ?? row?.id ?? "-";

@@ -47,7 +47,7 @@ const FieldLabel = ({ kn, en, required }) => (
   </span>
 );
 
-const LocationStep = ({ form, prefillEntities = null }) => {
+const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) => {
   const [districts, setDistricts] = useState([]);
   const [talukas,   setTalukas]   = useState([]);
   const [hoblis,    setHoblis]     = useState([]);
@@ -147,6 +147,16 @@ const LocationStep = ({ form, prefillEntities = null }) => {
     className: selectCls,
   };
 
+  const setLocationLabels = (next) => {
+    form.setFieldsValue({
+      districtLabel: next.district ?? null,
+      talukaLabel: next.taluka ?? null,
+      hobliLabel: next.hobli ?? null,
+      villageLabel: next.village ?? null,
+    });
+    onLocationLabelsChange?.(next);
+  };
+
   return (
     <div>
       <SectionHeader
@@ -211,6 +221,11 @@ const LocationStep = ({ form, prefillEntities = null }) => {
             placeholder="Select district"
             loading={loading.districts}
             options={districts.map((d) => ({ value: d.id ?? d._id, label: d.code ? `${d.name} (${d.code})` : d.name }))}
+            onChange={(_, option) => {
+              const selectedLabel = option?.label ?? null;
+              form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+              setLocationLabels({ district: selectedLabel, taluka: null, hobli: null, village: null });
+            }}
           />
         </Form.Item>
 
@@ -226,6 +241,16 @@ const LocationStep = ({ form, prefillEntities = null }) => {
             disabled={!district && !taluka}
             loading={loading.talukas}
             options={talukas.map((t) => ({ value: t.id ?? t._id, label: t.code ? `${t.name} (${t.code})` : t.name }))}
+            onChange={(_, option) => {
+              const selectedLabel = option?.label ?? null;
+              form.setFieldsValue({ hobli: undefined, village: undefined });
+              setLocationLabels({
+                district: form.getFieldValue("districtLabel"),
+                taluka: selectedLabel,
+                hobli: null,
+                village: null,
+              });
+            }}
           />
         </Form.Item>
 
@@ -241,6 +266,16 @@ const LocationStep = ({ form, prefillEntities = null }) => {
             disabled={!taluka && !hobli}
             loading={loading.hoblis}
             options={hoblis.map((h) => ({ value: h.id ?? h._id, label: h.code ? `${h.name} (${h.code})` : h.name }))}
+            onChange={(_, option) => {
+              const selectedLabel = option?.label ?? null;
+              form.setFieldsValue({ village: undefined });
+              setLocationLabels({
+                district: form.getFieldValue("districtLabel"),
+                taluka: form.getFieldValue("talukaLabel"),
+                hobli: selectedLabel,
+                village: null,
+              });
+            }}
           />
         </Form.Item>
 
@@ -256,6 +291,15 @@ const LocationStep = ({ form, prefillEntities = null }) => {
             disabled={!hobli && !village}
             loading={loading.villages}
             options={villages.map((v) => ({ value: v.id ?? v._id, label: v.code ? `${v.name} (${v.code})` : v.name }))}
+            onChange={(_, option) => {
+              const selectedLabel = option?.label ?? null;
+              setLocationLabels({
+                district: form.getFieldValue("districtLabel"),
+                taluka: form.getFieldValue("talukaLabel"),
+                hobli: form.getFieldValue("hobliLabel"),
+                village: selectedLabel,
+              });
+            }}
           />
         </Form.Item>
 

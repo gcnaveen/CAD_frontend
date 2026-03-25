@@ -19,6 +19,7 @@ import {
   createHobli,
   updateHobli,
 } from "../../../services/masters/hobliService.js";
+import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
 
 const { Title } = Typography;
 
@@ -34,6 +35,7 @@ const ViewHoblis = () => {
   const [selectedDistrictId, setSelectedDistrictId] = useState(undefined);
   const [selectedTalukaId, setSelectedTalukaId] = useState(undefined);
   const [list, setList] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState("add");
@@ -67,24 +69,45 @@ const ViewHoblis = () => {
   const fetchHoblis = useCallback(async () => {
     if (!selectedTalukaId) {
       setList([]);
+      setPagination((p) => ({ ...p, total: 0 }));
       return;
     }
     setLoading(true);
     try {
-      const res = await getHoblisByTaluka(selectedTalukaId);
-      const items = normalizeList(res);
+      const res = await getHoblisByTaluka(selectedTalukaId, {
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+      const { items, total, page, limit } = parsePagedListResponse(res, {
+        page: pagination.page,
+        limit: pagination.limit,
+      });
       setList(items.map((r) => ({ ...r, id: r.id ?? r._id })));
+      setPagination({ page, limit, total });
     } catch (err) {
       message.error(err.message || "Failed to load hoblis.");
       setList([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedTalukaId]);
+  }, [selectedTalukaId, pagination.page, pagination.limit]);
 
   useEffect(() => {
     fetchHoblis();
   }, [fetchHoblis]);
+
+  const handleTableChange = (pag) => {
+    setPagination((prev) => ({
+      ...prev,
+      page: pag.current ?? 1,
+      limit: pag.pageSize ?? prev.limit,
+    }));
+  };
+
+  const handleTalukaChange = (v) => {
+    setSelectedTalukaId(v);
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
 
   const handleAdd = () => {
     setDrawerMode("add");
@@ -152,7 +175,7 @@ const ViewHoblis = () => {
       title: "SL No",
       key: "slNo",
       width: 80,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
       title: "Code",
@@ -224,7 +247,7 @@ const ViewHoblis = () => {
             size="large"
             style={{ minWidth: 180 }}
             value={selectedTalukaId}
-            onChange={setSelectedTalukaId}
+            onChange={handleTalukaChange}
             disabled={!selectedDistrictId}
             showSearch
             optionFilterProp="label"
@@ -252,10 +275,14 @@ const ViewHoblis = () => {
           dataSource={list}
           rowKey={(r) => r.id ?? r._id}
           pagination={{
-            pageSize: 10,
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total: pagination.total,
             showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
             showTotal: (total) => `Total ${total} hoblis`,
           }}
+          onChange={handleTableChange}
           scroll={{ x: 600 }}
           locale={
             !selectedTalukaId

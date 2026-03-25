@@ -13,6 +13,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
+import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import "./cadlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -244,6 +245,13 @@ const CADLayout = () => {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <InstallButton
+                size="middle"
+                style={{
+                  borderColor: HEADER_BORDER,
+                  color: "#475569",
+                }}
+              />
               <NotificationBell layout="cad" />
               <Button
                 type="default"

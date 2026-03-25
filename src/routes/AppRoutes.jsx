@@ -37,6 +37,7 @@ import Wallet from "../dashboard/cad/wallet/Wallet";
 import DashboardLayout from "../dashboard/user/component/Dashboardlayout.jsx";
 import RequestsPage from "../dashboard/user/component/RequestsPage.jsx";
 import ProfilePage from "../dashboard/user/component/ProfilePage.jsx";
+import DraftsPage from "../dashboard/user/component/DraftsPage.jsx";
 
 export default function AppRoutes() {
   return (
@@ -69,6 +70,7 @@ export default function AppRoutes() {
 
         {/* /dashboard/user/profile */}
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="drafts" element={<DraftsPage />} />
 
         {/* existing sub-pages — still reachable, still inside the layout */}
         <Route path="upload" element={<UserUploadForm />} />

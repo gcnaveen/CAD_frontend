@@ -11,7 +11,8 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import UserFormDrawer from "../../../components/users/UserFormDrawer.jsx";
 import { getUsersByRole, deleteUser } from "../../../services/user/userService.js";
-import { parseUsersResponse, mapUserToRow } from "../../../utils/userListUtils.js";
+import { mapUserToRow } from "../../../utils/userListUtils.js";
+import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
 
 const { Title } = Typography;
 
@@ -19,6 +20,7 @@ const ROLE_SURVEYOR = "SURVEYOR";
 
 const ViewUserDetails = () => {
   const [users, setUsers] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState("add");
@@ -27,20 +29,36 @@ const ViewUserDetails = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getUsersByRole({ role: ROLE_SURVEYOR });
-      const { items } = parseUsersResponse(res);
+      const res = await getUsersByRole({
+        role: ROLE_SURVEYOR,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+      const { items, total, page, limit } = parsePagedListResponse(res, {
+        page: pagination.page,
+        limit: pagination.limit,
+      });
       setUsers(items.map(mapUserToRow));
+      setPagination({ page, limit, total });
     } catch (err) {
       message.error(err.message || "Failed to load surveyor users.");
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.page, pagination.limit]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleTableChange = (pag) => {
+    setPagination((prev) => ({
+      ...prev,
+      page: pag.current ?? 1,
+      limit: pag.pageSize ?? prev.limit,
+    }));
+  };
 
   const handleAddUser = () => {
     setDrawerMode("add");
@@ -87,7 +105,7 @@ const ViewUserDetails = () => {
       title: "Sl. No",
       key: "slNo",
       width: 80,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
       title: "Name",
@@ -95,12 +113,12 @@ const ViewUserDetails = () => {
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
-    {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      sorter: (a, b) => a.email.localeCompare(b.email),
-    },
+    // {
+    //   title: "Email",
+    //   dataIndex: "email",
+    //   key: "email",
+    //   sorter: (a, b) => a.email.localeCompare(b.email),
+    // },
     {
       title: "Mobile",
       dataIndex: "mobile",
@@ -154,10 +172,14 @@ const ViewUserDetails = () => {
           dataSource={users}
           rowKey={(r) => r.id ?? r._id}
           pagination={{
-            pageSize: 10,
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total: pagination.total,
             showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
             showTotal: (total) => `Total ${total} users`,
           }}
+          onChange={handleTableChange}
           scroll={{ x: 600 }}
         />
       </Spin>

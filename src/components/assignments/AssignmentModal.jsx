@@ -1,4 +1,5 @@
 import React from "react";
+import { formatUserDisplayLabel } from "../../services/assignmentApi.js";
 
 function getModalTitle(mode) {
   return mode === "edit" ? "Update Assignment" : "Assign Sketch";
@@ -97,7 +98,7 @@ export default function AssignmentModal({
                   <option value="">Select CAD user</option>
                   {(cadUsers || []).map((u) => (
                     <option key={u?._id ?? u?.id} value={u?._id ?? u?.id}>
-                      {u?.name ?? u?.fullName ?? u?.email ?? (u?._id ?? u?.id)}
+                      {formatUserDisplayLabel(u) || String(u?._id ?? u?.id ?? "")}
                     </option>
                   ))}
                 </select>

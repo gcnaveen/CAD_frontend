@@ -11,6 +11,7 @@ import {
   MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, Check,
   Phone, User, Lock, Shield,
 } from "lucide-react";
+import InstallButton from "../components/pwa/InstallButton.jsx";
 
 function normalizeList(res) {
   const raw = res?.data ?? res;
@@ -19,8 +20,8 @@ function normalizeList(res) {
 }
 
 const STEPS = [
-  { key: 1, label: "Details", icon: <User size={14} /> },
-  { key: 2, label: "Type",    icon: <Shield size={14} /> },
+  { key: 1, label: "Type",    icon: <Shield size={14} /> },
+  { key: 2, label: "Details", icon: <User size={14} /> },
   { key: 3, label: "Password",icon: <Lock size={14} /> },
   { key: 4, label: "Location",icon: <MapPin size={14} /> },
 ];
@@ -41,8 +42,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [mounted, setMounted] = useState(false);
 
-  const [firstName, setFirstName]         = useState("");
-  const [lastName, setLastName]           = useState("");
+  const [fullName, setFullName]           = useState("");
   const [phone, setPhone]                 = useState("");
   const [otp, setOtp]                     = useState("");
   const [otpSent, setOtpSent]             = useState(false);
@@ -94,13 +94,14 @@ export default function RegisterPage() {
 
   const handleSendOtp = async () => {
     setMessage({ type: "", text: "" }); setErrors({});
-    const f = firstName?.trim() ?? "", l = lastName?.trim() ?? "", p = getMobile();
-    if (!f) { setErrors({ firstName: "First name is required" }); return; }
-    if (!l) { setErrors({ lastName: "Last name is required" }); return; }
+    const f = fullName?.trim() ?? "", p = getMobile();
+    if (!f) { setErrors({ fullName: "Full name is required" }); return; }
     if (p.length < 10) { setErrors({ phone: "Enter a valid 10-digit mobile number" }); return; }
     setSendingOtp(true);
     try {
-      await surveyorStart({ phone: p, firstName: f, lastName: l });
+      // Backend expects `firstName` and `lastName`.
+      // Requirement: keep only fullname; last name should not be mandatory.
+      await surveyorStart({ phone: p, firstName: f, lastName: "" });
       setOtpSent(true);
       setMessage({ type: "success", text: "OTP sent to your mobile." });
     } catch (err) {
@@ -126,17 +127,16 @@ export default function RegisterPage() {
   const validateStep = (s) => {
     const e = {};
     if (s === 1) {
-      if (!firstName?.trim()) e.firstName = "First name is required";
-      if (!lastName?.trim())  e.lastName  = "Last name is required";
-      if (getMobile().length < 10) e.phone = "Valid 10-digit mobile required";
-      if (otpSent && !isOtpVerified && (otp || "").trim().length < 4) e.otp = "Enter OTP";
-    }
-    if (s === 2) {
       if (!accountType) e.accountType = "Select account type";
       if (accountType === "SURVEYOR" && !surveyorType) e.surveyorType = "Select surveyor type";
     }
+    if (s === 2) {
+      if (!fullName?.trim()) e.fullName = "Full name is required";
+      if (getMobile().length < 10) e.phone = "Valid 10-digit mobile required";
+      if (otpSent && !isOtpVerified && (otp || "").trim().length < 4) e.otp = "Enter OTP";
+    }
     if (s === 3) {
-      if (!password || password.length < 6) e.password = "Password must be at least 6 characters";
+      if (!/^\d{4}$/.test(password || "")) e.password = "Password must be exactly 4 digits";
       if (password !== confirmPassword) e.confirmPassword = "Passwords do not match";
     }
     if (s === 4) {
@@ -148,13 +148,16 @@ export default function RegisterPage() {
   };
 
   const goNext = () => {
-    if (step === 1 && otpSent && !isOtpVerified) { handleVerifyOtp(); return; }
+    if (step === 2 && otpSent && !isOtpVerified) { handleVerifyOtp(); return; }
     if (step === 1) {
       if (!validateStep(1)) return;
-      if (!isOtpVerified) { handleSendOtp(); return; }
       setStep(2); return;
     }
-    if (step === 2) { if (!validateStep(2)) return; setStep(3); return; }
+    if (step === 2) {
+      if (!validateStep(2)) return;
+      if (!isOtpVerified) { handleSendOtp(); return; }
+      setStep(3); return;
+    }
     if (step === 3) { if (!validateStep(3)) return; setStep(4); return; }
   };
 
@@ -199,6 +202,25 @@ export default function RegisterPage() {
       position: "relative", overflow: "hidden",
       fontFamily: "system-ui, -apple-system, sans-serif",
     }}>
+      <div
+        style={{
+          position: "absolute",
+          top: "max(16px, env(safe-area-inset-top))",
+          right: "max(16px, env(safe-area-inset-right))",
+          zIndex: 20,
+        }}
+      >
+        <InstallButton
+          size="middle"
+          showLabel={false}
+          style={{
+            borderColor: "rgba(21,40,21,0.28)",
+            color: "#152815",
+            background: "rgba(255,255,255,0.75)",
+            backdropFilter: "blur(8px)",
+          }}
+        />
+      </div>
       <style>{`
         @keyframes ping       { 0% { transform:scale(1); opacity:.7; } 100% { transform:scale(2.2); opacity:0; } }
         @keyframes card-in    { from { opacity:0; transform:translateY(28px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
@@ -426,14 +448,14 @@ export default function RegisterPage() {
           {/* Card heading */}
           <div style={{ marginBottom:"20px" }}>
             <h2 style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"#0d1f0d", lineHeight:1.2, marginBottom:"5px" }}>
-              {step === 1 && "Basic Details & Verification"}
-              {step === 2 && "Account Type"}
+              {step === 1 && "Account Type"}
+              {step === 2 && "Basic Details & Verification"}
               {step === 3 && "Set Your Password"}
               {step === 4 && "Location Details"}
             </h2>
             <p style={{ fontSize:"13px", color:"#8a7a60", lineHeight:1.55, margin:0 }}>
-              {step === 1 && "Enter your name and mobile, then verify with OTP."}
-              {step === 2 && "Choose how you'll use the platform."}
+              {step === 1 && "Choose how you'll use the platform."}
+              {step === 2 && "Enter your full name and mobile, then verify with OTP."}
               {step === 3 && "Create a secure password for your account."}
               {step === 4 && "Select your district and taluk in Karnataka."}
             </p>
@@ -452,20 +474,20 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── STEP 1 ── */}
-          {step === 1 && (
+          {/* ── STEP 2 (Details) ── */}
+          {step === 2 && (
             <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
-                <div>
-                  <label style={labelStyle}>First Name</label>
-                  <input type="text" value={firstName} onChange={(e)=>setFirstName(e.target.value)} placeholder="First name" className={`rp-input${errors.firstName?" err":""}`} disabled={isOtpVerified} />
-                  {errors.firstName && <p style={errStyle}>{errors.firstName}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Last Name</label>
-                  <input type="text" value={lastName} onChange={(e)=>setLastName(e.target.value)} placeholder="Last name" className={`rp-input${errors.lastName?" err":""}`} disabled={isOtpVerified} />
-                  {errors.lastName && <p style={errStyle}>{errors.lastName}</p>}
-                </div>
+              <div>
+                <label style={labelStyle}>Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e)=>setFullName(e.target.value)}
+                  placeholder="Full name"
+                  className={`rp-input${errors.fullName?" err":""}`}
+                  disabled={isOtpVerified}
+                />
+                {errors.fullName && <p style={errStyle}>{errors.fullName}</p>}
               </div>
 
               <div>
@@ -482,8 +504,18 @@ export default function RegisterPage() {
               {otpSent && (
                 <div>
                   <label style={labelStyle}>Enter OTP</label>
-                  <input type="text" value={otp} onChange={(e)=>setOtp(e.target.value.replace(/\D/g,"").slice(0,8))} placeholder="Enter OTP sent to your mobile" className={`rp-input${errors.otp?" err":""}`} disabled={isOtpVerified} />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e)=>setOtp(e.target.value.replace(/\D/g,"").slice(0,8))}
+                    placeholder="Enter OTP sent to your mobile"
+                    className={`rp-input${errors.otp?" err":""}`}
+                    disabled={isOtpVerified}
+                  />
                   {errors.otp && <p style={errStyle}>{errors.otp}</p>}
+                  <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
+                    Default OTP: <span style={{ fontWeight: 700, color: "#9a7020" }}>123456</span>
+                  </p>
                   {!isOtpVerified && (
                     <div style={{ display:"flex", gap:"10px", marginTop:"12px", flexWrap:"wrap" }}>
                       <button type="button" className="rp-btn-primary" onClick={handleVerifyOtp} disabled={verifyingOtp}>
@@ -502,16 +534,21 @@ export default function RegisterPage() {
                   {sendingOtp ? <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:"spin .8s linear infinite"}}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Sending OTP…</> : <>Send OTP <ArrowRight size={16}/></>}
                 </button>
               )}
-              {isOtpVerified && (
-                <button type="button" className="rp-btn-primary" onClick={()=>setStep(2)} style={{ width:"100%" }}>
-                  Next: Account Type <ArrowRight size={16}/>
+              <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
+                <button type="button" className="rp-btn-outline" onClick={goBack}>
+                  <ArrowLeft size={16}/>Back
                 </button>
-              )}
+                {isOtpVerified && (
+                  <button type="button" className="rp-btn-primary" onClick={()=>setStep(3)} style={{ flex:1 }}>
+                    Next: Password <ArrowRight size={16}/>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          {/* ── STEP 2 ── */}
-          {step === 2 && (
+          {/* ── STEP 1 (Type) ── */}
+          {step === 1 && (
             <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
               <div>
                 <label style={labelStyle}>Account Type</label>
@@ -545,8 +582,9 @@ export default function RegisterPage() {
               )}
 
               <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
-                <button type="button" className="rp-btn-outline" onClick={goBack}><ArrowLeft size={16}/>Back</button>
-                <button type="button" className="rp-btn-primary" onClick={goNext} style={{ flex:1 }}>Next: Password <ArrowRight size={16}/></button>
+                <button type="button" className="rp-btn-primary" onClick={goNext} style={{ flex:1 }}>
+                  Next: Details <ArrowRight size={16}/>
+                </button>
               </div>
             </div>
           )}
@@ -554,11 +592,11 @@ export default function RegisterPage() {
           {/* ── STEP 3 ── */}
           {step === 3 && (
             <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              {[{label:"Password",val:password,set:setPassword,show:showPassword,toggle:()=>setShowPassword(p=>!p),err:errors.password,ph:"At least 6 characters"},{label:"Confirm Password",val:confirmPassword,set:setConfirmPassword,show:showConfirmPassword,toggle:()=>setShowConfirmPassword(p=>!p),err:errors.confirmPassword,ph:"Confirm password"}].map((f,i)=>(
+              {[{label:"Password",val:password,set:setPassword,show:showPassword,toggle:()=>setShowPassword(p=>!p),err:errors.password,ph:"Enter 4-digit numeric password"},{label:"Confirm Password",val:confirmPassword,set:setConfirmPassword,show:showConfirmPassword,toggle:()=>setShowConfirmPassword(p=>!p),err:errors.confirmPassword,ph:"Confirm 4-digit password"}].map((f,i)=>(
                 <div key={i}>
                   <label style={labelStyle}>{f.label}</label>
                   <div style={{ position:"relative" }}>
-                    <input type={f.show?"text":"password"} value={f.val} onChange={(e)=>f.set(e.target.value)} placeholder={f.ph} className={`rp-input${f.err?" err":""}`} style={{ paddingRight:"44px" }} />
+                    <input type={f.show?"text":"password"} value={f.val} onChange={(e)=>f.set(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder={f.ph} className={`rp-input${f.err?" err":""}`} style={{ paddingRight:"44px" }} inputMode="numeric" maxLength={4} />
                     <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="#9a7020";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
                       {f.show ? <EyeOff size={17}/> : <Eye size={17}/>}
                     </button>

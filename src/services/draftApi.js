@@ -13,7 +13,10 @@ export async function createDraft(payload) {
 
 export async function getDrafts(page = 1, limit = 10) {
   const res = await apiClient.get(BASE, { params: { page, limit } });
-  return unwrap(res);
+  return {
+    items: res?.data?.data ?? [],
+    meta: res?.data?.meta ?? null,
+  };
 }
 
 export async function getDraftById(id) {

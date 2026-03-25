@@ -1,7 +1,8 @@
 // src/dashboard/user/component/Home.jsx
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { getDrafts } from "../../../services/draftApi.js";
 
 const PinIcon = ({ className = "" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -33,12 +34,53 @@ const Home = () => {
     localStorage.getItem("userName") ||
     "User";
 
+  const [drafts, setDrafts] = useState([]);
+  const [draftTotal, setDraftTotal] = useState(0);
+  const [draftsLoading, setDraftsLoading] = useState(false);
+
+  const loadDrafts = async () => {
+    setDraftsLoading(true);
+    try {
+      const res = await getDrafts(1, 20);
+      const items = Array.isArray(res?.items) ? res.items : [];
+      const sorted = [...items].sort((a, b) => {
+        const ad = new Date(a?.updatedAt || a?.createdAt || 0).getTime();
+        const bd = new Date(b?.updatedAt || b?.createdAt || 0).getTime();
+        return bd - ad;
+      });
+      setDrafts(sorted.slice(0, 3));
+      setDraftTotal(typeof res?.meta?.total === "number" ? res.meta.total : items.length);
+    } catch {
+      setDrafts([]);
+      setDraftTotal(0);
+    } finally {
+      setDraftsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDrafts();
+  }, []);
+
   // Replace with real data from your API/Redux
   const stats = { active: 1, completed: 0, spent: 0 };
-  const hasDraft = true;
-  const draftStep = 1;
-  const draftTotal = 3;
-  const draftPct = Math.round((draftStep / draftTotal) * 100);
+  const hasDraft = drafts.length > 0;
+
+  const pickId = (draft) => draft?._id ?? draft?.id;
+  const getEntityName = (val) => (typeof val === "object" ? (val?.name ?? val?.label ?? val?._id ?? val?.id) : val);
+  const getDraftProgress = (d) => {
+    let done = 0;
+    const total = 3;
+    if (d?.surveyType && d?.district && d?.taluka && d?.hobli && d?.village && d?.surveyNo) done += 1;
+    if (d?.others || d?.audio?.url || d?.googleSuperimpose) done += 1;
+    const hasSingle = !!(d?.singleUpload?.url || d?.singleUpload);
+    const hasNormal = !!(d?.moolaTippani || d?.hissaTippani || d?.atlas || d?.rrPakkabook || d?.kharabu || d?.documents);
+    if (hasSingle || hasNormal) done += 1;
+    const pct = Math.round((done / total) * 100);
+    return { step: done, total, pct };
+  };
+  const latestDraft = useMemo(() => drafts[0] ?? null, [drafts]);
+  const latestProgress = latestDraft ? getDraftProgress(latestDraft) : { step: 0, total: 3, pct: 0 };
 
   const activeOrders = [
     {
@@ -119,26 +161,64 @@ const Home = () => {
           </div>
         </div>
 
-        {/* ── Draft banner ── */}
-        {hasDraft && (
-          <button
-            onClick={() => navigate("/dashboard/user/upload")}
-            className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 mb-4 flex items-center gap-4 hover:bg-amber-100/60 transition-colors text-left"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white border border-amber-200 flex items-center justify-center shrink-0 shadow-sm">
-              <PencilIcon className="w-5 h-5 text-orange-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm sm:text-base font-extrabold text-slate-900">Continue your draft</p>
-              <p className="text-xs font-bold text-slate-500 mb-2">
-                Step {draftStep} of {draftTotal} — {draftPct}% complete
-              </p>
-              <div className="h-2 w-full max-w-[240px] rounded-full bg-amber-200/70 overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${draftPct}%` }} />
+        {/* ── Drafts preview (latest 3) ── */}
+        {!draftsLoading && hasDraft && (
+          <div className="mb-4 space-y-3">
+            <button
+              onClick={() => navigate(`/dashboard/user/upload?draftId=${pickId(latestDraft)}`)}
+              className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-4 hover:bg-amber-100/60 transition-colors text-left"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white border border-amber-200 flex items-center justify-center shrink-0 shadow-sm">
+                <PencilIcon className="w-5 h-5 text-orange-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm sm:text-base font-extrabold text-slate-900">Continue your latest draft</p>
+                <p className="text-xs font-bold text-slate-500 mb-2">
+                  Step {latestProgress.step} of {latestProgress.total} — {latestProgress.pct}% complete
+                </p>
+                <div className="h-2 w-full max-w-[240px] rounded-full bg-amber-200/70 overflow-hidden">
+                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${latestProgress.pct}%` }} />
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-orange-500 shrink-0" />
+            </button>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-extrabold text-slate-900">Recent Drafts</p>
+                {draftTotal > 3 && (
+                  <button
+                    onClick={() => navigate("/dashboard/user/drafts")}
+                    className="text-xs font-bold text-orange-600 hover:text-orange-700"
+                  >
+                    See more
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {drafts.map((d) => {
+                  const id = pickId(d);
+                  const village = getEntityName(d?.village) || "-";
+                  const surveyNo = d?.surveyNo || "-";
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => navigate(`/dashboard/user/upload?draftId=${id}`)}
+                      className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left hover:border-orange-200 hover:bg-orange-50/60 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-slate-800 truncate">Survey No: {surveyNo}</p>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {new Date(d?.updatedAt || d?.createdAt || Date.now()).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{village}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-orange-500 shrink-0" />
-          </button>
+          </div>
         )}
 
         {/* ── New Request CTA ── */}

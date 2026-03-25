@@ -20,6 +20,7 @@ import {
   createVillage,
   updateVillage,
 } from "../../../services/masters/villageService.js";
+import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
 
 const { Title } = Typography;
 
@@ -37,6 +38,7 @@ const ViewVillages = () => {
   const [selectedTalukaId, setSelectedTalukaId] = useState(undefined);
   const [selectedHobliId, setSelectedHobliId] = useState(undefined);
   const [list, setList] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState("add");
@@ -87,6 +89,7 @@ const ViewVillages = () => {
   const fetchVillages = useCallback(async () => {
     if (!selectedHobliId) {
       setList([]);
+      setPagination((p) => ({ ...p, total: 0 }));
       return;
     }
     setLoading(true);
@@ -95,20 +98,39 @@ const ViewVillages = () => {
         districtId: selectedDistrictId,
         talukaId: selectedTalukaId,
         hobliId: selectedHobliId,
+        page: pagination.page,
+        limit: pagination.limit,
       });
-      const items = normalizeList(res);
+      const { items, total, page, limit } = parsePagedListResponse(res, {
+        page: pagination.page,
+        limit: pagination.limit,
+      });
       setList(items.map((r) => ({ ...r, id: r.id ?? r._id })));
+      setPagination({ page, limit, total });
     } catch (err) {
       message.error(err.message || "Failed to load villages.");
       setList([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedDistrictId, selectedTalukaId, selectedHobliId]);
+  }, [selectedDistrictId, selectedTalukaId, selectedHobliId, pagination.page, pagination.limit]);
 
   useEffect(() => {
     fetchVillages();
   }, [fetchVillages]);
+
+  const handleTableChange = (pag) => {
+    setPagination((prev) => ({
+      ...prev,
+      page: pag.current ?? 1,
+      limit: pag.pageSize ?? prev.limit,
+    }));
+  };
+
+  const handleHobliChange = (v) => {
+    setSelectedHobliId(v);
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
 
   const handleAdd = () => {
     setDrawerMode("add");
@@ -266,7 +288,7 @@ const ViewVillages = () => {
             size="large"
             style={{ minWidth: 180 }}
             value={selectedHobliId}
-            onChange={setSelectedHobliId}
+            onChange={handleHobliChange}
             disabled={!selectedTalukaId}
             showSearch
             optionFilterProp="label"
@@ -290,10 +312,14 @@ const ViewVillages = () => {
           dataSource={list}
           rowKey={(r) => r.id ?? r._id}
           pagination={{
-            pageSize: 10,
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total: pagination.total,
             showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
             showTotal: (total) => `Total ${total} villages`,
           }}
+          onChange={handleTableChange}
           scroll={{ x: 600 }}
           locale={
             !selectedHobliId

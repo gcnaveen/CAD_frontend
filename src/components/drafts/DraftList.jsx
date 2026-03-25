@@ -37,8 +37,10 @@ export default function DraftList({ className = "" }) {
     try {
       const data = await getDrafts(page, limit);
       const nextItems = data?.items ?? data?.docs ?? data ?? [];
+      const meta = data?.meta ?? null;
       setItems(Array.isArray(nextItems) ? nextItems : []);
-      if (typeof data?.total === "number") setTotal(data.total);
+      if (typeof meta?.total === "number") setTotal(meta.total);
+      else if (typeof data?.total === "number") setTotal(data.total);
       else if (typeof data?.count === "number") setTotal(data.count);
       else setTotal(null);
     } catch (err) {

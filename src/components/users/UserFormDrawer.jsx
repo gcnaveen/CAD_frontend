@@ -8,12 +8,6 @@ import { getCadCenters } from "../../services/masters/cadcenterservice.js";
 
 const { Title } = Typography;
 
-const STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Active" },
-  { value: "DISABLED", label: "Disabled" },
-  { value: "PENDING", label: "Pending" },
-];
-
 const SURVEY_TYPE_OPTIONS = [
   { value: "LS", label: "Licensed Surveyor (LS)" },
   { value: "GS", label: "Government Surveyor (GS)" },
@@ -101,14 +95,12 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
         const lastName = user.name?.last ?? "";
         const email = user.auth?.email ?? "";
         const phone = user.auth?.phone ?? "";
-        const status = user.status ?? "ACTIVE";
         
         const formValues = {
           firstName,
           lastName,
           email,
           phone,
-          status,
         };
 
         // Handle SURVEYOR specific fields
@@ -226,7 +218,6 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
         const payload = {
           firstName: values.firstName,
           lastName: values.lastName || undefined,
-          status: values.status,
         };
 
         if (isSurveyor) {
@@ -277,6 +268,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
           firstName: values.firstName,
           lastName: values.lastName || undefined,
           password: values.password,
+          status: "ACTIVE",
         };
 
         if (isSurveyor) {
@@ -342,7 +334,6 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
             category: "SURVEYOR",
             surveyType: "",
             cadCenter: undefined,
-            status: "ACTIVE",
           }}
         >
           {/* Role field - disabled/read-only */}
@@ -410,10 +401,10 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
                 label="Password"
                 rules={[
                   { required: true, message: "Please enter password" },
-                  { min: 6, message: "Password must be at least 6 characters" },
+                  { pattern: /^\d{4}$/, message: "Password must be exactly 4 digits" },
                 ]}
               >
-                <Input.Password placeholder="Enter password" size="large" />
+                <Input.Password placeholder="Enter 4-digit numeric password" size="large" inputMode="numeric" maxLength={4} />
               </Form.Item>
 
               <Form.Item
@@ -432,7 +423,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
                   }),
                 ]}
               >
-                <Input.Password placeholder="Confirm password" size="large" />
+                <Input.Password placeholder="Confirm 4-digit password" size="large" inputMode="numeric" maxLength={4} />
               </Form.Item>
             </>
           )}
@@ -517,21 +508,6 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
                 />
               </Form.Item>
             </>
-          )}
-
-          {/* Status - in edit mode */}
-          {isEditMode && (
-            <Form.Item
-              name="status"
-              label="Status"
-              rules={[{ required: true, message: "Please select status" }]}
-            >
-              <Select
-                placeholder="Select status"
-                size="large"
-                options={STATUS_OPTIONS}
-              />
-            </Form.Item>
           )}
 
           <Form.Item style={{ marginTop: 32, marginBottom: 0 }}>

@@ -21,7 +21,24 @@ const DOCUMENT_TYPE_KEYS   = ["is_originaltippani","is_hissatippani","is_atlas",
 
 function toUrl(doc) { if (!doc) return null; if (typeof doc === "string") return doc; return doc.url || doc.fileUrl || doc.fileURL || null; }
 function toMeta(doc) { if (!doc) return null; if (typeof doc === "string") return { fileUrl: doc, fileName: "file" }; const url = toUrl(doc); if (!url) return null; return { fileUrl: url, fileName: doc.fileName || doc.name || "file", mimeType: doc.mimeType || doc.type, size: doc.size }; }
-function toFileListItem(meta, uid = "draft-file") { if (!meta?.fileUrl) return null; return { uid, name: meta.fileName || "file", url: meta.fileUrl, fileUrl: meta.fileUrl, status: "done", percent: 100, fileName: meta.fileName, mimeType: meta.mimeType, size: meta.size }; }
+function toFileListItem(meta, uid = "draft-file") {
+  if (!meta?.fileUrl) return null;
+  const isImage = typeof meta.mimeType === "string" && meta.mimeType.startsWith("image/");
+  return {
+    uid,
+    name: meta.fileName || "file",
+    url: meta.fileUrl,
+    fileUrl: meta.fileUrl,
+    // AntD `picture-card` uses `thumbUrl` for image preview when available.
+    thumbUrl: isImage ? meta.fileUrl : undefined,
+    type: meta.mimeType,
+    status: "done",
+    percent: 100,
+    fileName: meta.fileName,
+    mimeType: meta.mimeType,
+    size: meta.size,
+  };
+}
 
 /* ── Icons ── */
 const SaveIcon = () => (
@@ -48,7 +65,12 @@ const STEP_FIELDS = [
   [],                                                                     // step 3 - review
 ];
 
-const UserUploadForm = () => {
+const UserUploadForm = ({
+  onSubmit,
+  onCancel,
+  submitLabel = "Submit Order ✓",
+  loading: externalLoading = false,
+}) => {
   const navigate       = useNavigate();
   const [searchParams] = useSearchParams();
   const [form]         = Form.useForm();
@@ -59,6 +81,7 @@ const UserUploadForm = () => {
   const [draftLoading,  setDraftLoading]  = useState(false);
   const [draftId,       setDraftId]       = useState(null);
   const [prefillEntities, setPrefill]     = useState(null);
+  const [locationLabels, setLocationLabels] = useState({});
   const [audioData,     setAudioData]     = useState(null);
   const [uploadedDocs,  setUploadedDocs]  = useState({});
   const [uploadedOther, setUploadedOther] = useState({});
@@ -97,18 +120,51 @@ const UserUploadForm = () => {
     if (processed.length > 0) payload.other_documents = processed;
   };
 
+  const resetFormState = () => {
+    form.resetFields();
+    setDraftId(null);
+    setAudioData(null);
+    setUploadedDocs({});
+    setUploadedOther({});
+    setLocationLabels({});
+    setStep(0);
+  };
+
+  const handleCancel = () => {
+    resetFormState();
+    onCancel?.();
+  };
+
   /* ── Submit ── */
   const handleSubmit = async () => {
+    if (onSubmit) {
+      onSubmit(form.getFieldsValue(true), form);
+      return;
+    }
+
     setLoading(true);
     try {
       const values = form.getFieldsValue(true);
 
-      const uploadMode = values.uploadMode ?? "normal";
+      if (!values.village) {
+        message.error("Please select village first");
+        return;
+      }
+
+      const hasSingleUpload = Boolean(values.singleUpload?.length || uploadedDocs.singleUpload?.fileUrl);
+      const hasNormalUpload = DOCUMENT_FIELDS.some((fieldName) => {
+        const fileList = form.getFieldValue(fieldName) || values[fieldName];
+        return (Array.isArray(fileList) && fileList.length > 0) || Boolean(uploadedDocs[fieldName]?.fileUrl);
+      });
+      let uploadMode = values.uploadMode ?? (hasSingleUpload ? "single" : "normal");
+      if (uploadMode === "single" && !hasSingleUpload && hasNormalUpload) uploadMode = "normal";
+      if (uploadMode === "normal" && hasSingleUpload && !hasNormalUpload) uploadMode = "single";
       const payload = {
         surveyType: values.surveyType,
         district: values.district,
         taluka: values.taluka,
         hobli: values.hobli,
+        uploadMode,
         surveyNo: values.surveyNo,
       };
       if (values.village) payload.village = values.village;
@@ -117,7 +173,7 @@ const UserUploadForm = () => {
       if (audioData?.fileUrl)          payload.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
 
       if (uploadMode === "single") {
-        const singleDoc = uploadedDocs.singleUpload;
+        const singleDoc = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
         if (!singleDoc?.fileUrl?.startsWith("http")) { message.error("Please upload a document first"); return; }
         const docTypes = values.documentTypes ?? [];
         if (!docTypes.length) { message.error("Select at least one document type"); return; }
@@ -129,7 +185,7 @@ const UserUploadForm = () => {
           const fileList = form.getFieldValue(fieldName) || values[fieldName];
           const hasFile  = Array.isArray(fileList) && fileList.length > 0;
           if (!hasFile) continue;
-          const doc = uploadedDocs[fieldName];
+          const doc = uploadedDocs[fieldName] || toMeta((fileList || [])[0]);
           if (!doc?.fileUrl?.startsWith("http")) { message.error(`"${fieldName}" is still uploading, please wait`); return; }
           payload[fieldName] = { url: doc.fileUrl, fileName: doc.fileName || "file", mimeType: doc.mimeType || "application/octet-stream", size: doc.size || 0 };
         }
@@ -141,8 +197,7 @@ const UserUploadForm = () => {
       const result = await createSketchUpload(payload);
       if (result.success) {
         message.success("Request submitted successfully!");
-        form.resetFields();
-        setDraftId(null); setAudioData(null); setUploadedDocs({}); setUploadedOther({});
+        resetFormState();
         navigate("/dashboard/user");
       } else { message.error(result.message || "Failed to submit"); }
     } catch (e) { message.error(e.message || "Submission failed"); }
@@ -155,10 +210,18 @@ const UserUploadForm = () => {
     const si = (k, v) => { if (v !== undefined && v !== null && v !== "") p[k] = v; };
     si("surveyType", values.surveyType); si("district", values.district); si("taluka", values.taluka);
     si("hobli", values.hobli); si("village", values.village); si("surveyNo", values.surveyNo);
-    si("others", values.others); si("uploadMode", values.uploadMode ?? "normal");
+    const hasSingleUpload = Boolean(values.singleUpload?.length || uploadedDocs.singleUpload?.fileUrl);
+    const hasNormalUpload = DOCUMENT_FIELDS.some((fieldName) => {
+      const fileList = form.getFieldValue(fieldName) || values[fieldName];
+      return (Array.isArray(fileList) && fileList.length > 0) || Boolean(uploadedDocs[fieldName]?.fileUrl);
+    });
+    let resolvedMode = values.uploadMode ?? (hasSingleUpload ? "single" : "normal");
+    if (resolvedMode === "single" && !hasSingleUpload && hasNormalUpload) resolvedMode = "normal";
+    if (resolvedMode === "normal" && hasSingleUpload && !hasNormalUpload) resolvedMode = "single";
+    si("others", values.others); si("uploadMode", resolvedMode);
     si("googleSuperimpose", values.googleSuperimpose);
     if (audioData?.fileUrl) p.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
-    const mode = values.uploadMode ?? "normal";
+    const mode = resolvedMode;
     if (mode === "single") {
       const m = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
       if (m?.fileUrl) p.singleUpload = { url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 };
@@ -189,7 +252,12 @@ const UserUploadForm = () => {
       if (!draftId) { const c = await createDraft(payload); const id = c?._id ?? c?.id; if (id) setDraftId(id); }
       else { await updateDraft(draftId, payload); }
       message.success(draftId ? "Draft updated" : "Draft saved");
-    } catch (e) { message.error(e.message || "Failed to save draft"); }
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 403) message.error("No permission");
+      else if (status === 404) message.error("Draft not found");
+      else message.error(e.message || "Failed to save draft");
+    }
     finally { setDraftSaving(false); }
   };
 
@@ -203,7 +271,15 @@ const UserUploadForm = () => {
         const draft = await getDraftById(draftIdFromUrl);
         if (!draft) { message.error("Draft not found"); return; }
         setPrefill({ district: draft.district ?? null, taluka: draft.taluka ?? null, hobli: draft.hobli ?? null, village: draft.village ?? null });
-        const uploadMode = draft.uploadMode ?? "normal";
+        setLocationLabels({
+          district: draft.district?.name ?? draft.district?.label ?? null,
+          taluka: draft.taluka?.name ?? draft.taluka?.label ?? null,
+          hobli: draft.hobli?.name ?? draft.hobli?.label ?? null,
+          village: draft.village?.name ?? draft.village?.label ?? null,
+        });
+        // Some draft responses may not include `uploadMode`.
+        // If `singleUpload` exists, infer `single` to prefill the correct uploader.
+        const uploadMode = draft.uploadMode ?? (draft?.singleUpload?.url ? "single" : "normal");
         const nv = {
           uploadMode, surveyType: draft.surveyType,
           district: draft.district?._id ?? draft.district?.id ?? draft.district,
@@ -227,16 +303,21 @@ const UserUploadForm = () => {
         const otherDocs = Array.isArray(draft.other_documents) ? draft.other_documents : [];
         if (otherDocs.length) { const list = []; const om = {}; otherDocs.forEach((d, i) => { const m = toMeta(d); const uid = `draft-other-${i}`; const item = toFileListItem(m, uid); if (item) { list.push(item); om[uid] = m; } }); if (list.length) { nv.other_documents = list; setUploadedOther((p) => ({ ...p, ...om })); } }
         form.setFieldsValue(nv);
-      } catch (e) { message.error(e.message || "Failed to load draft"); }
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 403) message.error("No permission");
+        else if (status === 404) message.error("Draft not found");
+        else message.error(e.message || "Failed to load draft");
+      }
       finally { setDraftLoading(false); }
     })();
-  }, [draftIdFromUrl]);
+  }, [draftIdFromUrl, form]);
 
   const STEP_CONTENT = [
-    <LocationStep  key={0} form={form} prefillEntities={prefillEntities} />,
+    <LocationStep  key={0} form={form} prefillEntities={prefillEntities} onLocationLabelsChange={setLocationLabels} />,
     <DrawingStep   key={1} form={form} onAudioChange={setAudioData} audioData={audioData} />,
     <DocumentsStep key={2} form={form} onDocumentUpload={handleDocumentUpload} onDocumentRemove={handleDocumentRemove} onOtherDocumentUpload={handleOtherUpload} onOtherDocumentRemove={handleOtherRemove} />,
-    <ReviewStep    key={3} form={form} uploadedDocs={uploadedDocs} audioData={audioData} />,
+    <ReviewStep    key={3} form={form} uploadedDocs={uploadedDocs} audioData={audioData} locationLabels={locationLabels} />,
   ];
 
   return (
@@ -263,10 +344,10 @@ const UserUploadForm = () => {
               </div>
 
               {/* Save Draft */}
-              <button
+                <button
                 type="button"
                 onClick={handleSaveDraft}
-                disabled={draftSaving}
+                  disabled={draftSaving || draftLoading}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors disabled:opacity-60"
               >
                 <SaveIcon />
@@ -298,6 +379,9 @@ const UserUploadForm = () => {
             initialValues={{ uploadMode: "normal", googleSuperimpose: false }}
             className="space-y-0"
           >
+            <Form.Item name="uploadMode" noStyle>
+              <input type="hidden" />
+            </Form.Item>
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 sm:p-6 mb-6">
               {STEP_CONTENT[step]}
             </div>
@@ -326,16 +410,25 @@ const UserUploadForm = () => {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || externalLoading}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white font-extrabold text-sm shadow-[0_6px_20px_rgba(234,88,12,0.28)] transition-colors disabled:opacity-60"
                 >
-                  {loading ? (
+                  {loading || externalLoading ? (
                     <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Submitting…</>
                   ) : (
-                    <>Submit Order ✓</>
+                    <>{submitLabel}</>
                   )}
                 </button>
               )}
+            </div>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </Form>
         </div>
