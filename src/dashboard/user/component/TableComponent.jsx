@@ -23,10 +23,10 @@ const TableComponent = ({
     (columns[0]?.dataIndex ? String(columns[0].dataIndex) : "key");
 
   return (
-    <div className="table-component w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="table-component theme-animate-surface w-full overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
       {title && (
-        <div className="border-b border-gray-200 px-4 py-3 sm:px-5 sm:py-4">
-          <h2 className="font-semibold text-gray-900 text-base sm:text-lg">
+        <div className="border-b border-line px-4 py-3 sm:px-5 sm:py-4">
+          <h2 className="font-semibold text-fg text-base sm:text-lg">
             {title}
           </h2>
         </div>

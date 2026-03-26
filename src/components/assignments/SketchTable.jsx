@@ -5,17 +5,17 @@ function getStatusBadgeClasses(status) {
   const s = String(status || "").toUpperCase();
   switch (s) {
     case "PENDING":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-surface-2 text-fg ring-line";
     case "ASSIGNED":
-      return "bg-blue-100 text-blue-700 ring-blue-200";
+      return "bg-[color-mix(in_srgb,var(--cyan-accent)_14%,var(--bg-secondary))] text-[var(--cyan-accent)] ring-[color-mix(in_srgb,var(--cyan-accent)_40%,var(--border-color))]";
     case "UNDER_REVIEW":
-      return "bg-yellow-100 text-yellow-800 ring-yellow-200";
+      return "bg-[color-mix(in_srgb,var(--warning)_18%,var(--bg-secondary))] text-[color-mix(in_srgb,var(--warning)_85%,var(--text-primary))] ring-[color-mix(in_srgb,var(--warning)_35%,var(--border-color))]";
     case "APPROVED":
-      return "bg-emerald-100 text-emerald-800 ring-emerald-200";
+      return "bg-[color-mix(in_srgb,var(--success)_14%,var(--bg-secondary))] text-success ring-[color-mix(in_srgb,var(--success)_35%,var(--border-color))]";
     case "REJECTED":
-      return "bg-rose-100 text-rose-700 ring-rose-200";
+      return "bg-[color-mix(in_srgb,var(--danger)_12%,var(--bg-secondary))] text-danger ring-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))]";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-surface-2 text-fg ring-line";
   }
 }
 
@@ -34,10 +34,10 @@ export default function SketchTable({
   onEditClick,
 }) {
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className="theme-animate-surface w-full overflow-hidden rounded-xl border border-line bg-surface">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <thead className="bg-surface-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
             <tr>
               <th className="px-4 py-3">Sketch ID</th>
               <th className="px-4 py-3">Uploaded By</th>
@@ -48,10 +48,10 @@ export default function SketchTable({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={6}>
+                <td className="px-4 py-6 text-fg-muted" colSpan={6}>
                   Loading…
                 </td>
               </tr>
@@ -83,11 +83,11 @@ export default function SketchTable({
                 const id = row?._id ?? row?.id ?? "-";
 
                 return (
-                  <tr key={String(id)} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-900">
+                  <tr key={String(id)} className="hover:bg-surface-2/60">
+                    <td className="px-4 py-3 font-mono text-xs text-fg">
                       {String(id)}
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{uploadedBy}</td>
+                    <td className="px-4 py-3 text-fg">{uploadedBy}</td>
                     <td className="px-4 py-3">
                       <span
                         className={[
@@ -98,8 +98,8 @@ export default function SketchTable({
                         {String(status || "-")}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{assignedUserName}</td>
-                    <td className="px-4 py-3 text-slate-700">
+                    <td className="px-4 py-3 text-fg">{assignedUserName}</td>
+                    <td className="px-4 py-3 text-fg">
                       {fmtDate(row?.createdAt ?? row?.createdDate ?? row?.uploadedAt)}
                     </td>
                     <td className="px-4 py-3">
@@ -108,7 +108,7 @@ export default function SketchTable({
                           <button
                             type="button"
                             onClick={() => onAssignClick?.(row)}
-                            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                            className="rounded-lg bg-[var(--homepage-cta-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--homepage-cta-fg)] hover:opacity-90"
                           >
                             Assign
                           </button>
@@ -118,7 +118,7 @@ export default function SketchTable({
                           <button
                             type="button"
                             onClick={() => onEditClick?.(row)}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2"
                           >
                             Edit
                           </button>
@@ -130,7 +130,7 @@ export default function SketchTable({
               })
             ) : (
               <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={6}>
+                <td className="px-4 py-6 text-fg-muted" colSpan={6}>
                   No sketches found.
                 </td>
               </tr>
@@ -140,7 +140,7 @@ export default function SketchTable({
       </div>
 
       {autoAssignEnabled === true ? (
-        <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div className="border-t border-line bg-surface-2 px-4 py-3 text-sm text-fg">
           Auto assignment enabled. Manual assignment disabled.
         </div>
       ) : null}

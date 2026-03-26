@@ -161,7 +161,7 @@ const TrackOrderCard = ({
   return (
     <>
       <Card
-        className="order-tracking-card overflow-hidden border-gray-200 shadow-sm transition-shadow hover:shadow-md"
+        className="order-tracking-card overflow-hidden border-line shadow-sm transition-shadow hover:shadow-md"
         bordered
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -170,11 +170,11 @@ const TrackOrderCard = ({
               <FileText className="h-6 w-6 text-blue-600" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-gray-900 text-base sm:text-lg">
+              <p className="font-semibold text-fg text-base sm:text-lg">
                 Project No. {projectNo}
               </p>
               <p className="mt-0.5 flex items-center gap-2">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-fg-muted">
                   Current order status:
                 </span>
                 <Tag color={getStatusColor(statusType)}>
@@ -197,7 +197,7 @@ const TrackOrderCard = ({
 
       <Drawer
         title={
-          <span className="font-semibold text-gray-900 text-lg">
+          <span className="font-semibold text-fg text-lg">
             Order Details – Project No. {projectNo}
           </span>
         }
@@ -309,13 +309,13 @@ const TrackOrderCard = ({
 
             {/* Documents Section */}
             <div>
-              <h3 className="mb-4 text-base font-semibold text-gray-900">
+              <h3 className="mb-4 text-base font-semibold text-fg">
                 Documents
               </h3>
               {(orderDetails.uploadMode === "single" || orderDetails.singleUpload) ? (
                 /* Single Upload Mode */
                 <div className="space-y-4">
-                  <Card size="small" className="border-gray-200">
+                  <Card size="small" className="border-line">
                     <div className="mb-2">
                       <Tag color="blue">Single Upload</Tag>
                     </div>
@@ -386,7 +386,7 @@ const TrackOrderCard = ({
                       <Card
                         key={fieldName}
                         size="small"
-                        className="border-gray-200"
+                        className="border-line"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -442,12 +442,12 @@ const TrackOrderCard = ({
               {/* Other Documents (both modes) */}
               {orderDetails.other_documents && Array.isArray(orderDetails.other_documents) && orderDetails.other_documents.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="mb-2 text-sm font-medium text-gray-700">
+                  <h4 className="mb-2 text-sm font-medium text-fg">
                     Other Documents / ಇತರೆ ದಾಖಲೆಗಳು
                   </h4>
                   <div className="space-y-2">
                     {orderDetails.other_documents.map((doc, index) => (
-                      <Card key={doc.url || index} size="small" className="border-gray-200">
+                      <Card key={doc.url || index} size="small" className="border-line">
                         <div className="flex items-start justify-between">
                           <div>
                             <Text strong className="text-sm">
@@ -479,15 +479,15 @@ const TrackOrderCard = ({
 
             {/* Audio Section */}
             <div>
-              <h3 className="mb-4 text-base font-semibold text-gray-900">
+              <h3 className="mb-4 text-base font-semibold text-fg">
                 Audio / ಆಡಿಯೋ
               </h3>
               {orderDetails.audio?.url ? (
-                <Card size="small" className="border-gray-200">
+                <Card size="small" className="border-line">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <Music className="h-4 w-4 text-gray-500 shrink-0" />
+                        <Music className="h-4 w-4 text-fg-muted shrink-0" />
                         <Text strong className="text-sm">
                           {orderDetails.audio.fileName || "Audio file"}
                         </Text>
@@ -528,7 +528,7 @@ const TrackOrderCard = ({
                   </div>
                 </Card>
               ) : (
-                <Card size="small" className="border-gray-200">
+                <Card size="small" className="border-line">
                   <Text type="secondary" className="text-sm">
                     No audio uploaded
                   </Text>

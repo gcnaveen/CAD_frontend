@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
+import ThemeToggle from "../../../components/ThemeToggle.jsx";
 
 /* ─── Icons ─── */
 const HomeIcon = ({ active }) => (
@@ -119,9 +120,9 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-amber-50 via-orange-50 to-emerald-50 font-ibm">
+    <div className="theme-animate-surface min-h-screen bg-linear-to-br from-surface via-surface-2 to-surface font-ibm text-fg">
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-orange-100">
+      <header className="theme-animate-surface fixed top-0 left-0 right-0 z-50 h-14 bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] backdrop-blur border-b border-line">
         <div className="h-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
@@ -136,21 +137,22 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle variant="compact" />
             <InstallButton
               type="default"
               size="middle"
-              className="border-orange-200 text-orange-800 hover:text-orange-900"
+              className="border-line text-accent hover:text-accent-soft"
             />
             <NotificationBell layout="user" />
             <button
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-500 transition-colors shadow-sm"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--user-accent)] text-white text-sm font-bold hover:opacity-90 transition-opacity shadow-sm"
               onClick={handleLogout}
             >
               <LogOutIcon /> Logout
             </button>
 
             <button
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-500 text-white font-extrabold border-2 border-orange-100 shadow-sm cursor-pointer"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[var(--user-accent)] text-white font-extrabold border-2 border-line shadow-sm cursor-pointer"
               title={userName}
               onClick={() => goTo("/dashboard/user/profile")}
             >
@@ -162,9 +164,9 @@ const DashboardLayout = () => {
 
       <div className="pt-14">
         {/* SIDEBAR (desktop) */}
-        <aside className="hidden lg:flex fixed top-14 left-0 w-64 h-[calc(100vh-56px)] bg-white/85 backdrop-blur border-r border-orange-100 z-30 shadow-[2px_0_12px_rgba(234,88,12,0.10)]">
-          <div className="w-full flex flex-col px-4 py-5">
-            <div className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase px-2 mb-2">
+        <aside className="theme-animate-surface hidden lg:flex fixed top-14 left-0 w-64 h-[calc(100vh-56px)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] backdrop-blur border-r border-line z-30 shadow-[2px_0_12px_color-mix(in_srgb,var(--user-accent)_12%,transparent)]">
+          <div className="rounded-xl w-full flex flex-col px-4 py-5">
+            <div className="text-[11px] font-extrabold tracking-wider text-fg-muted uppercase px-2 mb-2">
               Navigation
             </div>
             <div className="flex flex-col gap-1">
@@ -177,12 +179,12 @@ const DashboardLayout = () => {
                     onClick={() => goTo(item.path)}
                     className={`relative w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-extrabold transition-colors ${
                       active
-                        ? "bg-orange-50 text-orange-700"
-                        : "text-slate-600 hover:bg-white/80"
+                        ? "bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-[var(--user-accent)]"
+                        : "text-fg-muted hover:bg-[var(--bg-hover)]"
                     }`}
                   >
                     {active && (
-                      <span className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-orange-500" />
+                      <span className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-[var(--user-accent)]" />
                     )}
                     <Icon active={active} />
                     <span>{item.label}</span>
@@ -192,9 +194,9 @@ const DashboardLayout = () => {
               })}
             </div>
 
-            <div className="mt-auto pt-4 border-t border-orange-100">
+            <div className="mt-auto pt-4 border-t border-line">
               <button
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-extrabold text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-extrabold text-danger hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] transition-colors"
                 onClick={handleLogout}
               >
                 <LogOutIcon /> Logout
@@ -210,7 +212,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* BOTTOM TABS (mobile) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white/90 backdrop-blur border-t border-orange-100">
+      <nav className="theme-animate-surface lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] backdrop-blur border-t border-line">
         <div className="h-full flex">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item);
@@ -220,7 +222,7 @@ const DashboardLayout = () => {
                 key={item.path}
                 onClick={() => goTo(item.path)}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
-                  active ? "text-orange-600 font-extrabold" : "text-slate-400"
+                  active ? "text-[var(--user-accent)] font-extrabold" : "text-fg-muted"
                 }`}
               >
                 <Icon active={active} />

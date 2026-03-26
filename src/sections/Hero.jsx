@@ -89,7 +89,7 @@ const Hero = () => {
       ref={rootRef}
       className="relative overflow-hidden flex flex-col"
       style={{
-        background: "linear-gradient(160deg, #f7f2e8 0%, #f0ead8 40%, #ede5d0 100%)",
+        background: "var(--hero-bg)",
         minHeight: "100vh",
         paddingTop: "70px",
       }}
@@ -144,11 +144,11 @@ const Hero = () => {
             <span style={{ position: "relative", display: "flex", width: "8px", height: "8px" }}>
               <span style={{
                 position: "absolute", inset: 0, borderRadius: "50%",
-                background: "#c9a84c", opacity: 0.6, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
+                background: "var(--brand-gold)", opacity: 0.6, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
               }} />
-              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "#c9a84c" }} />
+              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "var(--brand-gold)" }} />
             </span>
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9a7020" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
               {t(lang, "hero.eyebrow")}
             </span>
           </div>
@@ -162,7 +162,7 @@ const Hero = () => {
             fontWeight: 600,
             lineHeight: 1.12,
             fontSize: "clamp(38px, 5.5vw, 72px)",
-            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 40%, #2a5a2a 100%)",
+            background: "var(--hero-panel-bg)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -174,8 +174,8 @@ const Hero = () => {
 
         {/* Decorative divider */}
         <div className="reveal-up flex items-center gap-2 mb-5">
-          <div style={{ height: "2px", width: "32px", background: "#c9a84c", borderRadius: "2px" }} />
-          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c" }} />
+          <div style={{ height: "2px", width: "32px", background: "var(--brand-gold)", borderRadius: "2px" }} />
+          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)" }} />
           <div style={{ height: "1px", width: "200px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
         </div>
 
@@ -184,7 +184,7 @@ const Hero = () => {
           <p style={{
             fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
             lineHeight: 1.8,
-            color: "#000",
+            color: "var(--text-primary)",
             fontWeight: 400,
           }}>
             {t(lang, "hero.subtitle")}
@@ -199,7 +199,7 @@ const Hero = () => {
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
               padding: "14px 32px", borderRadius: "14px",
-              background: "linear-gradient(135deg, #152815 0%, #1d3d1d 100%)",
+              background: "linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 85%, black) 100%)",
               color: "white", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
               boxShadow: "0 8px 32px rgba(21,40,21,0.30), 0 2px 8px rgba(21,40,21,0.15)",
               border: "none", cursor: "pointer",
@@ -220,7 +220,7 @@ const Hero = () => {
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
               padding: "14px 28px", borderRadius: "14px",
               background: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)",
-              color: "#152815", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
+              color: "var(--homepage-cta-ghost-fg)", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
               border: "1.5px solid rgba(213,207,196,0.8)", cursor: "pointer",
               boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
               transition: "all 0.25s ease",
@@ -234,7 +234,7 @@ const Hero = () => {
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="#152815"><path d="M8 5v14l11-7z"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </span>
             {t(lang, "hero.ctaSecondary")}
           </button>
@@ -274,7 +274,7 @@ const Hero = () => {
             >
               <div style={{
                 width: "34px", height: "34px", borderRadius: "10px",
-                background: "rgba(201,168,76,0.12)", color: "#c9a84c",
+                background: "rgba(201,168,76,0.12)", color: "var(--brand-gold)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 marginBottom: "10px",
               }}>
@@ -282,12 +282,12 @@ const Hero = () => {
               </div>
               <div style={{
                 fontFamily: "'IBM Plex Serif', Georgia, serif",
-                fontWeight: 600, fontSize: "20px", color: "#0d1f0d",
+                fontWeight: 600, fontSize: "20px", color: "var(--brand-green-deep)",
                 lineHeight: 1, marginBottom: "4px",
               }}>
                 {stat.value}
               </div>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: "#b5aa98", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              <div style={{ fontSize: "11px", fontWeight: 500, color: "var(--text-brown-soft)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 {stat.label}
               </div>
             </div>
@@ -299,7 +299,7 @@ const Hero = () => {
       <div style={{
         flexShrink: 0, overflow: "hidden",
         borderTop: "1px solid rgba(26,52,25,0.9)",
-        background: "linear-gradient(90deg, #0d1f0d 0%, #152815 100%)",
+        background: "var(--hero-marquee-bg)",
         padding: "12px 0",
       }}>
         <style>{`
@@ -320,7 +320,7 @@ const Hero = () => {
                   }}>
                     {item}
                   </span>
-                  <span style={{ color: "#c9a84c", fontSize: "9px" }}>◆</span>
+                  <span style={{ color: "var(--brand-gold)", fontSize: "9px" }}>◆</span>
                 </React.Fragment>
               ))}
             </div>

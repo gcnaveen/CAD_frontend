@@ -184,7 +184,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
 
   return (
     <div className="w-full">
-      <h2 className="mb-4 text-base font-semibold text-gray-800 sm:mb-5 sm:text-lg md:text-xl">
+      <h2 className="mb-4 text-base font-semibold text-fg sm:mb-5 sm:text-lg md:text-xl">
         Survey Info / ಸರ್ವೆ ಮಾಹಿತಿ
       </h2>
       <div className="survey-info-form space-y-0">

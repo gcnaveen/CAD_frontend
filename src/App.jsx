@@ -3,7 +3,7 @@ import AppRoutes from "./routes/AppRoutes";
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-white font-ibm overflow-x-hidden">
+    <div className="theme-animate-surface min-h-screen bg-surface text-fg font-ibm overflow-x-hidden antialiased">
       <AppRoutes />
     </div>
   );

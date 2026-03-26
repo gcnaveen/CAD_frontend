@@ -7,10 +7,26 @@ import { translations } from "../constants/translation";
 const STEP_ICONS = [Upload, UserCheck, PenTool, Download];
 
 const STEP_ACCENTS = [
-  { color: "#c9a84c", bg: "rgba(201,168,76,0.10)", border: "rgba(201,168,76,0.25)" },
-  { color: "#2a6e2a", bg: "rgba(42,110,42,0.09)",  border: "rgba(42,110,42,0.22)"  },
-  { color: "#c9a84c", bg: "rgba(201,168,76,0.10)", border: "rgba(201,168,76,0.25)" },
-  { color: "#2a6e2a", bg: "rgba(42,110,42,0.09)",  border: "rgba(42,110,42,0.22)"  },
+  {
+    color: "var(--brand-gold)",
+    bg: "color-mix(in srgb, var(--brand-gold) 12%, transparent)",
+    border: "color-mix(in srgb, var(--brand-gold) 28%, var(--border-color))",
+  },
+  {
+    color: "var(--forest-green-mid)",
+    bg: "color-mix(in srgb, var(--success) 12%, transparent)",
+    border: "color-mix(in srgb, var(--success) 25%, var(--border-color))",
+  },
+  {
+    color: "var(--brand-gold)",
+    bg: "color-mix(in srgb, var(--brand-gold) 12%, transparent)",
+    border: "color-mix(in srgb, var(--brand-gold) 28%, var(--border-color))",
+  },
+  {
+    color: "var(--forest-green-mid)",
+    bg: "color-mix(in srgb, var(--success) 12%, transparent)",
+    border: "color-mix(in srgb, var(--success) 25%, var(--border-color))",
+  },
 ];
 
 // SVG dashed curved arrow pointing right or left
@@ -23,7 +39,7 @@ const CurvedArrow = ({ flip = false }) => (
     <path
       d="M 10 30 Q 60 5 110 30"
       fill="none"
-      stroke="#c9a84c"
+      stroke="var(--brand-gold)"
       strokeWidth="2"
       strokeDasharray="6 5"
       strokeLinecap="round"
@@ -32,7 +48,7 @@ const CurvedArrow = ({ flip = false }) => (
     <polyline
       points="100,22 110,30 100,38"
       fill="none"
-      stroke="#c9a84c"
+      stroke="var(--brand-gold)"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -46,7 +62,7 @@ const VerticalDash = () => (
     style={{ display: "block", margin: "0 auto" }}>
     <line
       x1="1" y1="0" x2="1" y2="56"
-      stroke="#c9a84c" strokeWidth="2"
+      stroke="var(--brand-gold)" strokeWidth="2"
       strokeDasharray="6 5" strokeLinecap="round"
     />
   </svg>
@@ -100,7 +116,7 @@ export default function HowItWorks() {
       id="how-it-works"
       ref={sectionRef}
       style={{
-        background: "linear-gradient(180deg, #ede5d0 0%, #e8e0cc 50%, #f0ead8 100%)",
+        background: "var(--section-cream)",
         padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
         position: "relative",
         overflow: "hidden",
@@ -108,17 +124,17 @@ export default function HowItWorks() {
     >
       <style>{`
         .hiw-card {
-          background: rgba(255,255,255,0.70);
+          background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
           backdrop-filter: blur(12px);
           border-radius: 20px;
           position: relative;
           overflow: hidden;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
-          box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+          box-shadow: 0 2px 16px var(--homepage-card-shadow);
         }
         .hiw-card:hover {
           transform: translateY(-6px) !important;
-          box-shadow: 0 16px 40px rgba(0,0,0,0.11) !important;
+          box-shadow: 0 16px 40px var(--homepage-card-shadow) !important;
         }
         .step-num {
           font-family: 'IBM Plex Serif', Georgia, serif;
@@ -132,15 +148,15 @@ export default function HowItWorks() {
           pointer-events: none;
           user-select: none;
           opacity: 0.045;
-          color: #152815;
+          color: var(--brand-green);
         }
         .cta-shimmer {
-          background: linear-gradient(135deg, #152815 0%, #1d3d1d 100%);
+          background: linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 85%, black) 100%);
           transition: all 0.25s ease;
         }
         .cta-shimmer:hover {
-          background: linear-gradient(135deg, #1d3d1d 0%, #2a5a2a 100%);
-          box-shadow: 0 14px 40px rgba(21,40,21,0.38) !important;
+          filter: brightness(1.06);
+          box-shadow: 0 14px 40px var(--homepage-card-shadow) !important;
           transform: translateY(-2px);
         }
         @media (max-width: 767px) {
@@ -164,20 +180,20 @@ export default function HowItWorks() {
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: `
-            linear-gradient(rgba(201,168,76,0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(201,168,76,0.05) 1px, transparent 1px)
+            linear-gradient(color-mix(in srgb, var(--brand-gold) 8%, transparent) 1px, transparent 1px),
+            linear-gradient(90deg, color-mix(in srgb, var(--brand-gold) 8%, transparent) 1px, transparent 1px)
           `,
           backgroundSize: "48px 48px",
         }} />
         {/* Corner cross markers — surveying aesthetic */}
-        {[["12px","12px"], ["12px","auto"], ["auto","12px"], ["auto","auto"]].map(([t,b,l,r], i) => (
+        {[["12px","12px"], ["12px","auto"], ["auto","12px"], ["auto","auto"]].map((_, i) => (
           <div key={i} style={{
             position: "absolute",
             top: i < 2 ? "20px" : "auto", bottom: i >= 2 ? "20px" : "auto",
             left: i % 2 === 0 ? "20px" : "auto", right: i % 2 === 1 ? "20px" : "auto",
             width: "20px", height: "20px", opacity: 0.2,
           }}>
-            <svg viewBox="0 0 20 20" fill="none" stroke="#c9a84c" strokeWidth="1.5">
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--brand-gold)" strokeWidth="1.5">
               <line x1="10" y1="0" x2="10" y2="7"/><line x1="10" y1="13" x2="10" y2="20"/>
               <line x1="0" y1="10" x2="7" y2="10"/><line x1="13" y1="10" x2="20" y2="10"/>
               <circle cx="10" cy="10" r="2"/>
@@ -197,8 +213,8 @@ export default function HowItWorks() {
             border: "1px solid rgba(201,168,76,0.3)",
             marginBottom: "20px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9a7020" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
               Process
             </span>
           </div>
@@ -206,13 +222,13 @@ export default function HowItWorks() {
             fontFamily: "'IBM Plex Serif', Georgia, serif",
             fontStyle: "italic", fontWeight: 600,
             fontSize: "clamp(30px, 3.8vw, 52px)", lineHeight: 1.15,
-            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 50%, #2a5a2a 100%)",
+            background: "var(--hero-panel-bg)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
             marginBottom: "14px", letterSpacing: "-0.01em",
           }}>
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "#6b6252", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
@@ -280,12 +296,12 @@ export default function HowItWorks() {
 
                     <h3 style={{
                       fontFamily: "'IBM Plex Serif', Georgia, serif",
-                      fontWeight: 600, fontSize: "15px", color: "#0d1f0d",
+                      fontWeight: 600, fontSize: "15px", color: "var(--brand-green-deep)",
                       marginBottom: "8px", lineHeight: 1.3,
                     }}>
                       {title}
                     </h3>
-                    <p style={{ fontSize: "12.5px", color: "#6b6252", lineHeight: 1.7, margin: 0 }}>
+                    <p style={{ fontSize: "12.5px", color: "var(--text-brown-muted)", lineHeight: 1.7, margin: 0 }}>
                       {description}
                     </p>
                   </div>
@@ -364,12 +380,12 @@ export default function HowItWorks() {
                     </div>
                     <h3 style={{
                       fontFamily: "'IBM Plex Serif', Georgia, serif",
-                      fontWeight: 600, fontSize: "15px", color: "#0d1f0d",
+                      fontWeight: 600, fontSize: "15px", color: "var(--brand-green-deep)",
                       marginBottom: "6px", lineHeight: 1.3,
                     }}>
                       {title}
                     </h3>
-                    <p style={{ fontSize: "13px", color: "#6b6252", lineHeight: 1.7, margin: 0 }}>
+                    <p style={{ fontSize: "13px", color: "var(--text-brown-muted)", lineHeight: 1.7, margin: 0 }}>
                       {description}
                     </p>
                   </div>

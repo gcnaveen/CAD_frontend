@@ -57,7 +57,7 @@ const BarChart = ({ data, colors, height = 12 }) => {
         height,
         borderRadius: 4,
         overflow: "hidden",
-        backgroundColor: "#f1f5f9",
+        backgroundColor: "var(--bg-hover)",
       }}
     >
       {data.map((item, i) => (
@@ -65,7 +65,7 @@ const BarChart = ({ data, colors, height = 12 }) => {
           key={i}
           style={{
             width: `${(item.value / total) * 100}%`,
-            backgroundColor: colors[i] || "#94a3b8",
+            backgroundColor: colors[i] || "var(--text-secondary)",
             transition: "width 0.3s ease",
           }}
           title={`${item.label}: ${item.value}`}
@@ -83,14 +83,14 @@ const SuperAdminHome = () => {
     { label: "In Progress", value: projects.inProgress },
     { label: "Rejected", value: projects.rejected },
   ];
-  const projectColors = ["#22c55e", "#0ea5e9", "#ef4444"];
+  const projectColors = ["var(--success)", "var(--accent-color)", "var(--danger)"];
 
   const paymentChartData = [
     { label: "Total", value: payments.total },
     { label: "Pending", value: payments.pending },
     { label: "Failed", value: payments.failed },
   ];
-  const paymentColors = ["#22c55e", "#f59e0b", "#ef4444"];
+  const paymentColors = ["var(--success)", "var(--warning)", "var(--danger)"];
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -99,7 +99,7 @@ const SuperAdminHome = () => {
       </Title>
 
       {/* User count stats */}
-      <Title level={5} style={{ marginBottom: 16, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         User Statistics
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
@@ -108,7 +108,7 @@ const SuperAdminHome = () => {
             <Statistic
               title="Total Users"
               value={users.total}
-              prefix={<UserOutlined style={{ color: "#0ea5e9" }} />}
+              prefix={<UserOutlined style={{ color: "var(--accent-color)" }} />}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>
               Admin, CAD Centers & End Users
@@ -120,7 +120,7 @@ const SuperAdminHome = () => {
             <Statistic
               title="Admin Users"
               value={users.adminUsers}
-              prefix={<UserOutlined style={{ color: "#8b5cf6" }} />}
+              prefix={<UserOutlined style={{ color: "var(--violet-accent)" }} />}
             />
           </Card>
         </Col>
@@ -129,7 +129,7 @@ const SuperAdminHome = () => {
             <Statistic
               title="CAD Center Users"
               value={users.cadCenterUsers}
-              prefix={<UserOutlined style={{ color: "#06b6d4" }} />}
+              prefix={<UserOutlined style={{ color: "var(--cyan-accent)" }} />}
             />
           </Card>
         </Col>
@@ -138,14 +138,14 @@ const SuperAdminHome = () => {
             <Statistic
               title="End Users"
               value={users.endUsers}
-              prefix={<UserOutlined style={{ color: "#22c55e" }} />}
+              prefix={<UserOutlined style={{ color: "var(--success)" }} />}
             />
           </Card>
         </Col>
       </Row>
 
       {/* Projects: completed, rejected, in progress */}
-      <Title level={5} style={{ marginBottom: 16, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         Project Statistics
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
@@ -154,12 +154,12 @@ const SuperAdminHome = () => {
             <Statistic
               title="Completed"
               value={projects.completed}
-              prefix={<CheckCircleOutlined style={{ color: "#22c55e" }} />}
+              prefix={<CheckCircleOutlined style={{ color: "var(--success)" }} />}
             />
             <Progress
               percent={Math.round((projects.completed / projects.total) * 100)}
               showInfo={false}
-              strokeColor="#22c55e"
+              strokeColor="var(--success)"
               size="small"
               style={{ marginTop: 8 }}
             />
@@ -170,12 +170,12 @@ const SuperAdminHome = () => {
             <Statistic
               title="In Progress"
               value={projects.inProgress}
-              prefix={<SyncOutlined spin style={{ color: "#0ea5e9" }} />}
+              prefix={<SyncOutlined spin style={{ color: "var(--accent-color)" }} />}
             />
             <Progress
               percent={Math.round((projects.inProgress / projects.total) * 100)}
               showInfo={false}
-              strokeColor="#0ea5e9"
+              strokeColor="var(--accent-color)"
               size="small"
               style={{ marginTop: 8 }}
             />
@@ -186,12 +186,12 @@ const SuperAdminHome = () => {
             <Statistic
               title="Rejected"
               value={projects.rejected}
-              prefix={<CloseCircleOutlined style={{ color: "#ef4444" }} />}
+              prefix={<CloseCircleOutlined style={{ color: "var(--danger)" }} />}
             />
             <Progress
               percent={Math.round((projects.rejected / projects.total) * 100)}
               showInfo={false}
-              strokeColor="#ef4444"
+              strokeColor="var(--danger)"
               size="small"
               style={{ marginTop: 8 }}
             />
@@ -200,7 +200,7 @@ const SuperAdminHome = () => {
       </Row>
 
       {/* Payment stats */}
-      <Title level={5} style={{ marginBottom: 16, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         Payment Recieved Statistics
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
@@ -209,7 +209,7 @@ const SuperAdminHome = () => {
             <Statistic
               title="Total Payment"
               value={payments.total}
-              prefix={<WalletOutlined style={{ color: "#22c55e" }} />}
+              prefix={<WalletOutlined style={{ color: "var(--success)" }} />}
               precision={2}
               formatter={(val) =>
                 `${payments.currency} ${val?.toLocaleString("en-IN")}`
@@ -222,7 +222,7 @@ const SuperAdminHome = () => {
             <Statistic
               title="Pending Payment"
               value={payments.pending}
-              prefix={<ClockCircleOutlined style={{ color: "#f59e0b" }} />}
+              prefix={<ClockCircleOutlined style={{ color: "var(--warning)" }} />}
               precision={2}
               formatter={(val) =>
                 `${payments.currency} ${val?.toLocaleString("en-IN")}`
@@ -236,7 +236,7 @@ const SuperAdminHome = () => {
               title="Failed Payments"
               value={payments.failed}
               prefix={
-                <ExclamationCircleOutlined style={{ color: "#ef4444" }} />
+                <ExclamationCircleOutlined style={{ color: "var(--danger)" }} />
               }
               precision={2}
               formatter={(val) =>
@@ -250,7 +250,7 @@ const SuperAdminHome = () => {
       <Divider style={{ margin: "24px 0" }} />
 
       {/* Graphs section */}
-      <Title level={5} style={{ marginBottom: 20, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 20, color: "var(--text-secondary)" }}>
         Overview Charts
       </Title>
       <Row gutter={[24, 24]}>
@@ -344,7 +344,7 @@ const SuperAdminHome = () => {
             <Progress
               type="circle"
               percent={Math.round((projects.completed / projects.total) * 100)}
-              strokeColor="#22c55e"
+              strokeColor="var(--success)"
               format={(p) => `${p}%`}
             />
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
@@ -361,7 +361,7 @@ const SuperAdminHome = () => {
                   (payments.total + payments.pending + payments.failed)) *
                   100,
               )}
-              strokeColor="#0ea5e9"
+              strokeColor="var(--accent-color)"
               format={(p) => `${p}%`}
             />
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>

@@ -16,13 +16,13 @@
 }
 
 .cad-sider .ant-menu-item-selected {
-  background: rgba(56, 189, 248, 0.12) !important;
-  border-left: 3px solid #38bdf8;
+  background: var(--layout-sider-active) !important;
+  border-left: 3px solid var(--layout-sider-accent);
   padding-left: 13px !important;
 }
 
 .cad-sider .ant-menu-item:hover {
-  background: #1e293b !important;
+  background: var(--layout-sider-hover) !important;
 }
 
 .cad-menu-label {
@@ -42,17 +42,17 @@
 }
 
 .cad-trigger {
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
 }
 
 .cad-trigger:hover {
-  color: #0ea5e9 !important;
-  background: rgba(14, 165, 233, 0.08) !important;
+  color: var(--accent-color) !important;
+  background: color-mix(in srgb, var(--accent-color) 12%, transparent) !important;
 }
 
 .cad-logout:hover {
-  border-color: #0ea5e9 !important;
-  color: #0ea5e9 !important;
+  border-color: var(--accent-color) !important;
+  color: var(--accent-color) !important;
 }
 
 @media (max-width: 768px) {
@@ -75,14 +75,14 @@
 }
 
 .cad-sider::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--layout-sider-bg);
 }
 
 .cad-sider::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--border-color);
   border-radius: 3px;
 }
 
 .cad-sider::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--text-secondary);
 }

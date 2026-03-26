@@ -245,9 +245,9 @@ export default function AdminAssignmentsPage() {
 
   if (!allowed) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <div className="text-base font-semibold text-slate-900">No permission</div>
-        <div className="mt-1 text-sm text-slate-600">
+      <div className="theme-animate-surface rounded-xl border border-line bg-surface p-6">
+        <div className="text-base font-semibold text-fg">No permission</div>
+        <div className="mt-1 text-sm text-fg-muted">
           This page is available only for ADMIN and SUPER_ADMIN.
         </div>
       </div>
@@ -258,10 +258,10 @@ export default function AdminAssignmentsPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-lg font-semibold text-slate-900">
+          <div className="text-lg font-semibold text-fg">
             Survey Sketch Assignments
           </div>
-          <div className="mt-1 text-sm text-slate-600">
+          <div className="mt-1 text-sm text-fg-muted">
             Manage assignments created from survey sketch uploads.
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function AdminAssignmentsPage() {
           <button
             type="button"
             onClick={() => loadTable()}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2"
           >
             Refresh
           </button>
@@ -278,19 +278,19 @@ export default function AdminAssignmentsPage() {
       </div>
 
       {pageError ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] px-4 py-3 text-sm text-danger">
           {pageError}
         </div>
       ) : null}
 
       <AssignmentFlowToggle value={autoAssignEnabled} loading={flowLoading} onChange={onToggleFlow} />
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-xl border border-line bg-surface p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-slate-700">Status</label>
+            <label className="block text-sm font-medium text-fg">Status</label>
             <select
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -307,9 +307,9 @@ export default function AdminAssignmentsPage() {
           </div>
 
           <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-slate-700">Rows</label>
+            <label className="block text-sm font-medium text-fg">Rows</label>
             <select
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
               value={String(limit)}
               onChange={(e) => {
                 setLimit(Number(e.target.value));
@@ -325,28 +325,28 @@ export default function AdminAssignmentsPage() {
           </div>
 
           <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-slate-700">Pagination</label>
+            <label className="block text-sm font-medium text-fg">Pagination</label>
             <div className="mt-1 flex items-center gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 Prev
               </button>
-              <div className="text-sm text-slate-600">
-                Page <span className="font-semibold text-slate-900">{meta.page}</span>
+              <div className="text-sm text-fg-muted">
+                Page <span className="font-semibold text-fg">{meta.page}</span>
                 {meta.totalPages ? (
                   <>
                     {" "}
-                    / <span className="font-semibold text-slate-900">{meta.totalPages}</span>
+                    / <span className="font-semibold text-fg">{meta.totalPages}</span>
                   </>
                 ) : null}
               </div>
               <button
                 type="button"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
                 disabled={meta.totalPages ? page >= meta.totalPages : rows.length < limit}
                 onClick={() => setPage((p) => p + 1)}
               >

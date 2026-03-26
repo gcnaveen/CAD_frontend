@@ -29,12 +29,12 @@ function upsertEntity(list, entity) {
 /* ── Section header ── */
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-6">
-    <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
       {icon}
     </div>
     <div>
-      <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
-      <p className="text-lg font-extrabold text-slate-900 leading-none">{titleEn}</p>
+      <p className="text-[11px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
+      <p className="text-lg font-extrabold text-fg leading-none">{titleEn}</p>
     </div>
   </div>
 );
@@ -42,10 +42,14 @@ const SectionHeader = ({ icon, titleKn, titleEn }) => (
 /* ── Styled label ── */
 const FieldLabel = ({ kn, en, required }) => (
   <span className="flex flex-col leading-none mb-1">
-    <span className="text-[10px] font-semibold text-slate-400">{kn}</span>
-    <span className="text-sm font-bold text-slate-700">{en} {required && <span className="text-orange-500">*</span>}</span>
+    <span className="text-[10px] font-semibold text-fg-muted">{kn}</span>
+    <span className="text-sm font-bold text-fg">{en} {required && <span className="text-[var(--user-accent)]">*</span>}</span>
   </span>
 );
+
+function labelOfEntity(entity) {
+  return entity?.name ?? entity?.label ?? null;
+}
 
 const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) => {
   const [districts, setDistricts] = useState([]);
@@ -54,6 +58,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
   const [villages,  setVillages]   = useState([]);
   const [loading,   setLoading]    = useState({ districts: false, talukas: false, hoblis: false, villages: false });
 
+  const surveyType = Form.useWatch("surveyType", form);
   const district = Form.useWatch("district", form);
   const taluka   = Form.useWatch("taluka",   form);
   const hobli    = Form.useWatch("hobli",    form);
@@ -137,6 +142,17 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
     if (village) setVillages((p) => upsertEntity(p, prefillEntities.village));
   }, [prefillEntities, taluka, hobli, village]);
 
+  /* Ensure label fields exist in the form even for draft prefill */
+  useEffect(() => {
+    if (!prefillEntities) return;
+    form.setFieldsValue({
+      districtLabel: labelOfEntity(prefillEntities.district),
+      talukaLabel: labelOfEntity(prefillEntities.taluka),
+      hobliLabel: labelOfEntity(prefillEntities.hobli),
+      villageLabel: labelOfEntity(prefillEntities.village),
+    });
+  }, [prefillEntities, form]);
+
   const selectCls = "w-full";
   const sharedSelectProps = {
     size: "large",
@@ -163,7 +179,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
         titleKn="ಸ್ಥಳ ಮಾಹಿತಿ"
         titleEn="Location"
         icon={
-          <svg className="w-5 h-5 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-[var(--user-accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -182,28 +198,37 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
               { value: "single_flat", en: "Single Sketch", kn: "ಏಕ ನಕ್ಷೆ" },
               { value: "joint_flat",  en: "Joint Sketch",  kn: "ಜಂಟಿ ನಕ್ಷೆ" },
             ].map((opt) => {
-              const val = Form.useWatch("surveyType", form);
-              const active = val === opt.value;
+              const active = surveyType === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => form.setFieldValue("surveyType", opt.value)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
-                    active
-                      ? "border-orange-500 bg-orange-50 shadow-[0_2px_12px_rgba(234,88,12,0.12)]"
-                      : "border-slate-200 bg-white hover:border-orange-200"
-                  }`}
+                  className={`w-full flex items-center justify-between rounded-2xl p-4 border transition-all cursor-pointer
+                    bg-[var(--bg-secondary)]
+                    text-[var(--text-primary)]
+                    border-[var(--border-color)]
+                    ${
+                      active
+                        ? "border-2 border-[var(--accent-color)] bg-[color-mix(in_srgb,var(--accent-color)_15%,var(--bg-secondary))] shadow-[0_2px_12px_color-mix(in_srgb,var(--accent-color)_20%,transparent)] hover:border-[var(--accent-color)]"
+                        : "hover:border-[color-mix(in_srgb,var(--accent-color)_40%,var(--border-color))]"
+                    }
+                  `}
                 >
                   <div>
-                    <p className={`font-extrabold text-sm ${active ? "text-slate-900" : "text-slate-700"}`}>{opt.en}</p>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">{opt.kn}</p>
+                    <p className="font-extrabold text-sm text-[var(--text-primary)]">{opt.en}</p>
+                    <p className="text-xs font-semibold mt-0.5 text-[var(--text-secondary)]">{opt.kn}</p>
                   </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                    active ? "border-orange-500 bg-orange-500" : "border-slate-300"
-                  }`}>
-                    {active && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+                      ${active ? "border-[var(--accent-color)]" : "border-[var(--border-color)]"}
+                    `}
+                    aria-hidden
+                  >
+                  {active ? (
+                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-color)] shadow-[0_1px_4px_color-mix(in_srgb,var(--accent-color)_25%,transparent)]" />
+                  ) : null}
+                </div>
                 </button>
               );
             })}

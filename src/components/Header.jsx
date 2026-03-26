@@ -7,6 +7,7 @@ import { toggleLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
 import { ArrowUpRight, User } from "lucide-react";
 import InstallButton from "./pwa/InstallButton.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 const getDisplayName = (user) => {
   if (!user) return "User";
@@ -86,7 +87,7 @@ const Header = () => {
           position: relative;
           font-size: 13px;
           font-weight: 500;
-          color: #7a7060;
+          color: var(--homepage-nav-muted);
           letter-spacing: 0.02em;
           transition: color 0.2s ease;
           background: none;
@@ -99,34 +100,34 @@ const Header = () => {
           position: absolute;
           bottom: -2px; left: 0; right: 0;
           height: 1.5px;
-          background: #c9a84c;
+          background: var(--brand-gold);
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.25s ease;
         }
         .nav-link-header:hover {
-          color: #152815;
+          color: var(--brand-green);
         }
         .nav-link-header:hover::after {
           transform: scaleX(1);
         }
         .lang-btn-active {
-          background: white;
-          color: #152815;
+          background: var(--bg-elevated);
+          color: var(--brand-green);
           font-weight: 600;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 1px 4px var(--homepage-card-shadow);
         }
         .lang-btn-inactive {
           background: transparent;
-          color: #7a7060;
+          color: var(--homepage-nav-muted);
           font-weight: 500;
         }
         .header-cta-btn {
           transition: all 0.2s ease;
         }
         .header-cta-btn:hover {
-          background: #1f4020 !important;
-          box-shadow: 0 10px 28px rgba(21,40,21,0.38) !important;
+          background: color-mix(in srgb, var(--brand-green) 92%, black) !important;
+          box-shadow: 0 10px 28px var(--homepage-card-shadow) !important;
         }
         @media (max-width: 1023px) {
           .desktop-nav { display: none !important; }
@@ -150,15 +151,14 @@ const Header = () => {
       >
         {/* Main nav bar */}
         <nav
+          className="theme-animate-surface"
           style={{
-            background: isScrolled
-              ? "rgba(244,239,230,0.95)"
-              : "rgba(244,239,230,0.88)",
+            background: "var(--homepage-cream)",
             backdropFilter: "blur(20px)",
             borderBottom: isScrolled
-              ? "1px solid rgba(201,168,76,0.2)"
-              : "1px solid rgba(232,226,216,0.6)",
-            boxShadow: isScrolled ? "0 4px 24px rgba(0,0,0,0.08)" : "none",
+              ? "1px solid color-mix(in srgb, var(--brand-gold) 35%, var(--border-color))"
+              : "1px solid var(--homepage-cream-border)",
+            boxShadow: isScrolled ? "0 4px 24px var(--homepage-card-shadow)" : "none",
             transition: "all 0.3s ease",
           }}
         >
@@ -232,6 +232,7 @@ const Header = () => {
               className="desktop-nav"
               style={{ alignItems: "center", gap: "12px", flexShrink: 0 }}
             >
+              <ThemeToggle variant="compact" />
               {/* Language toggle */}
               <button
                 onClick={() => dispatch(toggleLanguage())}
@@ -239,7 +240,8 @@ const Header = () => {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  background: "rgba(232,226,216,0.7)",
+                  background:
+                    "color-mix(in srgb, var(--homepage-cream-border) 65%, var(--bg-secondary))",
                   borderRadius: "10px",
                   padding: "3px",
                   gap: "2px",
@@ -274,8 +276,8 @@ const Header = () => {
                 size="middle"
                 showLabel={false}
                 style={{
-                  borderColor: "rgba(21,40,21,0.28)",
-                  color: "#152815",
+                  borderColor: "color-mix(in srgb, var(--brand-green) 35%, var(--border-color))",
+                  color: "var(--brand-green)",
                 }}
               />
 
@@ -288,14 +290,14 @@ const Header = () => {
                   gap: "7px",
                   padding: "9px 22px",
                   borderRadius: "11px",
-                  background: "#152815",
-                  color: "white",
+                  background: "var(--homepage-cta-bg)",
+                  color: "var(--homepage-cta-fg)",
                   fontWeight: 600,
                   fontSize: "13px",
                   letterSpacing: "0.03em",
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
+                  boxShadow: "0 6px 20px var(--homepage-card-shadow)",
                 }}
               >
                 {t(lang, "header.auth.login")}
@@ -315,11 +317,11 @@ const Header = () => {
                 width: "40px",
                 height: "40px",
                 borderRadius: "10px",
-                background: "rgba(255,255,255,0.8)",
-                border: "1px solid rgba(232,226,216,0.9)",
+                background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
+                border: "1px solid var(--homepage-cream-border)",
                 cursor: "pointer",
-                color: "#152815",
-                boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
+                color: "var(--brand-green)",
+                boxShadow: "0 1px 6px var(--homepage-card-shadow)",
               }}
             >
               {isMobileMenuOpen ? (
@@ -364,10 +366,10 @@ const Header = () => {
             style={{
               margin: "8px 12px 0",
               borderRadius: "16px",
-              background: "rgba(244,239,230,0.97)",
+              background: "var(--homepage-cream)",
               backdropFilter: "blur(20px)",
-              border: "1px solid rgba(232,226,216,0.9)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+              border: "1px solid var(--homepage-cream-border)",
+              boxShadow: "0 8px 32px var(--homepage-card-shadow)",
               padding: "12px",
             }}
           >
@@ -375,7 +377,7 @@ const Header = () => {
             <div
               style={{
                 padding: "4px 0 8px",
-                borderBottom: "1px solid rgba(232,226,216,0.7)",
+                borderBottom: "1px solid var(--homepage-cream-border)",
                 marginBottom: "8px",
               }}
             >
@@ -387,7 +389,8 @@ const Header = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   width: "100%",
-                  background: "rgba(232,226,216,0.6)",
+                  background:
+                    "color-mix(in srgb, var(--homepage-cream-border) 55%, var(--bg-secondary))",
                   borderRadius: "10px",
                   padding: "3px",
                   gap: "2px",
@@ -422,6 +425,9 @@ const Header = () => {
             </div>
 
             {/* Mobile nav links */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 10px" }}>
+              <ThemeToggle variant="compact" />
+            </div>
             {NAV_LINKS.map(({ key, section }) => (
               <button
                 key={key}
@@ -434,14 +440,15 @@ const Header = () => {
                   borderRadius: "10px",
                   fontSize: "14px",
                   fontWeight: 500,
-                  color: "#152815",
+                  color: "var(--brand-green)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   transition: "background 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.7)";
+                  e.currentTarget.style.background =
+                    "color-mix(in srgb, var(--bg-elevated) 75%, transparent)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "none";
@@ -454,7 +461,7 @@ const Header = () => {
             {/* Mobile auth */}
             <div
               style={{
-                borderTop: "1px solid rgba(232,226,216,0.7)",
+                borderTop: "1px solid var(--homepage-cream-border)",
                 marginTop: "8px",
                 paddingTop: "12px",
                 display: "flex",
@@ -472,8 +479,9 @@ const Header = () => {
                   size="middle"
                   showLabel
                   style={{
-                    borderColor: "rgba(21,40,21,0.28)",
-                    color: "#152815",
+                    borderColor:
+                      "color-mix(in srgb, var(--brand-green) 35%, var(--border-color))",
+                    color: "var(--brand-green)",
                     width: "100%",
                   }}
                 />
@@ -488,13 +496,13 @@ const Header = () => {
                   width: "100%",
                   padding: "13px",
                   borderRadius: "12px",
-                  background: "#152815",
-                  color: "white",
+                  background: "var(--homepage-cta-bg)",
+                  color: "var(--homepage-cta-fg)",
                   fontWeight: 600,
                   fontSize: "14px",
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: "0 6px 20px rgba(21,40,21,0.28)",
+                  boxShadow: "0 6px 20px var(--homepage-card-shadow)",
                   letterSpacing: "0.03em",
                 }}
               >

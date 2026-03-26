@@ -29,9 +29,9 @@ const StepIndicator = ({ current = 0 }) => (
               {/* Bubble */}
               <div
                 className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-extrabold text-xs sm:text-sm shrink-0 transition-all
-                  ${done    ? "bg-orange-600 text-white shadow-[0_2px_8px_rgba(234,88,12,0.35)]" : ""}
-                  ${active  ? "bg-orange-600 text-white shadow-[0_2px_12px_rgba(234,88,12,0.4)] ring-4 ring-orange-100" : ""}
-                  ${pending ? "bg-white border-2 border-slate-200 text-slate-400" : ""}
+                  ${done    ? "bg-[var(--user-accent)] text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--user-accent)_35%,transparent)]" : ""}
+                  ${active  ? "bg-[var(--user-accent)] text-white shadow-[0_2px_12px_color-mix(in_srgb,var(--user-accent)_40%,transparent)] ring-4 ring-[color-mix(in_srgb,var(--user-accent)_22%,transparent)]" : ""}
+                  ${pending ? "bg-surface border-2 border-line text-fg-muted" : ""}
                 `}
               >
                 {done ? <CheckIcon /> : <span>{idx + 1}</span>}
@@ -39,10 +39,10 @@ const StepIndicator = ({ current = 0 }) => (
 
               {/* Label */}
               <div className="flex flex-col leading-none">
-                <span className={`text-[10px] font-semibold whitespace-nowrap ${active || done ? "text-orange-600" : "text-slate-400"}`}>
+                <span className={`text-[10px] font-semibold whitespace-nowrap ${active || done ? "text-[var(--user-accent)]" : "text-fg-muted"}`}>
                   {step.labelKn}
                 </span>
-                <span className={`text-xs sm:text-sm font-extrabold whitespace-nowrap ${active ? "text-slate-900" : done ? "text-slate-600" : "text-slate-400"}`}>
+                <span className={`text-xs sm:text-sm font-extrabold whitespace-nowrap ${active ? "text-fg" : done ? "text-fg-muted" : "text-fg-muted"}`}>
                   {step.label}
                 </span>
               </div>
@@ -51,8 +51,8 @@ const StepIndicator = ({ current = 0 }) => (
             {/* Connector */}
             {idx < STEPS.length - 1 && (
               <div className="mx-2 sm:mx-3 flex items-center gap-0.5 shrink-0">
-                <div className={`w-4 sm:w-6 h-0.5 rounded-full ${idx < current ? "bg-orange-400" : "bg-slate-200"}`} />
-                <div className={`w-1 h-1 rounded-full ${idx < current ? "bg-orange-400" : "bg-slate-200"}`} />
+                <div className={`w-4 sm:w-6 h-0.5 rounded-full ${idx < current ? "bg-[var(--user-accent-hover)]" : "bg-line"}`} />
+                <div className={`w-1 h-1 rounded-full ${idx < current ? "bg-[var(--user-accent-hover)]" : "bg-line"}`} />
               </div>
             )}
           </React.Fragment>

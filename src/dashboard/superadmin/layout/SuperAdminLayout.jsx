@@ -1,11 +1,9 @@
 import React, { useState } from "react";
-import { Layout, Menu, Button, Typography, ConfigProvider } from "antd";
+import { Layout, Menu, Button, Typography } from "antd";
 import {
   HomeOutlined,
   UserOutlined,
-  BankOutlined,
   ProjectOutlined,
-  HistoryOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   LogoutOutlined,
@@ -21,20 +19,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
+import ThemeToggle from "../../../components/ThemeToggle.jsx";
 import "./superadminlayout.css";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
-
-const SIDER_BG = "#0f172a";
-const SIDER_MENU_ITEM_HOVER = "#1e293b";
-const SIDER_ACTIVE_BG = "rgba(56, 189, 248, 0.12)";
-const SIDER_TEXT_ACTIVE = "#f8fafc";
-const HEADER_BG = "#ffffff";
-const HEADER_BORDER = "#e2e8f0";
-const CONTENT_BG = "#f8fafc";
-const ACCENT = "#0ea5e9";
-const ACCENT_HOVER = "#0284c7";
 
 const allMenuItems = [
   { key: "/superadmin/home", icon: <HomeOutlined />, label: "Home" },
@@ -44,11 +33,6 @@ const allMenuItems = [
     label: "View Admin Users",
     roles: ["SUPER_ADMIN"],
   },
-  // {
-  //   key: "/superadmin/cad-centers",
-  //   icon: <BankOutlined />,
-  //   label: "View CAD Centers",
-  // },
   {
     key: "/superadmin/cad-users",
     icon: <DesktopOutlined />,
@@ -70,11 +54,6 @@ const allMenuItems = [
     icon: <ProjectOutlined />,
     label: "View Projects",
   },
-  // {
-  //   key: "/superadmin/projects-history",
-  //   icon: <HistoryOutlined />,
-  //   label: "View Projects History",
-  // },
   {
     key: "/superadmin/user-surveyor-details",
     icon: <SearchOutlined />,
@@ -163,232 +142,209 @@ const SuperAdminLayout = () => {
   const displayTitle = isAdmin ? "Admin" : "Super Admin";
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: ACCENT,
-          colorPrimaryHover: ACCENT_HOVER,
-          borderRadius: 8,
-        },
-        components: {
-          Menu: {
-            darkItemBg: SIDER_BG,
-            darkItemSelectedBg: SIDER_ACTIVE_BG,
-            darkItemSelectedColor: SIDER_TEXT_ACTIVE,
-            darkItemHoverBg: SIDER_MENU_ITEM_HOVER,
-            darkItemColor: "rgba(248, 250, 252, 0.9)",
-            itemSelectedBg: SIDER_ACTIVE_BG,
-            itemActiveBg: SIDER_ACTIVE_BG,
-          },
-          Button: {
-            defaultBorderColor: HEADER_BORDER,
-            defaultColor: "#475569",
-          },
-        },
-      }}
-    >
-      <Layout className="superadmin-layout" style={{ minHeight: "100vh" }}>
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          breakpoint="lg"
-          onBreakpoint={(broken) => {
-            if (broken) setCollapsed(true);
-          }}
-          width={260}
-          collapsedWidth={80}
-          className="superadmin-sider"
+    <Layout className="superadmin-layout theme-animate-surface" style={{ minHeight: "100vh" }}>
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        breakpoint="lg"
+        onBreakpoint={(broken) => {
+          if (broken) setCollapsed(true);
+        }}
+        width={260}
+        collapsedWidth={80}
+        className="superadmin-sider"
+        style={{
+          background: "var(--layout-sider-bg)",
+          overflow: "auto",
+          height: "100vh",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 100,
+        }}
+      >
+        <div
+          className="superadmin-sider-logo"
           style={{
-            background: SIDER_BG,
-            overflow: "auto",
-            height: "100vh",
-            position: "fixed",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            zIndex: 100,
+            padding: collapsed ? "16px 12px" : "20px 16px",
+            minHeight: collapsed ? 80 : 100,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: collapsed ? 0 : 10,
+            borderBottom: "1px solid var(--layout-sider-border)",
           }}
         >
           <div
-            className="superadmin-sider-logo"
             style={{
-              padding: collapsed ? "16px 12px" : "20px 16px",
-              minHeight: collapsed ? 80 : 100,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: collapsed ? 0 : 10,
-              borderBottom: `1px solid ${SIDER_MENU_ITEM_HOVER}`,
+              position: "relative",
+              width: collapsed ? 40 : 56,
+              height: collapsed ? 40 : 56,
+              flexShrink: 0,
             }}
           >
-            <div
+            <img
+              src="/assets/logo.png"
+              alt="North Cot CAD"
               style={{
-                position: "relative",
-                width: collapsed ? 40 : 56,
-                height: collapsed ? 40 : 56,
-                flexShrink: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+              onError={(e) => {
+                e.target.style.display = "none";
+                e.target.nextElementSibling?.classList?.add("visible");
+              }}
+            />
+            <div
+              className="superadmin-logo-fallback"
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "var(--layout-sider-accent)",
+                borderRadius: 8,
+                display: "none",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: collapsed ? 14 : 18,
+                fontWeight: 700,
+                color: "var(--layout-sider-bg)",
               }}
             >
-              <img
-                src="/assets/logo.png"
-                alt="North Cot CAD"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                }}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextElementSibling?.classList?.add("visible");
-                }}
-              />
-              <div
-                className="superadmin-logo-fallback"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "#38bdf8",
-                  borderRadius: 8,
-                  display: "none",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: collapsed ? 14 : 18,
-                  fontWeight: 700,
-                  color: SIDER_BG,
-                }}
-              >
-                NC
-              </div>
+              NC
             </div>
-            {!collapsed && (
-              <Text
-                style={{
-                  color: SIDER_TEXT_ACTIVE,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  textAlign: "center",
-                  lineHeight: 1.3,
-                }}
-              >
-                {displayTitle}
-              </Text>
-            )}
           </div>
+          {!collapsed && (
+            <Text
+              style={{
+                color: "var(--layout-sider-text)",
+                fontSize: 13,
+                fontWeight: 600,
+                textAlign: "center",
+                lineHeight: 1.3,
+              }}
+            >
+              {displayTitle}
+            </Text>
+          )}
+        </div>
 
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[location.pathname]}
-            openKeys={openKeys}
-            onOpenChange={handleOpenChange}
-            items={menuItems.map(mapItem)}
-            onClick={handleMenuClick}
-            style={{
-              background: "transparent",
-              borderRight: "none",
-              marginTop: 8,
-              padding: "0 8px",
-            }}
-            className="superadmin-menu"
-          />
-        </Sider>
-
-        <Layout
-          className="superadmin-main"
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          openKeys={openKeys}
+          onOpenChange={handleOpenChange}
+          items={menuItems.map(mapItem)}
+          onClick={handleMenuClick}
           style={{
-            marginLeft: siderWidth,
-            transition: "margin-left 0.2s ease",
-            minHeight: "100vh",
+            background: "transparent",
+            borderRight: "none",
+            marginTop: 8,
+            padding: "0 8px",
+          }}
+          className="superadmin-menu"
+        />
+      </Sider>
+
+      <Layout
+        className="superadmin-main"
+        style={{
+          marginLeft: siderWidth,
+          transition: "margin-left 0.2s ease",
+          minHeight: "100vh",
+        }}
+      >
+        <Header
+          className="superadmin-header theme-animate-surface"
+          style={{
+            padding: "0 20px 0 16px",
+            background: "var(--bg-elevated)",
+            borderBottom: "1px solid var(--border-color)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            height: 64,
           }}
         >
-          <Header
-            className="superadmin-header"
+          <div
             style={{
-              padding: "0 20px 0 16px",
-              background: HEADER_BG,
-              borderBottom: `1px solid ${HEADER_BORDER}`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              height: 64,
+              gap: 12,
             }}
           >
-            <div
+            <Button
+              type="text"
+              icon={
+                collapsed ? (
+                  <MenuUnfoldOutlined style={{ fontSize: 18 }} />
+                ) : (
+                  <MenuFoldOutlined style={{ fontSize: 18 }} />
+                )
+              }
+              onClick={() => setCollapsed(!collapsed)}
+              className="superadmin-trigger"
+              aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            />
+            <Text
+              strong
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
+                fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                color: "var(--text-primary)",
+                margin: 0,
               }}
             >
-              <Button
-                type="text"
-                icon={
-                  collapsed ? (
-                    <MenuUnfoldOutlined style={{ fontSize: 18 }} />
-                  ) : (
-                    <MenuFoldOutlined style={{ fontSize: 18 }} />
-                  )
-                }
-                onClick={() => setCollapsed(!collapsed)}
-                className="superadmin-trigger"
-                aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-              />
-              <Text
-                strong
-                style={{
-                  fontSize: "clamp(1rem, 2vw, 1.25rem)",
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
-                North Cot CAD Project
-              </Text>
-            </div>
+              North Cot CAD Project
+            </Text>
+          </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <InstallButton
-                size="middle"
-                style={{
-                  borderColor: HEADER_BORDER,
-                  color: "#475569",
-                }}
-              />
-              <NotificationBell layout="superadmin" />
-              <Button
-                type="default"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                className="superadmin-logout"
-                style={{
-                  borderColor: HEADER_BORDER,
-                  color: "#475569",
-                }}
-              >
-                Logout
-              </Button>
-            </div>
-          </Header>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ThemeToggle variant="compact" />
+            <InstallButton
+              size="middle"
+              style={{
+                borderColor: "var(--border-color)",
+                color: "var(--text-secondary)",
+              }}
+            />
+            <NotificationBell layout="superadmin" />
+            <Button
+              type="default"
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              className="superadmin-logout"
+              style={{
+                borderColor: "var(--border-color)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Logout
+            </Button>
+          </div>
+        </Header>
 
-          <Content
-            className="superadmin-content"
-            style={{
-              margin: "24px 16px",
-              padding: 24,
-              minHeight: "calc(100vh - 64px - 48px)",
-              background: CONTENT_BG,
-              borderRadius: 12,
-            }}
-          >
-            <Outlet />
-          </Content>
-        </Layout>
+        <Content
+          className="superadmin-content theme-animate-surface"
+          style={{
+            margin: "24px 16px",
+            padding: 24,
+            minHeight: "calc(100vh - 64px - 48px)",
+            background: "var(--bg-secondary)",
+            borderRadius: 12,
+            color: "var(--text-primary)",
+          }}
+        >
+          <Outlet />
+        </Content>
       </Layout>
-    </ConfigProvider>
+    </Layout>
   );
 };
 

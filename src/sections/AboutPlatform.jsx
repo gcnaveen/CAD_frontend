@@ -52,7 +52,7 @@ export default function AboutPlatform() {
       ref={sectionRef}
       id="about-platform"
       style={{
-        background: "linear-gradient(180deg, #f7f2e8 0%, #f0ead8 60%, #ede5d0 100%)",
+        background: "var(--section-cream-alt)",
         padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
         position: "relative",
         overflow: "hidden",
@@ -60,23 +60,23 @@ export default function AboutPlatform() {
     >
       <style>{`
         .ap-card {
-          background: rgba(255,255,255,0.72);
+          background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
           backdrop-filter: blur(12px);
-          border: 1px solid rgba(232,226,216,0.85);
+          border: 1px solid var(--homepage-cream-border);
           border-radius: 20px;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
-          box-shadow: 0 2px 16px rgba(0,0,0,0.055);
+          box-shadow: 0 2px 16px var(--homepage-card-shadow);
         }
         .ap-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 12px 36px rgba(0,0,0,0.10);
+          box-shadow: 0 12px 36px var(--homepage-card-shadow);
         }
         .prob-item {
           display: flex;
           align-items: flex-start;
           gap: 12px;
           padding: 10px 0;
-          border-bottom: 1px solid rgba(232,226,216,0.6);
+          border-bottom: 1px solid color-mix(in srgb, var(--homepage-cream-border) 65%, transparent);
         }
         .prob-item:last-child { border-bottom: none; }
         .sol-item {
@@ -84,19 +84,19 @@ export default function AboutPlatform() {
           align-items: flex-start;
           gap: 12px;
           padding: 10px 0;
-          border-bottom: 1px solid rgba(201,168,76,0.12);
+          border-bottom: 1px solid color-mix(in srgb, var(--brand-gold) 14%, transparent);
         }
         .sol-item:last-child { border-bottom: none; }
         .feat-card {
-          background: rgba(255,255,255,0.72);
+          background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(232,226,216,0.85);
+          border: 1px solid var(--homepage-cream-border);
           border-radius: 18px;
           padding: 32px 24px;
           text-align: center;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 2px 14px rgba(0,0,0,0.05);
+          box-shadow: 0 2px 14px var(--homepage-card-shadow);
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
         .feat-card::before {
@@ -104,13 +104,13 @@ export default function AboutPlatform() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #c9a84c, rgba(201,168,76,0.3));
+          background: linear-gradient(90deg, var(--brand-gold), color-mix(in srgb, var(--brand-gold) 35%, transparent));
           opacity: 0;
           transition: opacity 0.25s ease;
         }
         .feat-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 14px 40px rgba(0,0,0,0.10);
+          box-shadow: 0 14px 40px var(--homepage-card-shadow);
         }
         .feat-card:hover::before { opacity: 1; }
         .section-label {
@@ -118,7 +118,7 @@ export default function AboutPlatform() {
           font-weight: 700;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #9a7020;
+          color: var(--brand-gold-muted);
         }
       `}</style>
 
@@ -154,7 +154,7 @@ export default function AboutPlatform() {
             border: "1px solid rgba(201,168,76,0.3)",
             marginBottom: "20px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
             <span className="section-label">The Platform</span>
           </div>
 
@@ -164,7 +164,7 @@ export default function AboutPlatform() {
             fontWeight: 600,
             fontSize: "clamp(30px, 3.8vw, 52px)",
             lineHeight: 1.15,
-            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 50%, #2a5a2a 100%)",
+            background: "var(--hero-panel-bg)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -176,7 +176,7 @@ export default function AboutPlatform() {
 
           <p style={{
             fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
-            color: "#6b6252",
+            color: "var(--text-brown-muted)",
             lineHeight: 1.8,
             maxWidth: "560px",
             margin: "0 auto",
@@ -209,17 +209,17 @@ export default function AboutPlatform() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
               }}>
-                <X size={20} color="#ef4444" strokeWidth={2.5} />
+                <X size={20} color="var(--danger)" strokeWidth={2.5} />
               </div>
               <div>
                 <h3 style={{
                   fontFamily: "'IBM Plex Serif', Georgia, serif",
-                  fontWeight: 600, fontSize: "19px", color: "#1a1a1a",
+                  fontWeight: 600, fontSize: "19px", color: "var(--text-primary)",
                   margin: 0, marginBottom: "2px",
                 }}>
                   {translations[lang]?.about?.problemTitle}
                 </h3>
-                <p style={{ fontSize: "12.5px", color: "#9a8f80", margin: 0 }}>
+                <p style={{ fontSize: "12.5px", color: "var(--text-secondary)", margin: 0 }}>
                   {translations[lang]?.about?.problemSubtitle}
                 </p>
               </div>
@@ -235,9 +235,9 @@ export default function AboutPlatform() {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0, marginTop: "1px",
                   }}>
-                    <X size={11} color="#ef4444" strokeWidth={2.5} />
+                    <X size={11} color="var(--danger)" strokeWidth={2.5} />
                   </div>
-                  <p style={{ fontSize: "14px", color: "#5a5248", lineHeight: 1.65, margin: 0 }}>
+                  <p style={{ fontSize: "14px", color: "var(--text-primary)", lineHeight: 1.65, margin: 0 }}>
                     {item}
                   </p>
                 </div>
@@ -260,7 +260,7 @@ export default function AboutPlatform() {
             {/* Gold top accent */}
             <div style={{
               position: "absolute", top: 0, left: 0, right: 0, height: "3px",
-              background: "linear-gradient(90deg, #c9a84c, rgba(201,168,76,0.3))",
+              background: "linear-gradient(90deg, var(--brand-gold), color-mix(in srgb, var(--brand-gold) 35%, transparent))",
             }} />
 
             {/* Card header */}
@@ -276,17 +276,17 @@ export default function AboutPlatform() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
               }}>
-                <Check size={20} color="#c9a84c" strokeWidth={2.5} />
+                <Check size={20} color="var(--brand-gold)" strokeWidth={2.5} />
               </div>
               <div>
                 <h3 style={{
                   fontFamily: "'IBM Plex Serif', Georgia, serif",
-                  fontWeight: 600, fontSize: "19px", color: "#1a1a1a",
+                  fontWeight: 600, fontSize: "19px", color: "var(--text-primary)",
                   margin: 0, marginBottom: "2px",
                 }}>
                   {translations[lang]?.about?.solutionTitle}
                 </h3>
-                <p style={{ fontSize: "12.5px", color: "#9a8f80", margin: 0 }}>
+                <p style={{ fontSize: "12.5px", color: "var(--text-secondary)", margin: 0 }}>
                   {translations[lang]?.about?.solutionSubtitle}
                 </p>
               </div>
@@ -302,9 +302,9 @@ export default function AboutPlatform() {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0, marginTop: "1px",
                   }}>
-                    <Check size={11} color="#c9a84c" strokeWidth={2.5} />
+                    <Check size={11} color="var(--brand-gold)" strokeWidth={2.5} />
                   </div>
-                  <p style={{ fontSize: "14px", color: "#3a3228", lineHeight: 1.65, margin: 0, fontWeight: 450 }}>
+                  <p style={{ fontSize: "14px", color: "var(--text-primary)", lineHeight: 1.65, margin: 0, fontWeight: 450 }}>
                     {item}
                   </p>
                 </div>
@@ -340,7 +340,7 @@ export default function AboutPlatform() {
               {/* Large faint icon in background */}
               <div style={{
                 position: "absolute", bottom: "-10px", right: "-10px",
-                opacity: 0.04, color: "#152815",
+                opacity: 0.04, color: "var(--homepage-cta-bg)",
                 transform: "scale(4)",
                 pointerEvents: "none",
               }}>
@@ -354,7 +354,7 @@ export default function AboutPlatform() {
                 border: "1px solid rgba(201,168,76,0.2)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto 18px",
-                color: "#c9a84c",
+                color: "var(--brand-gold)",
               }}>
                 {featureIcons[idx]}
               </div>
@@ -372,13 +372,13 @@ export default function AboutPlatform() {
 
               <h3 style={{
                 fontFamily: "'IBM Plex Serif', Georgia, serif",
-                fontWeight: 600, fontSize: "17px", color: "#0d1f0d",
+                fontWeight: 600, fontSize: "17px", color: "var(--brand-green-deep)",
                 marginBottom: "10px",
               }}>
                 {card.title}
               </h3>
               <p style={{
-                fontSize: "13.5px", color: "#6b6252", lineHeight: 1.7,
+                fontSize: "13.5px", color: "var(--text-brown-muted)", lineHeight: 1.7,
                 margin: 0,
               }}>
                 {card.description}

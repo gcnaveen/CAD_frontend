@@ -117,7 +117,7 @@ const TrackCurrentOrder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-surface-2/50">
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         {/* Back button – top left */}
         <div className="mb-4 sm:mb-6">
@@ -125,7 +125,7 @@ const TrackCurrentOrder = () => {
             type="text"
             icon={<ArrowLeft className="h-4 w-4" />}
             onClick={handleBack}
-            className="-ml-1 flex items-center gap-1.5 pl-0 text-gray-600 hover:bg-transparent hover:text-gray-900"
+            className="-ml-1 flex items-center gap-1.5 pl-0 text-fg-muted hover:bg-transparent hover:text-fg"
             size="large"
           >
             Back
@@ -133,7 +133,7 @@ const TrackCurrentOrder = () => {
         </div>
 
         {/* Page heading */}
-        <h1 className="mb-6 text-xl font-semibold text-gray-900 sm:mb-8 sm:text-2xl md:text-3xl">
+        <h1 className="mb-6 text-xl font-semibold text-fg sm:mb-8 sm:text-2xl md:text-3xl">
           Track your current order
         </h1>
 

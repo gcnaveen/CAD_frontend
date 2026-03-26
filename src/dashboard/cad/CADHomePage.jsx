@@ -31,7 +31,7 @@ const BarChart = ({ data, colors, height = 12 }) => {
         height,
         borderRadius: 4,
         overflow: "hidden",
-        backgroundColor: "#f1f5f9",
+        backgroundColor: "var(--bg-hover)",
       }}
     >
       {data.map((item, i) => (
@@ -39,7 +39,7 @@ const BarChart = ({ data, colors, height = 12 }) => {
           key={i}
           style={{
             width: `${(item.value / total) * 100}%`,
-            backgroundColor: colors[i] || "#94a3b8",
+            backgroundColor: colors[i] || "var(--text-secondary)",
             transition: "width 0.3s ease",
           }}
           title={`${item.label}: ${item.value}`}
@@ -57,7 +57,12 @@ const CADHomePage = () => {
     { label: "Need Changes", value: stats.needChanges },
     { label: "Rejected", value: stats.rejected },
   ];
-  const chartColors = ["#22c55e", "#0ea5e9", "#f59e0b", "#ef4444"];
+  const chartColors = [
+    "var(--success)",
+    "var(--accent-color)",
+    "var(--warning)",
+    "var(--danger)",
+  ];
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -65,7 +70,7 @@ const CADHomePage = () => {
         CAD Center Dashboard
       </Title>
 
-      <Title level={5} style={{ marginBottom: 16, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         Order Statistics
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
@@ -74,7 +79,7 @@ const CADHomePage = () => {
             <Statistic
               title="Total Orders"
               value={stats.total}
-              prefix={<ProjectOutlined style={{ color: "#0ea5e9" }} />}
+              prefix={<ProjectOutlined style={{ color: "var(--accent-color)" }} />}
             />
           </Card>
         </Col>
@@ -83,12 +88,12 @@ const CADHomePage = () => {
             <Statistic
               title="Approved Orders"
               value={stats.approved}
-              prefix={<CheckCircleOutlined style={{ color: "#22c55e" }} />}
+              prefix={<CheckCircleOutlined style={{ color: "var(--success)" }} />}
             />
             <Progress
               percent={Math.round((stats.approved / stats.total) * 100)}
               showInfo={false}
-              strokeColor="#22c55e"
+              strokeColor="var(--success)"
               size="small"
               style={{ marginTop: 8 }}
             />
@@ -99,12 +104,12 @@ const CADHomePage = () => {
             <Statistic
               title="Rejected Orders"
               value={stats.rejected}
-              prefix={<CloseCircleOutlined style={{ color: "#ef4444" }} />}
+              prefix={<CloseCircleOutlined style={{ color: "var(--danger)" }} />}
             />
             <Progress
               percent={Math.round((stats.rejected / stats.total) * 100)}
               showInfo={false}
-              strokeColor="#ef4444"
+              strokeColor="var(--danger)"
               size="small"
               style={{ marginTop: 8 }}
             />
@@ -115,7 +120,7 @@ const CADHomePage = () => {
             <Statistic
               title="In Progress"
               value={stats.pending + stats.needChanges}
-              prefix={<SyncOutlined style={{ color: "#0ea5e9" }} />}
+              prefix={<SyncOutlined style={{ color: "var(--accent-color)" }} />}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>
               Pending: {stats.pending} · Need changes: {stats.needChanges}
@@ -126,7 +131,7 @@ const CADHomePage = () => {
 
       <Divider style={{ margin: "24px 0" }} />
 
-      <Title level={5} style={{ marginBottom: 16, color: "#64748b" }}>
+      <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         Orders by Status
       </Title>
       <Row gutter={[24, 24]}>
@@ -170,7 +175,7 @@ const CADHomePage = () => {
             <Progress
               type="circle"
               percent={Math.round((stats.approved / stats.total) * 100)}
-              strokeColor="#22c55e"
+              strokeColor="var(--success)"
               format={(p) => `${p}%`}
             />
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>

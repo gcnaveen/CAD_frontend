@@ -65,14 +65,14 @@ const UserDashboardHeader = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/80">
+    <header className="theme-animate-surface sticky top-0 z-40 w-full border-b border-line bg-[color-mix(in_srgb,var(--bg-primary)_92%,transparent)] backdrop-blur supports-backdrop-filter:bg-[color-mix(in_srgb,var(--bg-primary)_80%,transparent)]">
       <div className="flex h-14 md:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo - Left */}
         <div className="flex shrink-0 items-center">
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md"
+            className="focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 rounded-md"
           >
             <img
               src="/assets/logo.png"
@@ -100,16 +100,16 @@ const UserDashboardHeader = () => {
           >
             <button
               type="button"
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 p-1.5 sm:p-0.5 hover:opacity-90 transition-opacity touch-manipulation"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 p-1.5 sm:p-0.5 hover:opacity-90 transition-opacity touch-manipulation"
               aria-label="Profile menu"
             >
               <Avatar
                 size={36}
-                className="bg-blue-600 text-white border-2 border-gray-100 shadow-sm shrink-0"
+                className="bg-[var(--cyan-accent)] text-white border-2 border-line shadow-sm shrink-0"
                 icon={<User className="h-5 w-5" />}
               />
               <ChevronDown
-                className={`hidden sm:block h-4 w-4 text-gray-500 transition-transform shrink-0 ${dropdownOpen ? "rotate-180" : ""}`}
+                className={`hidden sm:block h-4 w-4 text-fg-muted transition-transform shrink-0 ${dropdownOpen ? "rotate-180" : ""}`}
               />
             </button>
           </Dropdown>

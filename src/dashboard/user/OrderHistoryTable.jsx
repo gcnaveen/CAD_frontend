@@ -80,7 +80,7 @@ const OrderHistoryTable = () => {
       render: (_, record) => {
         const isPaid = record.paymentStatus === "paid";
         return (
-          <span className="inline-flex items-center gap-2 text-gray-600">
+          <span className="inline-flex items-center gap-2 text-fg-muted">
             {isPaid ? (
               <>
                 <FileCheck className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -127,7 +127,7 @@ const OrderHistoryTable = () => {
               // TODO: Navigate to order details or open drawer
             }
           }}
-          className="p-0 font-medium text-blue-600 hover:text-blue-700"
+          className="p-0 font-medium text-[var(--cyan-accent)] hover:opacity-90"
         >
           View
         </Button>
@@ -136,7 +136,7 @@ const OrderHistoryTable = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-surface-2/50">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         {/* Back button – top left */}
         <div className="mb-4 sm:mb-6">
@@ -144,7 +144,7 @@ const OrderHistoryTable = () => {
             type="text"
             icon={<ArrowLeft className="h-4 w-4" />}
             onClick={handleBack}
-            className="-ml-1 flex items-center gap-1.5 pl-0 text-gray-600 hover:bg-transparent hover:text-gray-900"
+            className="-ml-1 flex items-center gap-1.5 pl-0 text-fg-muted hover:bg-transparent hover:text-fg"
             size="large"
           >
             Back
@@ -152,7 +152,7 @@ const OrderHistoryTable = () => {
         </div>
 
         {/* Page heading */}
-        <h1 className="mb-6 text-xl font-semibold text-gray-900 sm:mb-8 sm:text-2xl md:text-3xl">
+        <h1 className="mb-6 text-xl font-semibold text-fg sm:mb-8 sm:text-2xl md:text-3xl">
           Order history
         </h1>
 

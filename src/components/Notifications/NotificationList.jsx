@@ -45,8 +45,10 @@ function NotificationRow({
         padding: "10px 12px",
         margin: 0,
         border: "none",
-        borderBottom: "1px solid #f1f5f9",
-        background: unread ? "rgba(14, 165, 233, 0.06)" : "transparent",
+        borderBottom: "1px solid var(--border-color)",
+        background: unread
+          ? "color-mix(in srgb, var(--accent-color) 10%, transparent)"
+          : "transparent",
         cursor: "pointer",
         borderRadius: 0,
         transition: "background 0.15s ease",
@@ -68,7 +70,7 @@ function NotificationRow({
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  background: "#0ea5e9",
+                  background: "var(--accent-color)",
                   flexShrink: 0,
                   marginTop: 5,
                 }}
@@ -81,7 +83,7 @@ function NotificationRow({
                 margin: 0,
                 fontSize: 13,
                 fontWeight: 700,
-                color: "#0f172a",
+                color: "var(--text-primary)",
                 lineHeight: 1.35,
               }}
             >
@@ -177,12 +179,13 @@ export default function NotificationList({
       className="notification-dropdown-panel"
       style={{
         ...panelStyle,
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+        background:
+          "linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%)",
         borderRadius: inModal ? 20 : 12,
         boxShadow:
-          "0 12px 36px rgba(15, 23, 42, 0.12), 0 0 1px rgba(15, 23, 42, 0.08)",
+          "0 12px 36px var(--homepage-card-shadow), 0 0 1px color-mix(in srgb, var(--text-primary) 12%, transparent)",
         overflow: "hidden",
-        border: "1px solid #e2e8f0",
+        border: "1px solid var(--border-color)",
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -193,7 +196,7 @@ export default function NotificationList({
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid var(--border-color)",
         }}
       >
         <Title level={5} style={{ margin: 0, fontSize: inModal ? 15 : 14 }}>
