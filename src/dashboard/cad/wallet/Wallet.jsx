@@ -10,7 +10,6 @@ import {
   Typography,
   Divider,
   Button,
-  ConfigProvider,
 } from "antd";
 import {
   WalletOutlined,
@@ -115,7 +114,7 @@ const Wallet = () => {
       dataIndex: "amount",
       key: "amount",
       render: (amount) => (
-        <Text strong style={{ color: "#0ea5e9" }}>
+        <Text strong style={{ color: "var(--accent-color)" }}>
           ₹{amount.toLocaleString()}
         </Text>
       ),
@@ -179,17 +178,9 @@ const Wallet = () => {
   ];
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "#0ea5e9",
-          borderRadius: 8,
-        },
-      }}
-    >
       <div style={{ padding: "0px" }}>
         <Title level={2} style={{ marginBottom: 24 }}>
-          <WalletOutlined style={{ marginRight: 12, color: "#0ea5e9" }} />
+          <WalletOutlined style={{ marginRight: 12, color: "var(--accent-color)" }} />
           Wallet
         </Title>
 
@@ -199,8 +190,9 @@ const Wallet = () => {
             <Card
               bordered={false}
               style={{
-                background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
-                boxShadow: "0 4px 12px rgba(251, 191, 36, 0.2)",
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--warning) 88%, white) 0%, var(--warning) 100%)",
+                boxShadow: "0 4px 12px color-mix(in srgb, var(--warning) 35%, transparent)",
               }}
             >
               <Statistic
@@ -221,8 +213,9 @@ const Wallet = () => {
             <Card
               bordered={false}
               style={{
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--success) 92%, black) 0%, var(--success) 100%)",
+                boxShadow: "0 4px 12px color-mix(in srgb, var(--success) 35%, transparent)",
               }}
             >
               <Statistic
@@ -243,8 +236,9 @@ const Wallet = () => {
             <Card
               bordered={false}
               style={{
-                background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-                boxShadow: "0 4px 12px rgba(14, 165, 233, 0.2)",
+                background:
+                  "linear-gradient(135deg, var(--accent-color) 0%, color-mix(in srgb, var(--accent-color) 75%, black) 100%)",
+                boxShadow: "0 4px 12px color-mix(in srgb, var(--accent-color) 35%, transparent)",
               }}
             >
               <Statistic
@@ -282,7 +276,7 @@ const Wallet = () => {
             </Title>
           }
           bordered={false}
-          style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+          style={{ boxShadow: "0 1px 3px var(--homepage-card-shadow)" }}
         >
           <Table
             columns={columns}
@@ -297,7 +291,6 @@ const Wallet = () => {
           />
         </Card>
       </div>
-    </ConfigProvider>
   );
 };
 

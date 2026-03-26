@@ -110,10 +110,10 @@ export default function NotificationBell({ layout = "user" }) {
     <button
       type="button"
       aria-label="Notifications"
-      className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-orange-100 bg-white text-slate-700 hover:bg-orange-50 transition-colors shadow-sm"
+      className="theme-animate-surface inline-flex items-center justify-center w-10 h-10 rounded-xl border border-line bg-surface text-fg hover:bg-surface-2 transition-colors shadow-sm"
     >
       <Badge count={unreadCount} size="small" offset={[-2, 2]}>
-        <BellOutlined style={{ fontSize: 18, color: "#ea580c" }} />
+        <BellOutlined style={{ fontSize: 18, color: "var(--user-accent)" }} />
       </Badge>
     </button>
   ) : (
@@ -123,7 +123,7 @@ export default function NotificationBell({ layout = "user" }) {
         icon={<BellOutlined style={{ fontSize: 18 }} />}
         aria-label="Notifications"
         className="cad-notif-bell"
-        style={{ color: "#475569" }}
+        style={{ color: "var(--text-secondary)" }}
       />
     </Badge>
   );
@@ -151,7 +151,7 @@ export default function NotificationBell({ layout = "user" }) {
         destroyOnClose
         styles={{
           mask: {
-            background: "rgba(15, 23, 42, 0.32)",
+            background: "var(--mask-backdrop)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
           },
@@ -161,7 +161,7 @@ export default function NotificationBell({ layout = "user" }) {
             overflow: "hidden",
             background: "transparent",
             boxShadow:
-              "0 24px 60px rgba(15, 23, 42, 0.24), 0 0 1px rgba(15, 23, 42, 0.1)",
+              "0 24px 60px var(--homepage-card-shadow), 0 0 1px color-mix(in srgb, var(--text-primary) 14%, transparent)",
           },
           body: {
             padding: 0,

@@ -469,7 +469,7 @@ const UploadSurvey = ({
 
   return (
     <div className="w-full">
-      <h2 className="mb-4 text-base font-semibold text-gray-800 sm:mb-5 sm:text-lg md:text-xl">
+      <h2 className="mb-4 text-base font-semibold text-fg sm:mb-5 sm:text-lg md:text-xl">
         Upload the survey records / ಸರ್ವೆ ದಾಖಲೆಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ
       </h2>
       <div className="upload-survey-form space-y-4 sm:space-y-5">
@@ -477,7 +477,7 @@ const UploadSurvey = ({
         <Form.Item
           name="uploadMode"
           label={
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-fg">
               Upload Mode / ಅಪ್ಲೋಡ್ ಮಾದರಿ
             </span>
           }
@@ -491,12 +491,12 @@ const UploadSurvey = ({
 
         {uploadMode === "single" ? (
           /* Single Upload Mode */
-          <Card size="small" className="border-gray-200 bg-gray-50/30">
+          <Card size="small" className="border-line bg-surface-2/30">
             <div className="space-y-4 sm:space-y-5">
               <Form.Item
                 name="singleUpload"
                 label={
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-fg">
                     Upload Document / ದಾಖಲೆ ಅಪ್ಲೋಡ್ ಮಾಡಿ
                   </span>
                 }
@@ -515,8 +515,8 @@ const UploadSurvey = ({
                   className="upload-survey-item"
                 >
                   <div className="flex flex-col items-center gap-1 py-2">
-                    <UploadIcon className="h-5 w-5 text-gray-500" />
-                    <span className="text-xs text-gray-600">
+                    <UploadIcon className="h-5 w-5 text-fg-muted" />
+                    <span className="text-xs text-fg-muted">
                       {uploading.singleUpload ? "Uploading..." : "Upload"}
                     </span>
                   </div>
@@ -525,7 +525,7 @@ const UploadSurvey = ({
 
               <Form.Item
                 label={
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-fg">
                     Document Type / ದಾಖಲೆ ಪ್ರಕಾರ
                   </span>
                 }
@@ -561,14 +561,14 @@ const UploadSurvey = ({
           </Card>
         ) : (
           /* Normal Upload Mode */
-          <Card size="small" className="border-gray-200 bg-gray-50/30">
+          <Card size="small" className="border-line bg-surface-2/30">
             <div className="space-y-4 sm:space-y-5">
               {UPLOAD_ROWS.map(({ name, labelEn, labelKn }) => (
                 <Form.Item
                   key={name}
                   name={name}
                   label={
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-fg">
                       {labelEn} / {labelKn}
                     </span>
                   }
@@ -589,8 +589,8 @@ const UploadSurvey = ({
                     className="upload-survey-item"
                   >
                     <div className="flex flex-col items-center gap-1 py-2">
-                      <UploadIcon className="h-5 w-5 text-gray-500" />
-                      <span className="text-xs text-gray-600">
+                      <UploadIcon className="h-5 w-5 text-fg-muted" />
+                      <span className="text-xs text-fg-muted">
                         {uploading[name] ? "Uploading..." : "Upload"}
                       </span>
                     </div>
@@ -605,7 +605,7 @@ const UploadSurvey = ({
         <Form.Item
           name="others"
           label={
-            <span className="font-medium text-gray-700">Others / ಇತರೆ</span>
+            <span className="font-medium text-fg">Others / ಇತರೆ</span>
           }
         >
           <TextArea
@@ -620,9 +620,9 @@ const UploadSurvey = ({
         <Form.Item name="audio" noStyle>
           <div style={{ display: "none" }} aria-hidden />
         </Form.Item>
-        <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+        <div className="rounded-lg border border-line bg-surface-2/50 p-4">
           <div className="mb-3">
-            <Text className="text-sm font-medium text-gray-700">
+            <Text className="text-sm font-medium text-fg">
               Audio (Optional) / ಆಡಿಯೋ (ಐಚ್ಛಿಕ)
             </Text>
           </div>
@@ -650,14 +650,14 @@ const UploadSurvey = ({
             )}
 
             {isRecording && (
-              <div className="flex items-center justify-between rounded-lg bg-red-50 p-3">
+              <div className="flex items-center justify-between rounded-lg bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] p-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500">
-                    <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger">
+                    <div className="h-3 w-3 rounded-full bg-surface animate-pulse" />
                   </div>
                   <div>
-                    <Text strong className="text-red-700">Recording...</Text>
-                    <div className="text-sm text-red-600">{formatTime(recordingTime)}</div>
+                    <Text strong className="text-danger">Recording...</Text>
+                    <div className="text-sm text-danger">{formatTime(recordingTime)}</div>
                   </div>
                 </div>
                 <Button
@@ -674,7 +674,7 @@ const UploadSurvey = ({
 
             {audioBlob && audioUrl && !audioField && (
               <div className="space-y-3">
-                <div className="rounded-lg bg-white p-3">
+                <div className="rounded-lg bg-surface p-3">
                   <audio controls src={audioUrl} className="w-full" />
                 </div>
                 <Space className="w-full" size="middle">
@@ -701,11 +701,11 @@ const UploadSurvey = ({
             )}
 
             {audioField && (
-              <div className="rounded-lg bg-green-50 p-3">
+              <div className="rounded-lg bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <div>
-                    <Text strong className="text-green-700">Audio uploaded</Text>
-                    <div className="text-xs text-green-600">{audioField.fileName}</div>
+                    <Text strong className="text-success">Audio uploaded</Text>
+                    <div className="text-xs text-success">{audioField.fileName}</div>
                   </div>
                   <Button
                     danger
@@ -728,7 +728,7 @@ const UploadSurvey = ({
         <Form.Item
           name="other_documents"
           label={
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-fg">
               Other Documents (Optional) / ಇತರೆ ದಾಖಲೆಗಳು (ಐಚ್ಛಿಕ)
             </span>
           }

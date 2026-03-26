@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 
 // Surveying-themed animated SVG background
 // Matches the warm parchment/gold/forest-green palette of the Hero component
@@ -309,21 +309,21 @@ const SurveyingBackground = () => {
           strokeDasharray="12 8"
         />
         {/* North arrow (top right corner) */}
-        <g transform="translate(1120, 60)" opacity="0.25">
-          <line x1="0" y1="30" x2="0" y2="-30" stroke="#0d1f0d" strokeWidth="1.5" />
-          <polygon points="0,-30 -5,-18 0,-22 5,-18" fill="#0d1f0d" />
-          <text x="4" y="-20" fontFamily="'IBM Plex Mono', monospace" fontSize="10" fill="#0d1f0d" fontWeight="700">N</text>
-          <circle cx="0" cy="0" r="14" fill="none" stroke="#0d1f0d" strokeWidth="0.8" />
+        <g transform="translate(1120, 60)" opacity="0.25" style={{ color: "var(--brand-green-deep)" }}>
+          <line x1="0" y1="30" x2="0" y2="-30" stroke="currentColor" strokeWidth="1.5" />
+          <polygon points="0,-30 -5,-18 0,-22 5,-18" fill="currentColor" />
+          <text x="4" y="-20" fontFamily="'IBM Plex Mono', monospace" fontSize="10" fill="currentColor" fontWeight="700">N</text>
+          <circle cx="0" cy="0" r="14" fill="none" stroke="currentColor" strokeWidth="0.8" />
         </g>
 
         {/* Scale bar (bottom right) */}
-        <g transform="translate(980, 650)" opacity="0.22">
-          <line x1="0" y1="0" x2="120" y2="0" stroke="#0d1f0d" strokeWidth="1.2" />
-          <line x1="0" y1="-4" x2="0" y2="4" stroke="#0d1f0d" strokeWidth="1.2" />
-          <line x1="60" y1="-4" x2="60" y2="4" stroke="#0d1f0d" strokeWidth="1.2" />
-          <line x1="120" y1="-4" x2="120" y2="4" stroke="#0d1f0d" strokeWidth="1.2" />
-          <text x="22" y="-7" fontFamily="'IBM Plex Mono', monospace" fontSize="8" fill="#0d1f0d">50m</text>
-          <text x="82" y="-7" fontFamily="'IBM Plex Mono', monospace" fontSize="8" fill="#0d1f0d">100m</text>
+        <g transform="translate(980, 650)" opacity="0.22" style={{ color: "var(--brand-green-deep)" }}>
+          <line x1="0" y1="0" x2="120" y2="0" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="0" y1="-4" x2="0" y2="4" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="60" y1="-4" x2="60" y2="4" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="120" y1="-4" x2="120" y2="4" stroke="currentColor" strokeWidth="1.2" />
+          <text x="22" y="-7" fontFamily="'IBM Plex Mono', monospace" fontSize="8" fill="currentColor">50m</text>
+          <text x="82" y="-7" fontFamily="'IBM Plex Mono', monospace" fontSize="8" fill="currentColor">100m</text>
         </g>
       </svg>
     </div>

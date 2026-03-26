@@ -61,7 +61,7 @@ export default function Benefits() {
       id="benefits"
       ref={sectionRef}
       style={{
-        background: "linear-gradient(170deg, #f0ead8 0%, #f7f2e8 50%, #ede5d0 100%)",
+        background: "var(--section-benefits-bg)",
         padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
         position: "relative",
         overflow: "hidden",
@@ -114,7 +114,7 @@ export default function Benefits() {
           width: 100%;
           padding: 15px;
           border-radius: 14px;
-          background: linear-gradient(135deg, #152815 0%, #1d3d1d 100%);
+          background: linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 90%, black) 100%);
           color: white;
           font-weight: 700;
           font-size: 15px;
@@ -125,7 +125,7 @@ export default function Benefits() {
           transition: all 0.25s ease;
         }
         .place-order-btn:hover {
-          background: linear-gradient(135deg, #1d3d1d 0%, #2a5a2a 100%);
+          background: linear-gradient(135deg, color-mix(in srgb, var(--homepage-cta-bg) 90%, black) 0%, var(--forest-green-mid) 100%);
           box-shadow: 0 12px 36px rgba(21,40,21,0.38);
           transform: translateY(-2px);
         }
@@ -180,8 +180,8 @@ export default function Benefits() {
             background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)",
             marginBottom: "20px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9a7020" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
               Simple Pricing
             </span>
           </div>
@@ -189,13 +189,13 @@ export default function Benefits() {
             fontFamily: "'IBM Plex Serif', Georgia, serif",
             fontStyle: "italic", fontWeight: 600,
             fontSize: "clamp(30px, 4vw, 54px)", lineHeight: 1.12,
-            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 50%, #2a5a2a 100%)",
+            background: "var(--hero-panel-bg)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
             marginBottom: "14px", letterSpacing: "-0.01em",
           }}>
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "#6b6252", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
@@ -213,14 +213,14 @@ export default function Benefits() {
           <div className="ben-reveal pricing-card" data-delay="80">
             {/* Gold top bar */}
             <div style={{
-              background: "linear-gradient(135deg, #152815 0%, #1d3d1d 100%)",
+              background: "linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 90%, black) 100%)",
               padding: "28px 28px 24px",
               position: "relative", overflow: "hidden",
             }}>
               {/* Faint grid */}
               <div style={{
                 position: "absolute", inset: 0,
-                backgroundImage: `linear-gradient(rgba(201,168,76,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.06) 1px, transparent 1px)`,
+                backgroundImage: `linear-gradient(color-mix(in srgb, var(--brand-gold) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-gold) 10%, transparent) 1px, transparent 1px)`,
                 backgroundSize: "28px 28px",
               }} />
               <div style={{ position: "relative", zIndex: 1 }}>
@@ -255,26 +255,26 @@ export default function Benefits() {
               }}>
                 <div className="fee-row">
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "#3a3228", margin: 0 }}>Booking fee</p>
-                    <p style={{ fontSize: "11px", color: "#9a8f80", margin: 0 }}>At order submission (Step 1)</p>
+                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Booking fee</p>
+                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>At order submission (Step 1)</p>
                   </div>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "#0d1f0d" }}>₹100</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹100</span>
                 </div>
                 <div className="fee-row">
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "#3a3228", margin: 0 }}>Download fee</p>
-                    <p style={{ fontSize: "11px", color: "#9a8f80", margin: 0 }}>When drawing is ready (Step 4)</p>
+                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Download fee</p>
+                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>When drawing is ready (Step 4)</p>
                   </div>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "#0d1f0d" }}>₹400</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹400</span>
                 </div>
                 <div className="total-row">
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#0d1f0d", letterSpacing: "0.06em", textTransform: "uppercase" }}>Total</span>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "20px", color: "#c9a84c" }}>₹500</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--brand-green-deep)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Total</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "20px", color: "var(--brand-gold)" }}>₹500</span>
                 </div>
               </div>
 
               {/* What's included */}
-              <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9a7020", marginBottom: "12px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)", marginBottom: "12px" }}>
                 What's included
               </p>
               <div style={{ marginBottom: "22px" }}>
@@ -286,9 +286,9 @@ export default function Benefits() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       marginTop: "1px",
                     }}>
-                      <Check size={10} color="#2a6e2a" strokeWidth={2.5} />
+                      <Check size={10} color="var(--forest-green-mid)" strokeWidth={2.5} />
                     </div>
-                    <p style={{ fontSize: "13px", color: "#4a4238", lineHeight: 1.55, margin: 0 }}>{item}</p>
+                    <p style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.55, margin: 0 }}>{item}</p>
                   </div>
                 ))}
               </div>
@@ -296,19 +296,19 @@ export default function Benefits() {
               {/* Info boxes */}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "22px" }}>
                 <div className="info-box" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                  <RefreshCw size={14} color="#9a7020" style={{ flexShrink: 0, marginTop: "1px" }} />
+                  <RefreshCw size={14} color="var(--brand-gold-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "#6b5510", margin: "0 0 2px" }}>Separate Charges</p>
-                    <p style={{ fontSize: "12px", color: "#8a7040", margin: 0, lineHeight: 1.5 }}>
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>Separate Charges</p>
+                    <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
                       Drawing revision (if corrections needed after delivery): ₹100
                     </p>
                   </div>
                 </div>
                 <div className="info-box" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                  <Shield size={14} color="#9a7020" style={{ flexShrink: 0, marginTop: "1px" }} />
+                  <Shield size={14} color="var(--brand-gold-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "#6b5510", margin: "0 0 2px" }}>Refund Policy</p>
-                    <p style={{ fontSize: "12px", color: "#8a7040", margin: 0, lineHeight: 1.5 }}>
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>Refund Policy</p>
+                    <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
                       Full refund available unless assigned to a CAD operator. No refund after drawing is completed.
                     </p>
                   </div>
@@ -321,7 +321,7 @@ export default function Benefits() {
                 <ArrowRight size={16} />
               </button>
 
-              <p style={{ fontSize: "11px", color: "#b5aa98", textAlign: "center", marginTop: "12px", lineHeight: 1.5 }}>
+              <p style={{ fontSize: "11px", color: "var(--text-brown-soft)", textAlign: "center", marginTop: "12px", lineHeight: 1.5 }}>
                 1st revision free within 48 hours. After that: ₹100 per revision.
               </p>
             </div>
@@ -352,19 +352,19 @@ export default function Benefits() {
                     <div style={{
                       width: "42px", height: "42px", borderRadius: "11px", flexShrink: 0,
                       background: "rgba(201,168,76,0.10)", border: "1px solid rgba(201,168,76,0.2)",
-                      display: "flex", alignItems: "center", justifyContent: "center", color: "#c9a84c",
+                      display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-gold)",
                     }}>
                       <Icon size={18} />
                     </div>
                     <div>
                       <h3 style={{
                         fontFamily: "'IBM Plex Serif', Georgia, serif",
-                        fontWeight: 600, fontSize: "15px", color: "#0d1f0d",
+                        fontWeight: 600, fontSize: "15px", color: "var(--brand-green-deep)",
                         marginBottom: "5px", lineHeight: 1.3,
                       }}>
                         {card.title}
                       </h3>
-                      <p style={{ fontSize: "13px", color: "#6b6252", lineHeight: 1.65, margin: 0 }}>
+                      <p style={{ fontSize: "13px", color: "var(--text-brown-muted)", lineHeight: 1.65, margin: 0 }}>
                         {card.description}
                       </p>
                     </div>
@@ -378,7 +378,7 @@ export default function Benefits() {
               className="ben-reveal"
               data-delay="520"
               style={{
-                background: "linear-gradient(135deg, rgba(21,40,21,0.97) 0%, rgba(13,31,13,1) 100%)",
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--homepage-cta-bg) 97%, transparent) 0%, var(--brand-green-deep) 100%)",
                 borderRadius: "20px",
                 padding: "28px 24px",
                 position: "relative", overflow: "hidden",
@@ -419,7 +419,7 @@ export default function Benefits() {
                       <div style={{
                         fontFamily: "'IBM Plex Serif', Georgia, serif",
                         fontStyle: "italic", fontWeight: 700,
-                        fontSize: "clamp(18px, 2.5vw, 26px)", color: "#c9a84c",
+                        fontSize: "clamp(18px, 2.5vw, 26px)", color: "var(--brand-gold)",
                         lineHeight: 1, marginBottom: "4px",
                       }}>
                         {stat.value}

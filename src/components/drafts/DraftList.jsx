@@ -94,8 +94,8 @@ export default function DraftList({ className = "" }) {
     <section className={className}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Your Drafts</h2>
-          <p className="text-sm text-gray-600">
+          <h2 className="text-lg font-semibold text-fg">Your Drafts</h2>
+          <p className="text-sm text-fg-muted">
             Continue where you left off, or delete old drafts.
           </p>
         </div>
@@ -104,10 +104,10 @@ export default function DraftList({ className = "" }) {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="theme-animate-surface overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600">
+            <thead className="bg-surface-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
               <tr>
                 <th className="px-4 py-3">Survey Type</th>
                 <th className="px-4 py-3">Survey No</th>
@@ -116,10 +116,10 @@ export default function DraftList({ className = "" }) {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {items.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-gray-600" colSpan={5}>
+                  <td className="px-4 py-6 text-fg-muted" colSpan={5}>
                     {loading ? "Loading drafts..." : "No drafts yet."}
                   </td>
                 </tr>
@@ -130,16 +130,16 @@ export default function DraftList({ className = "" }) {
                   const villageName = d?.village?.name ?? d?.villageName ?? d?.village;
                   const updatedAt = d?.updatedAt ?? d?.lastUpdated ?? d?.modifiedAt;
                   return (
-                    <tr key={id ?? Math.random()} className="hover:bg-gray-50/70">
+                    <tr key={id ?? Math.random()} className="hover:bg-[color-mix(in_srgb,var(--bg-hover)_85%,transparent)]">
                       <td className="px-4 py-3">{getLabel(d?.surveyType)}</td>
                       <td className="px-4 py-3">{getLabel(d?.surveyNo)}</td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-fg">
                           {getLabel(districtName)}
                         </div>
-                        <div className="text-xs text-gray-600">{getLabel(villageName)}</div>
+                        <div className="text-xs text-fg-muted">{getLabel(villageName)}</div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{formatDate(updatedAt)}</td>
+                      <td className="px-4 py-3 text-fg">{formatDate(updatedAt)}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -168,8 +168,8 @@ export default function DraftList({ className = "" }) {
         </div>
 
         {(totalPages && totalPages > 1) || items.length > 0 ? (
-          <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-4 py-3">
-            <div className="text-xs text-gray-600">
+          <div className="flex items-center justify-between gap-3 border-t border-line bg-surface px-4 py-3">
+            <div className="text-xs text-fg-muted">
               Page {page}
               {totalPages ? ` of ${totalPages}` : ""}
             </div>

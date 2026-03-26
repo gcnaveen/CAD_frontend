@@ -27,15 +27,15 @@ export default function Footer() {
   };
 
   return (
-    <footer style={{
-      background: "linear-gradient(170deg, #0a1a0a 0%, #0d1f0d 50%, #111f11 100%)",
+    <footer className="theme-animate-surface" style={{
+      background: "var(--footer-bg)",
       position: "relative",
       overflow: "hidden",
     }}>
       <style>{`
         .footer-link {
           font-size: 13px;
-          color: rgba(255,255,255,0.42);
+          color: var(--footer-fg-muted);
           text-decoration: none;
           font-weight: 500;
           transition: color 0.2s ease;
@@ -48,7 +48,7 @@ export default function Footer() {
           align-items: center;
           gap: 4px;
         }
-        .footer-link:hover { color: #c9a84c; }
+        .footer-link:hover { color: var(--brand-gold); }
         .footer-link-icon { opacity: 0; transition: opacity 0.2s ease; }
         .footer-link:hover .footer-link-icon { opacity: 1; }
         .contact-item {
@@ -64,7 +64,7 @@ export default function Footer() {
           font-weight: 700;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: rgba(201,168,76,0.7);
+          color: color-mix(in srgb, var(--brand-gold) 72%, transparent);
           margin-bottom: 16px;
         }
       `}</style>
@@ -114,7 +114,7 @@ export default function Footer() {
                   e.target.parentElement.innerHTML = `
                     <div style="display:inline-flex;align-items:center;gap:8px;">
                       <div style="width:32px;height:32px;borderRadius:8px;background:rgba(201,168,76,0.15);display:flex;align-items:center;justify-content:center;">
-                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='#c9a84c' strokeWidth='2'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg>
+                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='var(--brand-gold)' strokeWidth='2'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg>
                       </div>
                       <span style='font-family:IBM Plex Serif,serif;font-style:italic;font-weight:700;font-size:18px;color:white;'>North-cot</span>
                     </div>
@@ -127,8 +127,8 @@ export default function Footer() {
             </p>
             {/* Decorative gold divider */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "20px" }}>
-              <div style={{ width: "20px", height: "1.5px", background: "#c9a84c", borderRadius: "2px" }} />
-              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c9a84c" }} />
+              <div style={{ width: "20px", height: "1.5px", background: "var(--brand-gold)", borderRadius: "2px" }} />
+              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--brand-gold)" }} />
               <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
             </div>
             {/* Karnataka badge */}
@@ -137,7 +137,7 @@ export default function Footer() {
               marginTop: "16px", padding: "5px 12px", borderRadius: "100px",
               background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)",
             }}>
-              <MapPin size={10} color="#c9a84c" />
+              <MapPin size={10} color="var(--brand-gold)" />
               <span style={{ fontSize: "11px", fontWeight: 600, color: "rgba(201,168,76,0.75)", letterSpacing: "0.1em" }}>
                 Karnataka Only
               </span>
@@ -187,10 +187,10 @@ export default function Footer() {
                   background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Phone size={13} color="#c9a84c" />
+                  <Phone size={13} color="var(--brand-gold)" />
                 </div>
                 <a href="tel:+919876543210" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
                   +91 98765 43210
                 </a>
@@ -201,10 +201,10 @@ export default function Footer() {
                   background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Mail size={13} color="#c9a84c" />
+                  <Mail size={13} color="var(--brand-gold)" />
                 </div>
                 <a href="mailto:support@northcot.in" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
                   support@northcot.in
                 </a>
@@ -215,7 +215,7 @@ export default function Footer() {
                   background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <MapPin size={13} color="#c9a84c" />
+                  <MapPin size={13} color="var(--brand-gold)" />
                 </div>
                 <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", paddingTop: "6px" }}>
                   Karnataka, India
@@ -250,7 +250,7 @@ export default function Footer() {
                   letterSpacing: "0.02em",
                   transition: "color 0.2s ease",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "rgba(201,168,76,0.55)"; }}
               >
                 Navi Infotech ↗
@@ -273,7 +273,7 @@ export default function Footer() {
             {["Privacy", "Terms", "Cookies"].map((item) => (
               <a key={item} href={`#${item.toLowerCase()}`}
                 style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", textDecoration: "none", transition: "color 0.2s ease" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#c9a84c"; }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.22)"; }}
               >
                 {item}

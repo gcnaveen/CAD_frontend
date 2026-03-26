@@ -11,23 +11,23 @@ const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg";
 
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-6">
-    <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
       {icon}
     </div>
     <div>
-      <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
-      <p className="text-lg font-extrabold text-slate-900 leading-none">{titleEn}</p>
+      <p className="text-[11px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
+      <p className="text-lg font-extrabold text-fg leading-none">{titleEn}</p>
     </div>
   </div>
 );
 
 const FieldLabel = ({ kn, en, required, optional }) => (
   <span className="flex flex-col leading-none mb-1">
-    <span className="text-[10px] font-semibold text-slate-400">{kn}</span>
-    <span className="text-sm font-bold text-slate-700">
+    <span className="text-[10px] font-semibold text-fg-muted">{kn}</span>
+    <span className="text-sm font-bold text-fg">
       {en}
-      {required && <span className="text-orange-500 ml-0.5">*</span>}
-      {optional && <span className="text-slate-400 font-semibold ml-1 text-xs">(optional)</span>}
+      {required && <span className="text-[var(--user-accent)] ml-0.5">*</span>}
+      {optional && <span className="text-fg-muted font-semibold ml-1 text-xs">(optional)</span>}
     </span>
   </span>
 );
@@ -137,7 +137,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
         titleKn="ನಕ್ಷೆ ವಿವರ"
         titleEn="Drawing Details"
         icon={
-          <svg className="w-5 h-5 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-[var(--user-accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         }
@@ -150,11 +150,13 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
             type="button"
             onClick={() => form.setFieldValue("googleSuperimpose", !googleSuperimpose)}
             className={`w-full flex items-start gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
-              googleSuperimpose ? "border-orange-400 bg-orange-50" : "border-slate-200 bg-white hover:border-orange-200"
+              googleSuperimpose
+                ? "border-[color-mix(in_srgb,var(--user-accent)_55%,var(--border-color))] bg-[var(--user-accent-soft)]"
+                : "border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
             }`}
           >
             <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-              googleSuperimpose ? "border-orange-500 bg-orange-500" : "border-slate-300 bg-white"
+              googleSuperimpose ? "border-[var(--user-accent)] bg-[var(--user-accent)]" : "border-line bg-surface"
             }`}>
               {googleSuperimpose && (
                 <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
@@ -163,8 +165,8 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
               )}
             </div>
             <div>
-              <p className="font-extrabold text-sm text-slate-900">Google Superimpose</p>
-              <p className="text-xs text-slate-400 font-semibold mt-0.5">ಗೂಗಲ್ ಉಪಗ್ರಹ ಮೇಲ್ದರ / Satellite overlay on drawing</p>
+              <p className="font-extrabold text-sm text-fg">Google Superimpose</p>
+              <p className="text-xs text-fg-muted font-semibold mt-0.5">ಗೂಗಲ್ ಉಪಗ್ರಹ ಮೇಲ್ದರ / Satellite overlay on drawing</p>
             </div>
           </button>
         </Form.Item>
@@ -187,9 +189,9 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
           <div className="hidden" />
         </Form.Item>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">ಆಡಿಯೋ</p>
-          <p className="text-sm font-extrabold text-slate-900 mb-3">Voice Note <span className="text-slate-400 font-semibold text-xs">(optional)</span></p>
+        <div className="rounded-2xl border border-line bg-surface-2/60 p-4">
+          <p className="text-[10px] font-bold text-fg-muted uppercase tracking-widest mb-0.5">ಆಡಿಯೋ</p>
+          <p className="text-sm font-extrabold text-fg mb-3">Voice Note <span className="text-fg-muted font-semibold text-xs">(optional)</span></p>
 
           {/* Idle state */}
           {!isRecording && !audioBlob && !audioField && (
@@ -197,7 +199,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
               <button
                 type="button"
                 onClick={startRecording}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm transition-colors"
               >
                 <Mic className="w-4 h-4" /> Record Audio
               </button>
@@ -205,7 +207,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
                 <button
                   type="button"
                   disabled={uploadingAudio}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-slate-200 bg-white hover:border-orange-200 text-slate-700 font-extrabold text-sm transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] text-fg font-extrabold text-sm transition-colors"
                 >
                   <UploadIcon className="w-4 h-4" />
                   {uploadingAudio ? "Uploading…" : "Upload File"}
@@ -216,20 +218,20 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
 
           {/* Recording */}
           {isRecording && (
-            <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-100 p-3">
+            <div className="flex items-center justify-between rounded-xl bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--danger)_25%,var(--border-color))] p-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-red-500 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-white animate-pulse" />
+                <div className="w-9 h-9 rounded-full bg-danger flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-surface animate-pulse" />
                 </div>
                 <div>
-                  <p className="font-extrabold text-red-700 text-sm">Recording…</p>
-                  <p className="text-xs text-red-500 font-bold">{fmt(recordingTime)}</p>
+                  <p className="font-extrabold text-danger text-sm">Recording…</p>
+                  <p className="text-xs text-danger font-bold">{fmt(recordingTime)}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={stopRecording}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 text-white font-extrabold text-sm"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-danger text-white font-extrabold text-sm"
               >
                 <Square className="w-3.5 h-3.5" /> Stop
               </button>
@@ -245,7 +247,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
                   type="button"
                   onClick={handleUploadRecorded}
                   disabled={uploadingAudio}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm disabled:opacity-60 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm disabled:opacity-60 transition-colors"
                 >
                   <UploadIcon className="w-4 h-4" />
                   {uploadingAudio ? "Uploading…" : "Save Recording"}
@@ -254,7 +256,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
                   type="button"
                   onClick={handleDeleteAudio}
                   disabled={uploadingAudio}
-                  className="px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 font-extrabold text-sm hover:bg-red-100 transition-colors"
+                  className="px-4 py-2.5 rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] text-danger font-extrabold text-sm hover:opacity-90 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -264,16 +266,16 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
 
           {/* Uploaded */}
           {audioField && (
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+            <div className="rounded-xl bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--success)_35%,var(--border-color))] p-3">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="font-extrabold text-emerald-700 text-sm">✓ Audio saved</p>
-                  <p className="text-xs text-emerald-600 font-semibold truncate">{audioField.fileName}</p>
+                  <p className="font-extrabold text-success text-sm">✓ Audio saved</p>
+                  <p className="text-xs text-success font-semibold truncate">{audioField.fileName}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleDeleteAudio}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-white text-red-500 font-bold text-xs hover:bg-red-50 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-surface text-danger font-bold text-xs hover:bg-surface-2 transition-colors"
                 >
                   <Trash2 className="w-3 h-3" /> Remove
                 </button>

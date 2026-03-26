@@ -24,10 +24,10 @@ const QC_ICONS = [
 // Animated checkmark SVG
 const AnimatedCheck = ({ delay = 0, active }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" fill="rgba(201,168,76,0.12)" stroke="#c9a84c" strokeWidth="1.5"/>
+    <circle cx="12" cy="12" r="10" fill="rgba(201,168,76,0.12)" stroke="var(--brand-gold)" strokeWidth="1.5"/>
     <path
       d="M7 12l3.5 3.5L17 8"
-      stroke="#c9a84c"
+      stroke="var(--brand-gold)"
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -72,7 +72,7 @@ const ScanOverlay = ({ scanning }) => (
       { bottom: "12px", right: "12px", rotate: "180deg" },
     ].map((pos, i) => (
       <div key={i} style={{ position: "absolute", ...pos }}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--brand-gold)" strokeWidth="2" strokeLinecap="round">
           <path d="M1 9 L1 1 L9 1"/>
         </svg>
       </div>
@@ -147,7 +147,7 @@ export default function HowVideo() {
     <section
       ref={sectionRef}
       style={{
-        background: "linear-gradient(170deg, #0d1f0d 0%, #152815 45%, #1a3419 100%)",
+        background: "var(--hero-marquee-bg)",
         padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
         position: "relative",
         overflow: "hidden",
@@ -208,7 +208,7 @@ export default function HowVideo() {
         .progress-fill {
           height: 100%;
           width: 35%;
-          background: linear-gradient(90deg, #c9a84c, rgba(201,168,76,0.5));
+          background: linear-gradient(90deg, var(--brand-gold), color-mix(in srgb, var(--brand-gold) 50%, transparent));
           border-radius: 2px;
           animation: progress-anim 3s ease-in-out infinite alternate;
         }
@@ -256,12 +256,12 @@ export default function HowVideo() {
               position: "relative", display: "inline-flex", width: "8px", height: "8px",
             }}>
               <span style={{
-                position: "absolute", inset: 0, borderRadius: "50%", background: "#c9a84c",
+                position: "absolute", inset: 0, borderRadius: "50%", background: "var(--brand-gold)",
                 animation: "pulse-ring 1.5s ease-out infinite",
               }}/>
-              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }}/>
+              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }}/>
             </span>
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a84c" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold)" }}>
               {tr?.tag}
             </span>
           </div>
@@ -302,7 +302,7 @@ export default function HowVideo() {
               boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.2)",
               animation: "float 5s ease-in-out infinite",
               aspectRatio: "16/10",
-              background: "#0a1a0a",
+              background: "var(--homepage-video-chrome)",
             }}>
               {/* Placeholder image / video frame */}
               <img
@@ -343,8 +343,8 @@ export default function HowVideo() {
                   aria-label={playing ? "Pause" : "Play"}
                 >
                   {playing
-                    ? <Pause size={22} color="#0d1f0d" fill="#0d1f0d"/>
-                    : <Play size={22} color="#0d1f0d" fill="#0d1f0d" style={{ marginLeft: "3px" }}/>
+                    ? <Pause size={22} color="var(--brand-green-deep)" fill="var(--brand-green-deep)"/>
+                    : <Play size={22} color="var(--brand-green-deep)" fill="var(--brand-green-deep)" style={{ marginLeft: "3px" }}/>
                   }
                 </button>
               </div>
@@ -417,7 +417,7 @@ export default function HowVideo() {
                     background: "rgba(201,168,76,0.10)",
                     border: "1px solid rgba(201,168,76,0.2)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#c9a84c",
+                    color: "var(--brand-gold)",
                   }}>
                     {feature.icon}
                   </div>
@@ -477,7 +477,7 @@ export default function HowVideo() {
               <div style={{
                 fontFamily: "'IBM Plex Serif', Georgia, serif",
                 fontStyle: "italic", fontWeight: 700,
-                fontSize: "clamp(22px, 3vw, 32px)", color: "#c9a84c",
+                fontSize: "clamp(22px, 3vw, 32px)", color: "var(--brand-gold)",
                 lineHeight: 1, marginBottom: "5px",
               }}>
                 {item.value}

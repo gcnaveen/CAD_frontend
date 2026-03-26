@@ -12,6 +12,7 @@ import {
   Phone, User, Lock, Shield,
 } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 
 function normalizeList(res) {
   const raw = res?.data ?? res;
@@ -28,7 +29,7 @@ const STEPS = [
 
 const Crosshair = ({ size = 20, opacity = 0.18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
-    stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" style={{ opacity }}>
+    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ opacity, color: "var(--brand-gold)" }}>
     <line x1="10" y1="0"  x2="10" y2="7"  />
     <line x1="10" y1="13" x2="10" y2="20" />
     <line x1="0"  y1="10" x2="7"  y2="10" />
@@ -187,20 +188,21 @@ export default function RegisterPage() {
   // Shared label style
   const labelStyle = {
     display: "block", fontSize: "11px", fontWeight: 700,
-    color: "#6b5a3a", letterSpacing: "0.07em",
+    color: "var(--homepage-label)", letterSpacing: "0.07em",
     textTransform: "uppercase", marginBottom: "7px",
   };
 
-  const errStyle = { fontSize: "12px", color: "#c0392b", marginTop: "5px" };
+  const errStyle = { fontSize: "12px", color: "var(--danger)", marginTop: "5px" };
 
   return (
-    <div style={{
+    <div className="theme-animate-surface" style={{
       minHeight: "100vh",
-      background: "linear-gradient(160deg, #f7f2e8 0%, #f0ead8 35%, #e8dfc8 65%, #ddd4b8 100%)",
+      background: "var(--homepage-gradient)",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "clamp(16px, 4vw, 32px)",
       position: "relative", overflow: "hidden",
       fontFamily: "system-ui, -apple-system, sans-serif",
+      color: "var(--text-primary)",
     }}>
       <div
         style={{
@@ -208,15 +210,19 @@ export default function RegisterPage() {
           top: "max(16px, env(safe-area-inset-top))",
           right: "max(16px, env(safe-area-inset-right))",
           zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
         }}
       >
+        <ThemeToggle variant="compact" />
         <InstallButton
           size="middle"
           showLabel={false}
           style={{
-            borderColor: "rgba(21,40,21,0.28)",
-            color: "#152815",
-            background: "rgba(255,255,255,0.75)",
+            borderColor: "color-mix(in srgb, var(--brand-green) 35%, var(--border-color))",
+            color: "var(--brand-green)",
+            background: "color-mix(in srgb, var(--bg-elevated) 78%, transparent)",
             backdropFilter: "blur(8px)",
           }}
         />
@@ -229,29 +235,29 @@ export default function RegisterPage() {
 
         .rp-input {
           width: 100%;
-          background: rgba(255,255,255,0.6);
-          border: 1.5px solid rgba(213,200,178,0.8);
+          background: color-mix(in srgb, var(--bg-elevated) 65%, transparent);
+          border: 1.5px solid var(--homepage-cream-border);
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 14px;
-          color: #1a1a0a;
+          color: var(--text-primary);
           outline: none;
           transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
           box-sizing: border-box;
           backdrop-filter: blur(4px);
         }
-        .rp-input::placeholder { color: rgba(100,90,70,0.42); }
+        .rp-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 55%, transparent); }
         .rp-input:focus {
-          border-color: rgba(201,168,76,.7);
-          box-shadow: 0 0 0 3px rgba(201,168,76,.12);
-          background: rgba(255,255,255,.85);
+          border-color: color-mix(in srgb, var(--brand-gold) 65%, var(--border-color));
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold) 18%, transparent);
+          background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
         }
-        .rp-input.err { border-color: rgba(220,80,60,.6); box-shadow: 0 0 0 3px rgba(220,80,60,.08); }
+        .rp-input.err { border-color: color-mix(in srgb, var(--danger) 55%, var(--border-color)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent); }
         .rp-input:disabled { opacity:.6; cursor:not-allowed; }
 
         .rp-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23c9a84c' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%230ea5e9' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px !important;
@@ -260,46 +266,46 @@ export default function RegisterPage() {
 
         .rp-btn-primary {
           padding: 13px 22px; border-radius: 13px;
-          background: linear-gradient(135deg,#152815 0%,#1d3d1d 100%);
-          color: white; font-weight: 700; font-size: 14px; letter-spacing: .04em;
+          background: linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 85%, black) 100%);
+          color: var(--homepage-cta-fg); font-weight: 700; font-size: 14px; letter-spacing: .04em;
           border: none; cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          box-shadow: 0 8px 24px rgba(21,40,21,.28);
+          box-shadow: 0 8px 24px var(--homepage-card-shadow);
           transition: all .25s ease;
         }
         .rp-btn-primary:hover:not(:disabled) {
-          background: linear-gradient(135deg,#1d3d1d 0%,#2a5a2a 100%);
-          box-shadow: 0 12px 32px rgba(21,40,21,.38);
+          filter: brightness(1.05);
+          box-shadow: 0 12px 32px var(--homepage-card-shadow);
           transform: translateY(-1px);
         }
         .rp-btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
 
         .rp-btn-outline {
           padding: 12px 18px; border-radius: 12px;
-          background: rgba(255,255,255,.55); backdrop-filter: blur(6px);
-          color: #152815; font-weight: 600; font-size: 13px;
-          border: 1.5px solid rgba(213,200,178,.9); cursor: pointer;
+          background: color-mix(in srgb, var(--bg-elevated) 55%, transparent); backdrop-filter: blur(6px);
+          color: var(--homepage-cta-ghost-fg); font-weight: 600; font-size: 13px;
+          border: 1.5px solid var(--homepage-cream-border); cursor: pointer;
           display: inline-flex; align-items: center; gap: 6px;
           transition: all .2s ease;
-          box-shadow: 0 1px 6px rgba(0,0,0,.06);
+          box-shadow: 0 1px 6px var(--homepage-card-shadow);
         }
-        .rp-btn-outline:hover { background: rgba(255,255,255,.8); border-color: rgba(201,168,76,.4); }
+        .rp-btn-outline:hover { background: color-mix(in srgb, var(--bg-elevated) 80%, transparent); border-color: color-mix(in srgb, var(--brand-gold) 40%, var(--border-color)); }
 
         .rp-radio-card {
           display: flex; align-items: center; gap: 12px;
           padding: 13px 16px; border-radius: 12px; cursor: pointer;
-          border: 1.5px solid rgba(213,200,178,.8);
-          background: rgba(255,255,255,.55); backdrop-filter: blur(4px);
+          border: 1.5px solid var(--homepage-cream-border);
+          background: color-mix(in srgb, var(--bg-elevated) 55%, transparent); backdrop-filter: blur(4px);
           transition: all .2s ease;
         }
         .rp-radio-card.active {
-          border-color: rgba(201,168,76,.65);
-          background: rgba(201,168,76,.08);
-          box-shadow: 0 0 0 3px rgba(201,168,76,.1);
+          border-color: color-mix(in srgb, var(--brand-gold) 55%, var(--border-color));
+          background: color-mix(in srgb, var(--brand-gold) 10%, transparent);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold) 12%, transparent);
         }
         .coord-label {
           font-family: monospace; font-size: 10px;
-          color: rgba(154,112,32,.35); letter-spacing: .1em;
+          color: color-mix(in srgb, var(--brand-gold-muted) 40%, transparent); letter-spacing: .1em;
           position: absolute; pointer-events: none; user-select: none;
         }
       `}</style>
@@ -354,7 +360,7 @@ export default function RegisterPage() {
             {/* Logo image */}
             <div style={{
               width: "110px", height: "110px", borderRadius: "50%",
-              background: "#000",
+              background: "var(--homepage-video-chrome)",
               backdropFilter: "blur(8px)",
               border: "2px solid rgba(201,168,76,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -368,7 +374,7 @@ export default function RegisterPage() {
                 onError={(e) => {
                   e.target.style.display = "none";
                   e.target.parentElement.innerHTML = `
-                    <span style="font-family:'IBM Plex Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:22px;color:#c9a84c;">NC</span>
+                    <span style="font-family:'IBM Plex Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:22px;color:var(--brand-gold);">NC</span>
                   `;
                 }}
               />
@@ -380,7 +386,7 @@ export default function RegisterPage() {
             <span style={{
               fontFamily: "'IBM Plex Serif', Georgia, serif",
               fontStyle: "italic", fontWeight: 700,
-              fontSize: "28px", color: "#0d1f0d", letterSpacing: "0.02em",
+              fontSize: "28px", color: "var(--brand-green-deep)", letterSpacing: "0.02em",
             }}>
               North-cot
             </span>
@@ -388,8 +394,8 @@ export default function RegisterPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-            <MapPin size={10} color="#9a7020" />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#9a7020", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            <MapPin size={10} color="var(--brand-gold-muted)" />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--brand-gold-muted)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
               Land Survey & Revenue Documentation
             </span>
           </div>
@@ -408,15 +414,15 @@ export default function RegisterPage() {
                     display:"flex", alignItems:"center", justifyContent:"center",
                     fontSize:"13px", fontWeight:700, marginBottom:"6px",
                     transition:"all .3s ease",
-                    background: isDone ? "rgba(201,168,76,.18)" : isActive ? "#c9a84c" : "rgba(255,255,255,.55)",
-                    color:       isDone ? "#9a7020"              : isActive ? "#0d1f0d" : "rgba(100,90,70,.5)",
-                    border: `2px solid ${isDone ? "rgba(201,168,76,.45)" : isActive ? "#c9a84c" : "rgba(213,200,178,.7)"}`,
+                    background: isDone ? "rgba(201,168,76,.18)" : isActive ? "var(--brand-gold)" : "rgba(255,255,255,.55)",
+                    color:       isDone ? "var(--brand-gold-muted)"              : isActive ? "var(--brand-green-deep)" : "rgba(100,90,70,.5)",
+                    border: `2px solid ${isDone ? "rgba(201,168,76,.45)" : isActive ? "var(--brand-gold)" : "rgba(213,200,178,.7)"}`,
                     boxShadow: isActive ? "0 4px 14px rgba(201,168,76,.3)" : "none",
                     backdropFilter: "blur(4px)",
                   }}>
                     {isDone ? <Check size={16} strokeWidth={2.5} /> : s.icon}
                   </div>
-                  <span style={{ fontSize:"10px", fontWeight:600, letterSpacing:".04em", textAlign:"center", maxWidth:"60px", color: step >= s.key ? "#6b5a3a" : "rgba(107,90,58,.45)" }}>
+                  <span style={{ fontSize:"10px", fontWeight:600, letterSpacing:".04em", textAlign:"center", maxWidth:"60px", color: step >= s.key ? "var(--homepage-label)" : "rgba(107,90,58,.45)" }}>
                     {s.label}
                   </span>
                 </div>
@@ -443,17 +449,17 @@ export default function RegisterPage() {
           position:"relative", overflow:"hidden",
         }}>
           {/* Gold top accent */}
-          <div style={{ position:"absolute", top:0, left:0, right:0, height:"3px", background:"linear-gradient(90deg,transparent,#c9a84c 30%,#c9a84c 70%,transparent)" }} />
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:"3px", background:"linear-gradient(90deg,transparent,var(--brand-gold) 30%,var(--brand-gold) 70%,transparent)" }} />
 
           {/* Card heading */}
           <div style={{ marginBottom:"20px" }}>
-            <h2 style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"#0d1f0d", lineHeight:1.2, marginBottom:"5px" }}>
+            <h2 style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"var(--brand-green-deep)", lineHeight:1.2, marginBottom:"5px" }}>
               {step === 1 && "Account Type"}
               {step === 2 && "Basic Details & Verification"}
               {step === 3 && "Set Your Password"}
               {step === 4 && "Location Details"}
             </h2>
-            <p style={{ fontSize:"13px", color:"#8a7a60", lineHeight:1.55, margin:0 }}>
+            <p style={{ fontSize:"13px", color:"var(--homepage-body-text)", lineHeight:1.55, margin:0 }}>
               {step === 1 && "Choose how you'll use the platform."}
               {step === 2 && "Enter your full name and mobile, then verify with OTP."}
               {step === 3 && "Create a secure password for your account."}
@@ -468,7 +474,7 @@ export default function RegisterPage() {
               background: message.type==="success" ? "rgba(42,110,42,.09)" : "rgba(192,57,43,.09)",
               border:`1px solid ${message.type==="success" ? "rgba(42,110,42,.25)" : "rgba(192,57,43,.25)"}`,
               fontSize:"13px", fontWeight:500,
-              color: message.type==="success" ? "#1a5a1a" : "#9b2a1a",
+              color: message.type==="success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
             }}>
               {message.text}
             </div>
@@ -495,8 +501,8 @@ export default function RegisterPage() {
                 <div style={{ display:"flex", borderRadius:"12px", overflow:"hidden", border:`1.5px solid ${errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,.8)"}`, background:"rgba(255,255,255,.6)", transition:"border-color .2s, box-shadow .2s" }}
                   onFocusCapture={e=>{ e.currentTarget.style.borderColor="rgba(201,168,76,.7)"; e.currentTarget.style.boxShadow="0 0 0 3px rgba(201,168,76,.12)"; }}
                   onBlurCapture={e=>{ e.currentTarget.style.borderColor="rgba(213,200,178,.8)"; e.currentTarget.style.boxShadow="none"; }}>
-                  <span style={{ display:"flex", alignItems:"center", padding:"0 14px", fontSize:"14px", fontWeight:700, color:"#9a7020", background:"rgba(201,168,76,.08)", borderRight:"1.5px solid rgba(213,200,178,.7)", minWidth:"54px", flexShrink:0 }}>+91</span>
-                  <input type="tel" value={phone} onChange={(e)=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="98765 43210" style={{ flex:1, background:"transparent", border:"none", outline:"none", padding:"12px 14px", fontSize:"14px", color:"#1a1a0a" }} disabled={isOtpVerified} />
+                  <span style={{ display:"flex", alignItems:"center", padding:"0 14px", fontSize:"14px", fontWeight:700, color:"var(--brand-gold-muted)", background:"rgba(201,168,76,.08)", borderRight:"1.5px solid rgba(213,200,178,.7)", minWidth:"54px", flexShrink:0 }}>+91</span>
+                  <input type="tel" value={phone} onChange={(e)=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="98765 43210" style={{ flex:1, background:"transparent", border:"none", outline:"none", padding:"12px 14px", fontSize:"14px", color:"var(--text-primary)" }} disabled={isOtpVerified} />
                 </div>
                 {errors.phone && <p style={errStyle}>{errors.phone}</p>}
               </div>
@@ -514,7 +520,7 @@ export default function RegisterPage() {
                   />
                   {errors.otp && <p style={errStyle}>{errors.otp}</p>}
                   <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
-                    Default OTP: <span style={{ fontWeight: 700, color: "#9a7020" }}>123456</span>
+                    Default OTP: <span style={{ fontWeight: 700, color: "var(--brand-gold-muted)" }}>123456</span>
                   </p>
                   {!isOtpVerified && (
                     <div style={{ display:"flex", gap:"10px", marginTop:"12px", flexWrap:"wrap" }}>
@@ -555,10 +561,10 @@ export default function RegisterPage() {
                 <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
                   {[{value:"public",label:"General Public / Citizen",sub:"For land owners and property buyers"},{value:"SURVEYOR",label:"Licensed Surveyor",sub:"For Karnataka licensed surveyors"}].map((opt)=>(
                     <label key={opt.value} className={`rp-radio-card${accountType===opt.value?" active":""}`} onClick={()=>{setAccountType(opt.value);setSurveyorType("");}}>
-                      <input type="radio" name="accountType" value={opt.value} checked={accountType===opt.value} onChange={()=>{setAccountType(opt.value);setSurveyorType("");}} style={{ accentColor:"#c9a84c", flexShrink:0 }} />
+                      <input type="radio" name="accountType" value={opt.value} checked={accountType===opt.value} onChange={()=>{setAccountType(opt.value);setSurveyorType("");}} style={{ accentColor:"var(--brand-gold)", flexShrink:0 }} />
                       <div>
-                        <p style={{ fontSize:"14px", fontWeight:600, color:"#0d1f0d", margin:0 }}>{opt.label}</p>
-                        <p style={{ fontSize:"12px", color:"#8a7a60", margin:0, marginTop:"2px" }}>{opt.sub}</p>
+                        <p style={{ fontSize:"14px", fontWeight:600, color:"var(--brand-green-deep)", margin:0 }}>{opt.label}</p>
+                        <p style={{ fontSize:"12px", color:"var(--homepage-body-text)", margin:0, marginTop:"2px" }}>{opt.sub}</p>
                       </div>
                     </label>
                   ))}
@@ -572,8 +578,8 @@ export default function RegisterPage() {
                   <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
                     {[{value:"LS",label:"Licensed Surveyor (LS)"},{value:"GS",label:"Government Surveyor (GS)"}].map((opt)=>(
                       <label key={opt.value} className={`rp-radio-card${surveyorType===opt.value?" active":""}`} onClick={()=>setSurveyorType(opt.value)}>
-                        <input type="radio" name="surveyorType" value={opt.value} checked={surveyorType===opt.value} onChange={()=>setSurveyorType(opt.value)} style={{ accentColor:"#c9a84c" }} />
-                        <span style={{ fontSize:"14px", color:"#1a1a0a", fontWeight:500 }}>{opt.label}</span>
+                        <input type="radio" name="surveyorType" value={opt.value} checked={surveyorType===opt.value} onChange={()=>setSurveyorType(opt.value)} style={{ accentColor:"var(--brand-gold)" }} />
+                        <span style={{ fontSize:"14px", color:"var(--text-primary)", fontWeight:500 }}>{opt.label}</span>
                       </label>
                     ))}
                   </div>
@@ -597,7 +603,7 @@ export default function RegisterPage() {
                   <label style={labelStyle}>{f.label}</label>
                   <div style={{ position:"relative" }}>
                     <input type={f.show?"text":"password"} value={f.val} onChange={(e)=>f.set(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder={f.ph} className={`rp-input${f.err?" err":""}`} style={{ paddingRight:"44px" }} inputMode="numeric" maxLength={4} />
-                    <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="#9a7020";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
+                    <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
                       {f.show ? <EyeOff size={17}/> : <Eye size={17}/>}
                     </button>
                   </div>
@@ -648,9 +654,9 @@ export default function RegisterPage() {
         <div style={{ textAlign:"center", marginTop:"20px" }}>
           <p style={{ fontSize:"13px", color:"rgba(107,90,58,.65)", margin:"0 0 6px" }}>
             Already have an account?{" "}
-            <a href="/login" style={{ color:"#9a7020", fontWeight:700, textDecoration:"none" }}
-              onMouseEnter={e=>{e.currentTarget.style.color="#c9a84c";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="#9a7020";}}>
+            <a href="/login" style={{ color:"var(--brand-gold-muted)", fontWeight:700, textDecoration:"none" }}
+              onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold)";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}}>
               Login here
             </a>
           </p>

@@ -566,7 +566,7 @@ const OrderDetailDrawer = ({
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <SoundOutlined style={{ color: "#8c8c8c" }} />
+                      <SoundOutlined style={{ color: "var(--text-secondary)" }} />
                       <Text strong className="text-sm">
                         {audio.fileName || "Audio file"}
                       </Text>

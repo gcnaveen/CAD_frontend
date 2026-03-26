@@ -1,6 +1,6 @@
 // src/dashboard/user/form/steps/DocumentsStep.jsx
 import React, { useState } from "react";
-import { Form, Upload, Checkbox, message } from "antd";
+import { Form, Upload, Checkbox, message, Modal } from "antd";
 import { Upload as UploadIcon } from "lucide-react";
 import { getImagePresignedUrl, getAudioPresignedUrl, deleteUploadedFile } from "../../../../services/upload/upload.api.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
@@ -30,41 +30,91 @@ const DOCUMENT_TYPE_CHECKBOXES = [
 
 const SectionHeader = ({ icon, titleKn, titleEn, subtitle }) => (
   <div className="flex items-start gap-3 mb-5">
-    <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+    <div className="w-9 h-9 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0 mt-0.5">
       {icon}
     </div>
     <div>
-      <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
-      <p className="text-lg font-extrabold text-slate-900 leading-none">{titleEn}</p>
-      {subtitle && <p className="text-xs text-slate-400 font-semibold mt-1">{subtitle}</p>}
+      <p className="text-[11px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
+      <p className="text-lg font-extrabold text-fg leading-none">{titleEn}</p>
+      {subtitle && <p className="text-xs text-fg-muted font-semibold mt-1">{subtitle}</p>}
     </div>
   </div>
 );
 
-const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocumentUpload, onOtherDocumentRemove }) => {
+const DocumentsStep = ({
+  form,
+  onDocumentUpload,
+  onDocumentRemove,
+  onOtherDocumentUpload,
+  onOtherDocumentRemove,
+  onClearUploads,
+}) => {
   const [activeCategory, setActiveCategory] = useState("moolaTippani");
   const [uploading,      setUploading]       = useState({});
   const uploadMode = Form.useWatch("uploadMode", form) ?? "normal";
-  const handleUploadModeChange = (mode) => {
-    form.setFieldValue("uploadMode", mode);
-    // Keep mode transitions clean so backend doesn't infer wrong path.
-    if (mode === "single") {
-      // Clear normal-mode document uploads (both from the form and parent state).
-      CATEGORIES.map((c) => c.key).forEach((field) => {
-        if (field === "other_documents") return;
-        form.setFieldValue(field, []);
-        onDocumentRemove?.(field);
-      });
 
-      // Clear single-mode file + types as well (prevents leftovers from earlier visits).
+  const NORMAL_FIELDS = CATEGORIES.map((c) => c.key); // includes other_documents
+  const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
+
+  const hasAnyFiles = (fieldName) => {
+    const list = form.getFieldValue(fieldName);
+    return Array.isArray(list) && list.length > 0;
+  };
+
+  const hasAnyUploads = () => {
+    if (hasAnyFiles("singleUpload")) return true;
+    if (Array.isArray(form.getFieldValue("documentTypes")) && form.getFieldValue("documentTypes")?.length) return true;
+    return NORMAL_FIELDS.some((f) => hasAnyFiles(f));
+  };
+
+  const clearForMode = (nextMode) => {
+    // HARD mutual exclusivity: clear + ignore the opposite mode entirely.
+    if (nextMode === "single") {
+      const otherBefore = form.getFieldValue("other_documents") || [];
+      form.resetFields([...NORMAL_FIELDS, ...SINGLE_FIELDS]);
+      NORMAL_FIELDS.forEach((field) => {
+        form.setFieldValue(field, []);
+        if (field === "other_documents") {
+          // parent needs to forget other docs meta too
+          otherBefore.forEach((f) => onOtherDocumentRemove?.(f?.uid));
+        } else {
+          onDocumentRemove?.(field);
+        }
+      });
       form.setFieldValue("singleUpload", []);
       form.setFieldValue("documentTypes", []);
       onDocumentRemove?.("singleUpload");
     } else {
+      form.resetFields([...SINGLE_FIELDS]);
       form.setFieldValue("singleUpload", []);
       form.setFieldValue("documentTypes", []);
       onDocumentRemove?.("singleUpload");
     }
+
+    onClearUploads?.(nextMode);
+    setActiveCategory("moolaTippani");
+  };
+
+  const handleUploadModeChange = (nextMode) => {
+    if (nextMode === uploadMode) return;
+
+    const proceed = () => {
+      clearForMode(nextMode);
+      form.setFieldValue("uploadMode", nextMode);
+    };
+
+    if (!hasAnyUploads()) {
+      proceed();
+      return;
+    }
+
+    Modal.confirm({
+      title: "Switch upload mode?",
+      content: "Switching mode will remove existing uploads.",
+      okText: "Switch & clear",
+      cancelText: "Cancel",
+      onOk: proceed,
+    });
   };
 
 
@@ -136,7 +186,7 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
         titleEn="Documents"
         subtitle="Upload reference documents (PDF, JPG, PNG — max 10MB each). This step is optional."
         icon={
-          <svg className="w-5 h-5 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-[var(--user-accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
         }
@@ -152,7 +202,9 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
               type="button"
               onClick={() => handleUploadModeChange(m)}
               className={`flex-1 py-2 rounded-xl border-2 text-sm font-extrabold transition-all ${
-                active ? "border-orange-500 bg-orange-50 text-orange-700" : "border-slate-200 bg-white text-slate-500 hover:border-orange-200"
+                active
+                  ? "border-[var(--user-accent)] bg-[var(--user-accent-soft)] text-[var(--user-accent)]"
+                  : "border-line bg-surface text-fg-muted hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
               }`}
             >
               {m === "normal" ? "Normal Upload" : "Single Upload"}
@@ -168,41 +220,56 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
             name="singleUpload"
             valuePropName="fileList"
             getValueFromEvent={getMergeValue("singleUpload")}
-            rules={[{ required: true, message: "Please upload a document" }]}
           >
             <Upload
               name="singleUpload"
               listType="picture-card"
               maxCount={1}
               accept={UPLOAD_ACCEPT}
-              beforeUpload={(f) => handleUpload(f, "singleUpload")}
+              disabled={uploadMode !== "single" || Boolean(uploading.singleUpload)}
+              beforeUpload={(f) => uploadMode === "single" ? handleUpload(f, "singleUpload") : false}
               onRemove={(f)    => handleRemove(f, "singleUpload")}
-              className="upload-area-full"
+              className={`upload-area-full ${uploadMode !== "single" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex flex-col items-center gap-2 py-3">
-                <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-center">
-                  <UploadIcon className="w-5 h-5 text-orange-600" />
+                <div className="w-10 h-10 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] flex items-center justify-center">
+                  <UploadIcon className="w-5 h-5 text-[var(--user-accent)]" />
                 </div>
-                <p className="text-sm font-extrabold text-slate-700">Tap to upload</p>
-                <p className="text-xs text-slate-400 font-semibold">PDF, JPG, PNG • Max 10MB</p>
+                <p className="text-sm font-extrabold text-fg">Tap to upload</p>
+                <p className="text-xs text-fg-muted font-semibold">PDF, JPG, PNG • Max 10MB</p>
               </div>
             </Upload>
           </Form.Item>
 
           <div>
-            <p className="text-sm font-extrabold text-slate-700 mb-2">Document Category</p>
+            <p className="text-sm font-extrabold text-fg mb-2">Document Category</p>
             <Form.Item
               name="documentTypes"
-              rules={[{ validator: (_, v) => Array.isArray(v) && v.length ? Promise.resolve() : Promise.reject("Select at least one type") }]}
+              rules={[{
+                validator: (_, v) => {
+                  if (uploadMode !== "single") return Promise.resolve();
+                  const singleList = form.getFieldValue("singleUpload") || [];
+                  const hasSingleFile = Array.isArray(singleList) && singleList.length > 0;
+                  if (!hasSingleFile) return Promise.resolve(); // optional unless single file exists
+                  return Array.isArray(v) && v.length ? Promise.resolve() : Promise.reject("Select at least one type");
+                },
+              }]}
             >
-              <Checkbox.Group className="w-full">
+              <Checkbox.Group className="w-full" disabled={uploadMode !== "single"}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {DOCUMENT_TYPE_CHECKBOXES.map(({ name, en, kn }) => (
-                    <label key={name} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-orange-200 cursor-pointer">
+                    <label
+                      key={name}
+                      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-line bg-surface ${
+                        uploadMode !== "single"
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] cursor-pointer"
+                      }`}
+                    >
                       <Checkbox value={name} />
                       <div>
-                        <p className="text-sm font-bold text-slate-800">{en}</p>
-                        <p className="text-xs text-slate-400 font-semibold">{kn}</p>
+                        <p className="text-sm font-bold text-fg">{en}</p>
+                        <p className="text-xs text-fg-muted font-semibold">{kn}</p>
                       </div>
                     </label>
                   ))}
@@ -215,7 +282,7 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
         /* ── Normal Upload ── */
         <div>
           {/* Category tabs */}
-          <p className="text-sm font-extrabold text-slate-700 mb-2">Document Category</p>
+          <p className="text-sm font-extrabold text-fg mb-2">Document Category</p>
           <div className="flex flex-wrap gap-2 mb-4">
             {CATEGORIES.map((cat) => {
               const active = activeCategory === cat.key;
@@ -228,13 +295,13 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
                   onClick={() => setActiveCategory(cat.key)}
                   className={`relative px-3.5 py-2 rounded-full border text-xs sm:text-sm font-extrabold transition-all ${
                     active
-                      ? "border-orange-500 bg-orange-600 text-white shadow-[0_3px_10px_rgba(234,88,12,0.25)]"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-orange-200"
+                      ? "border-[var(--user-accent)] bg-[var(--user-accent)] text-white shadow-[0_3px_10px_color-mix(in_srgb,var(--user-accent)_25%,transparent)]"
+                      : "border-line bg-surface text-fg-muted hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
                   }`}
                 >
                   {cat.en}
                   {hasFile && !active && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-success border-2 border-surface" />
                   )}
                 </button>
               );
@@ -253,9 +320,10 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
               listType={isOther ? "text" : "picture-card"}
               maxCount={maxCount}
               accept={uploadAccept}
-              beforeUpload={(f) => handleUpload(f, activeFieldName)}
+              disabled={uploadMode !== "normal" || Boolean(uploading[activeFieldName])}
+              beforeUpload={(f) => uploadMode === "normal" ? handleUpload(f, activeFieldName) : false}
               onRemove={(f)    => handleRemove(f, activeFieldName)}
-              className="upload-area-full"
+              className={`upload-area-full ${uploadMode !== "normal" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {/* Show placeholder only when no file yet or multi */}
               {(() => {
@@ -264,11 +332,11 @@ const DocumentsStep = ({ form, onDocumentUpload, onDocumentRemove, onOtherDocume
                 if (!isOther && count >= 1) return null;
                 return (
                   <div className="flex flex-col items-center justify-center gap-2 w-full py-8 px-4">
-                    <div className="w-14 h-14 rounded-2xl bg-orange-50 border-2 border-dashed border-orange-200 flex items-center justify-center">
-                      <UploadIcon className="w-6 h-6 text-orange-500" />
+                    <div className="w-14 h-14 rounded-2xl bg-[var(--user-accent-soft)] border-2 border-dashed border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] flex items-center justify-center">
+                      <UploadIcon className="w-6 h-6 text-[var(--user-accent)]" />
                     </div>
-                    <p className="text-sm font-extrabold text-slate-700">Tap to upload</p>
-                    <p className="text-xs text-slate-400 font-semibold">PDF, JPG, PNG • Max 10MB</p>
+                    <p className="text-sm font-extrabold text-fg">Tap to upload</p>
+                    <p className="text-xs text-fg-muted font-semibold">PDF, JPG, PNG • Max 10MB</p>
                   </div>
                 );
               })()}

@@ -1,6 +1,21 @@
 /* All @imports MUST come first */
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface: var(--bg-primary);
+  --color-surface-2: var(--bg-secondary);
+  --color-elevated: var(--bg-elevated);
+  --color-fg: var(--text-primary);
+  --color-fg-muted: var(--text-secondary);
+  --color-line: var(--border-color);
+  --color-accent: var(--accent-color);
+  --color-accent-soft: var(--accent-muted);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-green: var(--brand-green);
+}
 
 /* IBM Plex Sans Font Family */
 @font-face {
@@ -160,10 +175,151 @@
   font-display: swap;
 }
 
-/* ── CSS Variables ── */
+/* ── Semantic theme (light default, `.dark` on <html> for dark) ── */
 :root {
   --font-ibm-plex-sans: "IBM Plex Sans", sans-serif;
   --font-montserrat: "Montserrat", sans-serif;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --accent-color: #0ea5e9;
+  --accent-muted: #38bdf8;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --violet-accent: #8b5cf6;
+  --cyan-accent: #06b6d4;
+
+  --layout-sider-bg: #0f172a;
+  --layout-sider-border: #1e293b;
+  --layout-sider-hover: #1e293b;
+  --layout-sider-active: rgba(56, 189, 248, 0.12);
+  --layout-sider-accent: #38bdf8;
+  --layout-sider-text: #f8fafc;
+  --layout-sider-text-muted: rgba(248, 250, 252, 0.9);
+
+  --user-accent: #ea580c;
+  --user-accent-hover: #f97316;
+  --user-accent-soft: #fff7ed;
+
+  --brand-gold: #c9a84c;
+  --brand-gold-dark: #a07828;
+  --brand-gold-muted: #9a7020;
+  --brand-green: #152815;
+  --brand-green-deep: #0d1f0d;
+
+  --homepage-nav-muted: #7a7060;
+  --homepage-cream: rgba(244, 239, 230, 0.95);
+  --homepage-cream-border: rgba(232, 226, 216, 0.9);
+  --homepage-card-shadow: rgba(2, 6, 23, 0.12);
+  --mask-backdrop: rgba(15, 23, 42, 0.32);
+  --homepage-body-text: #8a7a60;
+  --homepage-label: #6b5a3a;
+  --homepage-gradient: linear-gradient(160deg, #f7f2e8 0%, #f0ead8 35%, #e8dfc8 65%, #ddd4b8 100%);
+  --hero-bg: linear-gradient(160deg, #f7f2e8 0%, #f0ead8 40%, #ede5d0 100%);
+  --hero-panel-bg: linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 40%, #2a5a2a 100%);
+  --hero-marquee-bg: linear-gradient(90deg, #0d1f0d 0%, #152815 100%);
+  --section-cream: linear-gradient(180deg, #ede5d0 0%, #e8e0cc 50%, #f0ead8 100%);
+  --section-cream-alt: linear-gradient(180deg, #f7f2e8 0%, #f0ead8 60%, #ede5d0 100%);
+  --section-benefits-bg: linear-gradient(170deg, #f0ead8 0%, #f7f2e8 50%, #ede5d0 100%);
+  --text-brown-muted: #6b6252;
+  --text-brown-soft: #b5aa98;
+  --forest-green-mid: #2a6e2a;
+  --accent-brown: #6b5510;
+  --accent-brown-muted: #8a7040;
+  --homepage-page-hero-tint: rgba(201, 168, 76, 0.12);
+  --homepage-video-chrome: #0a1a0a;
+  --homepage-cta-ghost-fg: #152815;
+  --homepage-cta-bg: #152815;
+  --homepage-cta-fg: #f8fafc;
+  --footer-bg: linear-gradient(170deg, #0a1a0a 0%, #0d1f0d 50%, #111f11 100%);
+  --footer-fg-muted: rgba(255, 255, 255, 0.42);
+}
+
+html.dark {
+  --bg-primary: #0b1220;
+  --bg-secondary: #111827;
+  --bg-elevated: #1e293b;
+  --bg-hover: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --accent-color: #38bdf8;
+  --accent-muted: #7dd3fc;
+  --warning: #fbbf24;
+  --violet-accent: #a78bfa;
+  --cyan-accent: #22d3ee;
+
+  --layout-sider-bg: #020617;
+  --layout-sider-border: #0f172a;
+  --layout-sider-hover: #1e293b;
+  --layout-sider-text: #f8fafc;
+  --layout-sider-text-muted: rgba(248, 250, 252, 0.9);
+
+  --user-accent: #fb923c;
+  --user-accent-hover: #fdba74;
+  --user-accent-soft: rgba(251, 146, 60, 0.12);
+
+  --brand-green: #e2e8f0;
+  --brand-green-deep: #f8fafc;
+
+  --homepage-nav-muted: #a8a29e;
+  --homepage-cream: rgba(15, 23, 42, 0.92);
+  --homepage-cream-border: rgba(51, 65, 85, 0.85);
+  --homepage-card-shadow: rgba(0, 0, 0, 0.35);
+  --mask-backdrop: rgba(0, 0, 0, 0.55);
+  --homepage-body-text: #94a3b8;
+  --homepage-label: #cbd5e1;
+  --homepage-gradient: linear-gradient(160deg, #0f172a 0%, #111827 40%, #1e293b 100%);
+  --hero-bg: linear-gradient(160deg, #0b1220 0%, #111827 45%, #1e293b 100%);
+  --hero-panel-bg: linear-gradient(135deg, #0f172a 0%, #14532d 45%, #166534 100%);
+  --hero-marquee-bg: linear-gradient(90deg, #022c22 0%, #14532d 100%);
+  --section-cream: linear-gradient(180deg, #111827 0%, #1e293b 50%, #0f172a 100%);
+  --section-cream-alt: linear-gradient(180deg, #0f172a 0%, #1e293b 55%, #111827 100%);
+  --section-benefits-bg: linear-gradient(170deg, #111827 0%, #0f172a 50%, #1e293b 100%);
+  --text-brown-muted: #94a3b8;
+  --text-brown-soft: #a8a29e;
+  --forest-green-mid: #4ade80;
+  --accent-brown: #d6d3d1;
+  --accent-brown-muted: #a8a29e;
+  --homepage-page-hero-tint: rgba(56, 189, 248, 0.08);
+  --homepage-video-chrome: #1e293b;
+  --homepage-cta-ghost-fg: #f8fafc;
+  --homepage-cta-bg: #166534;
+  --homepage-cta-fg: #f8fafc;
+  --footer-bg: linear-gradient(170deg, #020617 0%, #0f172a 50%, #111827 100%);
+  --footer-fg-muted: rgba(248, 250, 252, 0.55);
+}
+
+html,
+body,
+#root {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/**
+ * Smooth theme morph for surfaces (opt-in via class).
+ * Avoid applying transitions globally — breaks motion/keyframes in components.
+ */
+.theme-animate-surface {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  #root,
+  .theme-animate-surface {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── Utility classes ── */
@@ -185,13 +341,19 @@
   position: absolute;
   left: 0; bottom: -2px;
   width: 0; height: 1px;
-  background: #c9a84c;
+  background: var(--brand-gold);
   transition: width 0.28s ease;
 }
 .homepage-font .nav-link:hover::after { width: 100%; }
 
 .homepage-font .shimmer-gold {
-  background: linear-gradient(90deg, #c9a84c 0%, #f5de8a 40%, #c9a84c 65%, #a07828 100%);
+  background: linear-gradient(
+    90deg,
+    var(--brand-gold) 0%,
+    #f5de8a 40%,
+    var(--brand-gold) 65%,
+    var(--brand-gold-dark) 100%
+  );
   background-size: 250% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -208,7 +370,7 @@
 }
 .homepage-font .card-lift:hover {
   transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 42px rgba(2, 6, 23, 0.12);
+  box-shadow: 0 20px 42px var(--homepage-card-shadow);
 }
 
 .homepage-font .btn-primary-shimmer { overflow: hidden; position: relative; }
@@ -238,8 +400,8 @@
 }
 
 .homepage-font ::-webkit-scrollbar       { width: 4px; }
-.homepage-font ::-webkit-scrollbar-track { background: #f4efe6; }
-.homepage-font ::-webkit-scrollbar-thumb { background: #c9a84c; border-radius: 2px; }
+.homepage-font ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+.homepage-font ::-webkit-scrollbar-thumb { background: var(--brand-gold); border-radius: 2px; }
 
 /* ══════════════════════════════════════════
    CAD Upload Wizard — Ant Design overrides
@@ -248,35 +410,65 @@
 
 .upload-form-wrap .ant-select-selector {
   border-radius: 12px !important;
-  border-color: #e2e8f0 !important;
+  border-color: var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
   font-family: "Nunito", sans-serif !important;
   font-weight: 600 !important;
 }
 .upload-form-wrap .ant-select-focused .ant-select-selector {
-  border-color: #f97316 !important;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) !important;
+  border-color: var(--user-accent-hover) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--user-accent) 25%, transparent) !important;
 }
 .upload-form-wrap .ant-input {
   border-radius: 12px !important;
-  border-color: #e2e8f0 !important;
+  border-color: var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
   font-family: "Nunito", sans-serif !important;
   font-weight: 600 !important;
 }
 .upload-form-wrap .ant-input:focus {
-  border-color: #f97316 !important;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) !important;
+  border-color: var(--user-accent-hover) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--user-accent) 25%, transparent) !important;
 }
 .upload-form-wrap .ant-input-textarea textarea { border-radius: 12px !important; }
 .upload-form-wrap .ant-form-item-label > label {
   font-family: "Nunito", sans-serif !important;
   font-weight: 700 !important;
-  color: #475569 !important;
+  color: var(--text-secondary) !important;
 }
 .upload-form-wrap .ant-form-item          { margin-bottom: 0 !important; }
+
+/* AntD Select (Location step) — ensure dropdown matches dark-mode variables */
+.upload-form-wrap .ant-select-dropdown {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+}
+.upload-form-wrap .ant-select-item-option,
+.upload-form-wrap .ant-select-item-option-content {
+  color: var(--text-primary) !important;
+}
+.upload-form-wrap .ant-select-item-option-selected,
+.upload-form-wrap .ant-select-item-option-active {
+  background-color: var(--bg-hover) !important;
+}
+.upload-form-wrap .ant-select-search__field,
+.upload-form-wrap .ant-select-selection-search-input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+.upload-form-wrap .ant-select-search__field::placeholder,
+.upload-form-wrap .ant-select-selection-search-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
 .upload-form-wrap .ant-checkbox-inner     { border-radius: 6px !important; }
 .upload-form-wrap .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #ea580c !important;
-  border-color: #ea580c !important;
+  background-color: var(--user-accent) !important;
+  border-color: var(--user-accent) !important;
 }
 
 /* Ant Upload (Documents step) */
@@ -284,13 +476,28 @@
   width: 100% !important;
   height: auto !important;
   border-radius: 16px !important;
-  border: 2px dashed #fed7aa !important;
-  background: #fff7ed !important;
+  border: 2px dashed color-mix(in srgb, var(--user-accent) 35%, var(--border-color)) !important;
+  background: var(--user-accent-soft) !important;
 }
 .upload-area-full .ant-upload.ant-upload-select:hover {
-  border-color: #f97316 !important;
-  background: #fff3e8 !important;
+  border-color: var(--user-accent-hover) !important;
+  background: color-mix(in srgb, var(--user-accent-soft) 85%, var(--bg-primary)) !important;
 }
 .upload-area-full .ant-upload-list-picture-card .ant-upload-list-item {
   border-radius: 12px !important;
+}
+
+/* Ant Design in-app message / notification surfaces (React-Toastify-style toasts use Ant message API) */
+.app-antd-message .ant-message-notice-content,
+.ant-message .ant-message-notice-content {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 8px 24px var(--homepage-card-shadow) !important;
+}
+
+.app-antd-notification .ant-notification-notice {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
 }

@@ -70,9 +70,21 @@ const TESTIMONIALS = [
 ];
 
 const COLORS = [
-  { bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.3)", text: "#9a7020" },
-  { bg: "rgba(42,110,42,0.10)", border: "rgba(42,110,42,0.25)", text: "#1a5a1a" },
-  { bg: "rgba(139,90,43,0.10)", border: "rgba(139,90,43,0.22)", text: "#6b4a20" },
+  {
+    bg: "color-mix(in srgb, var(--brand-gold) 14%, transparent)",
+    border: "color-mix(in srgb, var(--brand-gold) 32%, var(--border-color))",
+    text: "var(--brand-gold-muted)",
+  },
+  {
+    bg: "color-mix(in srgb, var(--success) 12%, transparent)",
+    border: "color-mix(in srgb, var(--success) 28%, var(--border-color))",
+    text: "var(--success)",
+  },
+  {
+    bg: "color-mix(in srgb, var(--user-accent) 12%, transparent)",
+    border: "color-mix(in srgb, var(--user-accent) 28%, var(--border-color))",
+    text: "var(--accent-brown)",
+  },
 ];
 
 const ITEMS_PER_PAGE = 3;
@@ -147,7 +159,7 @@ export default function ClientTestimonials() {
       id="testimonials"
       ref={sectionRef}
       style={{
-        background: "linear-gradient(180deg, #f7f2e8 0%, #f0ead8 60%, #ede5d0 100%)",
+        background: "var(--section-cream-alt)",
         padding: "clamp(56px, 8vw, 100px) clamp(16px, 4vw, 32px)",
         position: "relative",
         overflow: "hidden",
@@ -188,11 +200,11 @@ export default function ClientTestimonials() {
           cursor: pointer;
           box-shadow: 0 2px 10px rgba(0,0,0,0.08);
           transition: all 0.2s ease;
-          color: #152815;
+          color: var(--homepage-cta-bg);
         }
         .nav-btn:hover {
-          background: #152815;
-          border-color: #152815;
+          background: var(--homepage-cta-bg);
+          border-color: var(--homepage-cta-bg);
           color: white;
           box-shadow: 0 4px 16px rgba(21,40,21,0.25);
           transform: scale(1.05);
@@ -228,8 +240,8 @@ export default function ClientTestimonials() {
             background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)",
             marginBottom: "20px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9a7020" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
+            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
               Testimonials
             </span>
           </div>
@@ -237,13 +249,13 @@ export default function ClientTestimonials() {
             fontFamily: "'IBM Plex Serif', Georgia, serif",
             fontStyle: "italic", fontWeight: 600,
             fontSize: "clamp(28px, 3.8vw, 50px)", lineHeight: 1.15,
-            background: "linear-gradient(135deg, #0d1f0d 0%, #1a3a1a 50%, #2a5a2a 100%)",
+            background: "var(--hero-panel-bg)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
             marginBottom: "14px", letterSpacing: "-0.01em",
           }}>
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14px, 1.1vw, 16px)", color: "#6b6252", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p style={{ fontSize: "clamp(14px, 1.1vw, 16px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
@@ -267,7 +279,7 @@ export default function ClientTestimonials() {
                 {/* Ghost quote mark */}
                 <div style={{
                   position: "absolute", top: "12px", right: "16px",
-                  opacity: 0.06, color: "#152815",
+                  opacity: 0.06, color: "var(--homepage-cta-bg)",
                   transform: "scale(3)", transformOrigin: "top right",
                   pointerEvents: "none",
                 }}>
@@ -277,7 +289,7 @@ export default function ClientTestimonials() {
                 {/* Stars */}
                 <div style={{ display: "flex", gap: "3px", marginBottom: "14px" }}>
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="#c9a84c" aria-hidden="true">
+                    <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="var(--brand-gold)" aria-hidden="true">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                   ))}
@@ -285,7 +297,7 @@ export default function ClientTestimonials() {
 
                 {/* Quote */}
                 <p style={{
-                  fontSize: "13.5px", color: "#4a4238",
+                  fontSize: "13.5px", color: "var(--text-primary)",
                   lineHeight: 1.75, fontStyle: "italic",
                   flex: 1, marginBottom: "20px",
                 }}>
@@ -311,10 +323,10 @@ export default function ClientTestimonials() {
                     </span>
                   </div>
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 700, color: "#0d1f0d", margin: 0 }}>{t.name}</p>
+                    <p style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--brand-green-deep)", margin: 0 }}>{t.name}</p>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                      <MapPin size={10} color="#b5aa98" />
-                      <p style={{ fontSize: "11.5px", color: "#b5aa98", margin: 0 }}>{t.location}</p>
+                      <MapPin size={10} color="var(--text-brown-soft)" />
+                      <p style={{ fontSize: "11.5px", color: "var(--text-brown-soft)", margin: 0 }}>{t.location}</p>
                     </div>
                   </div>
                   {/* Role badge */}
@@ -345,7 +357,7 @@ export default function ClientTestimonials() {
                 onClick={() => setCurrentIndex(i)}
                 style={{
                   width: i === currentIndex ? "28px" : "6px",
-                  background: i === currentIndex ? "#c9a84c" : "rgba(201,168,76,0.25)",
+                  background: i === currentIndex ? "var(--brand-gold)" : "rgba(201,168,76,0.25)",
                 }}
                 aria-label={`Go to page ${i + 1}`}
               />
@@ -360,7 +372,7 @@ export default function ClientTestimonials() {
         {/* Page label */}
         <p style={{
           textAlign: "center", marginTop: "12px",
-          fontSize: "11px", fontWeight: 600, color: "#b5aa98",
+          fontSize: "11px", fontWeight: 600, color: "var(--text-brown-soft)",
           letterSpacing: "0.1em", textTransform: "uppercase",
         }}>
           {currentIndex + 1} / {totalPages}

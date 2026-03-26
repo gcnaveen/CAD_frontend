@@ -310,7 +310,7 @@ const ProjectOrderDetailDrawer = ({
   return (
     <Drawer
       title={
-        <span className="font-semibold text-gray-900 text-lg">
+        <span className="font-semibold text-fg text-lg">
           Order Details {order?.applicationId ? `– Application ID: ${order.applicationId}` : ""}
         </span>
       }
@@ -401,7 +401,7 @@ const ProjectOrderDetailDrawer = ({
             {(order.uploadMode === "single" || order.singleUpload) ? (
               /* Single Upload Mode */
               <div className="space-y-4">
-                <Card size="small" className="border-gray-200" style={{ marginBottom: 8 }}>
+                <Card size="small" className="border-line" style={{ marginBottom: 8 }}>
                   <div style={{ marginBottom: 8 }}>
                     <Tag color="blue">Single Upload</Tag>
                   </div>
@@ -472,7 +472,7 @@ const ProjectOrderDetailDrawer = ({
                     <Card
                       key={fieldName}
                       size="small"
-                      className="border-gray-200"
+                      className="border-line"
                       style={{ marginBottom: 8 }}
                     >
                       <div className="flex items-start justify-between">
@@ -578,7 +578,7 @@ const ProjectOrderDetailDrawer = ({
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <SoundOutlined style={{ color: "#8c8c8c" }} />
+                    <SoundOutlined style={{ color: "var(--text-secondary)" }} />
                     <Text strong className="text-sm">
                       {order.audio.fileName || "Audio file"}
                     </Text>
@@ -780,7 +780,7 @@ const ProjectOrderDetailDrawer = ({
               {/* Payment status */}
               <Card size="small" title="Payment Status">
                 <Space align="center">
-                  <DollarOutlined style={{ fontSize: 18, color: "#52c41a" }} />
+                  <DollarOutlined style={{ fontSize: 18, color: "var(--success)" }} />
                   <Tag color={paymentInfo.color}>{paymentInfo.text}</Tag>
                 </Space>
               </Card>
