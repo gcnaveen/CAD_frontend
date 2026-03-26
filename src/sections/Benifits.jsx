@@ -24,6 +24,7 @@ export default function Benefits() {
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.benefits;
   const sectionRef = useRef(null);
+  const included = tr?.includedItems?.length ? tr.includedItems : INCLUDED;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -182,20 +183,23 @@ export default function Benefits() {
           }}>
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
             <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
-              Simple Pricing
+              {tr?.kicker || "Simple Pricing"}
             </span>
           </div>
-          <h2 style={{
-            fontFamily: "'IBM Plex Serif', Georgia, serif",
-            fontStyle: "italic", fontWeight: 600,
-            fontSize: "clamp(30px, 4vw, 54px)", lineHeight: 1.12,
-            background: "var(--hero-panel-bg)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            marginBottom: "14px", letterSpacing: "-0.01em",
-          }}>
+          <h2
+            className="home-serif-title"
+            style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic", fontWeight: 600,
+              fontSize: "clamp(30px, 4vw, 54px)", lineHeight: 1.12,
+              background: "var(--hero-panel-bg)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              marginBottom: "14px", letterSpacing: "-0.01em",
+            }}
+          >
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p className="ben-section-lead" style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
@@ -225,7 +229,7 @@ export default function Benefits() {
               }} />
               <div style={{ position: "relative", zIndex: 1 }}>
                 <p style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)", marginBottom: "8px" }}>
-                  Professional CAD Drawing
+                  {tr?.pricingCardKicker || "Professional CAD Drawing"}
                 </p>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", lineHeight: 1 }}>
                   <span style={{
@@ -243,7 +247,7 @@ export default function Benefits() {
             </div>
 
             {/* Card body */}
-            <div style={{ padding: "24px 28px 28px" }}>
+            <div className="ben-ink-scope" style={{ padding: "24px 28px 28px" }}>
 
               {/* Fee breakdown */}
               <div style={{
@@ -255,30 +259,40 @@ export default function Benefits() {
               }}>
                 <div className="fee-row">
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Booking fee</p>
-                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>At order submission (Step 1)</p>
+                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>
+                      {tr?.bookingFeeLabel || "Booking fee"}
+                    </p>
+                    <p className="ben-ink-muted" style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
+                      {tr?.bookingFeeSubtitle || "At order submission (Step 1)"}
+                    </p>
                   </div>
                   <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹100</span>
                 </div>
                 <div className="fee-row">
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Download fee</p>
-                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>When drawing is ready (Step 4)</p>
+                    <p style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>
+                      {tr?.downloadFeeLabel || "Download fee"}
+                    </p>
+                    <p className="ben-ink-muted" style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
+                      {tr?.downloadFeeSubtitle || "When drawing is ready (Step 4)"}
+                    </p>
                   </div>
                   <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹400</span>
                 </div>
                 <div className="total-row">
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--brand-green-deep)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Total</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--brand-green-deep)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    {tr?.totalLabel || "Total"}
+                  </span>
                   <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "20px", color: "var(--brand-gold)" }}>₹500</span>
                 </div>
               </div>
 
               {/* What's included */}
-              <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)", marginBottom: "12px" }}>
-                What's included
+              <p className="ben-included-kicker" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)", marginBottom: "12px" }}>
+                {tr?.includedKicker || "What's included"}
               </p>
               <div style={{ marginBottom: "22px" }}>
-                {INCLUDED.map((item, i) => (
+                {included.map((item, i) => (
                   <div key={i} className="include-item">
                     <div style={{
                       width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
@@ -298,18 +312,24 @@ export default function Benefits() {
                 <div className="info-box" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                   <RefreshCw size={14} color="var(--brand-gold-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>Separate Charges</p>
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>
+                      {tr?.separateChargesTitle || "Separate Charges"}
+                    </p>
                     <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
-                      Drawing revision (if corrections needed after delivery): ₹100
+                      {tr?.separateChargesDesc ||
+                        "Drawing revision (if corrections needed after delivery): ₹100"}
                     </p>
                   </div>
                 </div>
                 <div className="info-box" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
                   <Shield size={14} color="var(--brand-gold-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>Refund Policy</p>
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>
+                      {tr?.refundPolicyTitle || "Refund Policy"}
+                    </p>
                     <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
-                      Full refund available unless assigned to a CAD operator. No refund after drawing is completed.
+                      {tr?.refundPolicyDesc ||
+                        "Full refund available unless assigned to a CAD operator. No refund after drawing is completed."}
                     </p>
                   </div>
                 </div>
@@ -317,12 +337,13 @@ export default function Benefits() {
 
               {/* CTA */}
               <button className="place-order-btn" onClick={() => navigate("/login")}>
-                Upload Your Drawing
+                {tr?.ctaUpload || "Upload Your Drawing"}
                 <ArrowRight size={16} />
               </button>
 
-              <p style={{ fontSize: "11px", color: "var(--text-brown-soft)", textAlign: "center", marginTop: "12px", lineHeight: 1.5 }}>
-                1st revision free within 48 hours. After that: ₹100 per revision.
+              <p className="ben-footnote" style={{ fontSize: "11px", color: "var(--text-brown-soft)", textAlign: "center", marginTop: "12px", lineHeight: 1.5 }}>
+                {tr?.footnote ||
+                  "1st revision free within 48 hours. After that: ₹100 per revision."}
               </p>
             </div>
           </div>
@@ -336,7 +357,7 @@ export default function Benefits() {
               return (
                 <div
                   key={idx}
-                  className="ben-mini-card ben-reveal"
+                  className="ben-mini-card ben-mini-ink ben-reveal"
                   data-delay={String(120 + idx * 90)}
                 >
                   {/* ghost number */}
@@ -375,7 +396,7 @@ export default function Benefits() {
 
             {/* Trust section */}
             <div
-              className="ben-reveal"
+              className="ben-reveal ben-trust-surface"
               data-delay="520"
               style={{
                 background: "linear-gradient(135deg, color-mix(in srgb, var(--homepage-cta-bg) 97%, transparent) 0%, var(--brand-green-deep) 100%)",
@@ -399,7 +420,7 @@ export default function Benefits() {
                 }}>
                   {tr?.trustTitle}
                 </h3>
-                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.65, marginBottom: "20px" }}>
+                <p className="ben-trust-sub" style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.65, marginBottom: "20px" }}>
                   {tr?.trustSubtitle}
                 </p>
 
@@ -410,13 +431,13 @@ export default function Benefits() {
                   gap: "12px",
                 }}>
                   {stats.map((stat, i) => (
-                    <div key={i} style={{
+                    <div key={i} className="ben-trust-stat-cell" style={{
                       background: "rgba(201,168,76,0.08)",
                       border: "1px solid rgba(201,168,76,0.15)",
                       borderRadius: "12px", padding: "12px 14px",
                       textAlign: "center",
                     }}>
-                      <div style={{
+                      <div className="ben-trust-stat-value" style={{
                         fontFamily: "'IBM Plex Serif', Georgia, serif",
                         fontStyle: "italic", fontWeight: 700,
                         fontSize: "clamp(18px, 2.5vw, 26px)", color: "var(--brand-gold)",
@@ -424,7 +445,7 @@ export default function Benefits() {
                       }}>
                         {stat.value}
                       </div>
-                      <div style={{ fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      <div className="ben-trust-stat-label" style={{ fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         {stat.label}
                       </div>
                     </div>

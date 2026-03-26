@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
 
 function normalizeList(res) {
   const raw = res?.data ?? res;
@@ -195,7 +196,7 @@ export default function RegisterPage() {
   const errStyle = { fontSize: "12px", color: "var(--danger)", marginTop: "5px" };
 
   return (
-    <div className="theme-animate-surface" style={{
+    <div className="theme-animate-surface auth-page" style={{
       minHeight: "100vh",
       background: "var(--homepage-gradient)",
       display: "flex", alignItems: "center", justifyContent: "center",
@@ -257,7 +258,7 @@ export default function RegisterPage() {
 
         .rp-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%230ea5e9' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23657683' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px !important;
@@ -314,6 +315,7 @@ export default function RegisterPage() {
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }} aria-hidden="true">
         <div style={{ position:"absolute", top:"-120px", left:"-100px", width:"600px", height:"600px", borderRadius:"50%", background:"radial-gradient(circle,rgba(201,168,76,.13) 0%,transparent 65%)" }} />
         <div style={{ position:"absolute", bottom:"-80px", right:"-80px", width:"500px", height:"500px", borderRadius:"50%", background:"radial-gradient(circle,rgba(21,40,21,.08) 0%,transparent 65%)" }} />
+        <KarnatakaOutlineDecor variant="auth" />
         <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(201,168,76,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.055) 1px,transparent 1px)", backgroundSize:"52px 52px" }} />
         <div style={{ position:"absolute", top:"28px", left:"28px"  }}><Crosshair size={22} opacity={0.22} /></div>
         <div style={{ position:"absolute", top:"28px", right:"28px" }}><Crosshair size={22} opacity={0.22} /></div>
@@ -409,7 +411,7 @@ export default function RegisterPage() {
             return (
               <React.Fragment key={s.key}>
                 <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
-                  <div style={{
+                  <div className={isActive ? "auth-step-pill" : isDone ? "auth-step-pill-done" : "auth-step-pill-inactive"} style={{
                     width:"38px", height:"38px", borderRadius:"50%",
                     display:"flex", alignItems:"center", justifyContent:"center",
                     fontSize:"13px", fontWeight:700, marginBottom:"6px",
@@ -422,7 +424,7 @@ export default function RegisterPage() {
                   }}>
                     {isDone ? <Check size={16} strokeWidth={2.5} /> : s.icon}
                   </div>
-                  <span style={{ fontSize:"10px", fontWeight:600, letterSpacing:".04em", textAlign:"center", maxWidth:"60px", color: step >= s.key ? "var(--homepage-label)" : "rgba(107,90,58,.45)" }}>
+                  <span className={step >= s.key ? "auth-step-label" : "auth-step-label-muted"} style={{ fontSize:"10px", fontWeight:600, letterSpacing:".04em", textAlign:"center", maxWidth:"60px", color: step >= s.key ? "var(--homepage-label)" : "rgba(107,90,58,.45)" }}>
                     {s.label}
                   </span>
                 </div>
@@ -441,7 +443,7 @@ export default function RegisterPage() {
         </div>
 
         {/* FORM CARD */}
-        <div style={{
+        <div className="auth-form-card" style={{
           background:"rgba(255,255,255,.68)", backdropFilter:"blur(20px)",
           border:"1px solid rgba(232,226,216,.9)", borderRadius:"24px",
           padding:"clamp(24px,5vw,36px)",
@@ -453,13 +455,13 @@ export default function RegisterPage() {
 
           {/* Card heading */}
           <div style={{ marginBottom:"20px" }}>
-            <h2 style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"var(--brand-green-deep)", lineHeight:1.2, marginBottom:"5px" }}>
+            <h2 className="auth-card-title" style={{ fontFamily:"'IBM Plex Serif',Georgia,serif", fontStyle:"italic", fontWeight:600, fontSize:"clamp(18px,2.5vw,23px)", color:"var(--brand-green-deep)", lineHeight:1.2, marginBottom:"5px" }}>
               {step === 1 && "Account Type"}
               {step === 2 && "Basic Details & Verification"}
               {step === 3 && "Set Your Password"}
               {step === 4 && "Location Details"}
             </h2>
-            <p style={{ fontSize:"13px", color:"var(--homepage-body-text)", lineHeight:1.55, margin:0 }}>
+            <p className="auth-subtitle auth-muted" style={{ fontSize:"13px", color:"var(--homepage-body-text)", lineHeight:1.55, margin:0 }}>
               {step === 1 && "Choose how you'll use the platform."}
               {step === 2 && "Enter your full name and mobile, then verify with OTP."}
               {step === 3 && "Create a secure password for your account."}
@@ -469,13 +471,16 @@ export default function RegisterPage() {
 
           {/* Message banner */}
           {message.text && (
-            <div style={{
-              padding:"10px 14px", borderRadius:"10px", marginBottom:"18px",
-              background: message.type==="success" ? "rgba(42,110,42,.09)" : "rgba(192,57,43,.09)",
-              border:`1px solid ${message.type==="success" ? "rgba(42,110,42,.25)" : "rgba(192,57,43,.25)"}`,
-              fontSize:"13px", fontWeight:500,
-              color: message.type==="success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
-            }}>
+            <div
+              className={message.type === "success" ? "auth-message auth-message--success" : "auth-message auth-message--error"}
+              style={{
+                padding:"10px 14px", borderRadius:"10px", marginBottom:"18px",
+                background: message.type==="success" ? "rgba(42,110,42,.09)" : "rgba(192,57,43,.09)",
+                border:`1px solid ${message.type==="success" ? "rgba(42,110,42,.25)" : "rgba(192,57,43,.25)"}`,
+                fontSize:"13px", fontWeight:500,
+                color: message.type==="success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
+              }}
+            >
               {message.text}
             </div>
           )}
@@ -498,7 +503,7 @@ export default function RegisterPage() {
 
               <div>
                 <label style={labelStyle}>Mobile Number</label>
-                <div style={{ display:"flex", borderRadius:"12px", overflow:"hidden", border:`1.5px solid ${errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,.8)"}`, background:"rgba(255,255,255,.6)", transition:"border-color .2s, box-shadow .2s" }}
+                <div className="auth-phone-row" style={{ display:"flex", borderRadius:"12px", overflow:"hidden", border:`1.5px solid ${errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,.8)"}`, background:"rgba(255,255,255,.6)", transition:"border-color .2s, box-shadow .2s" }}
                   onFocusCapture={e=>{ e.currentTarget.style.borderColor="rgba(201,168,76,.7)"; e.currentTarget.style.boxShadow="0 0 0 3px rgba(201,168,76,.12)"; }}
                   onBlurCapture={e=>{ e.currentTarget.style.borderColor="rgba(213,200,178,.8)"; e.currentTarget.style.boxShadow="none"; }}>
                   <span style={{ display:"flex", alignItems:"center", padding:"0 14px", fontSize:"14px", fontWeight:700, color:"var(--brand-gold-muted)", background:"rgba(201,168,76,.08)", borderRight:"1.5px solid rgba(213,200,178,.7)", minWidth:"54px", flexShrink:0 }}>+91</span>
@@ -519,7 +524,7 @@ export default function RegisterPage() {
                     disabled={isOtpVerified}
                   />
                   {errors.otp && <p style={errStyle}>{errors.otp}</p>}
-                  <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
+                  <p className="auth-otp-hint" style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
                     Default OTP: <span style={{ fontWeight: 700, color: "var(--brand-gold-muted)" }}>123456</span>
                   </p>
                   {!isOtpVerified && (
@@ -563,8 +568,8 @@ export default function RegisterPage() {
                     <label key={opt.value} className={`rp-radio-card${accountType===opt.value?" active":""}`} onClick={()=>{setAccountType(opt.value);setSurveyorType("");}}>
                       <input type="radio" name="accountType" value={opt.value} checked={accountType===opt.value} onChange={()=>{setAccountType(opt.value);setSurveyorType("");}} style={{ accentColor:"var(--brand-gold)", flexShrink:0 }} />
                       <div>
-                        <p style={{ fontSize:"14px", fontWeight:600, color:"var(--brand-green-deep)", margin:0 }}>{opt.label}</p>
-                        <p style={{ fontSize:"12px", color:"var(--homepage-body-text)", margin:0, marginTop:"2px" }}>{opt.sub}</p>
+                        <p className="auth-radio-title" style={{ fontSize:"14px", fontWeight:600, color:"var(--brand-green-deep)", margin:0 }}>{opt.label}</p>
+                        <p className="auth-radio-sub" style={{ fontSize:"12px", color:"var(--homepage-body-text)", margin:0, marginTop:"2px" }}>{opt.sub}</p>
                       </div>
                     </label>
                   ))}
@@ -579,7 +584,7 @@ export default function RegisterPage() {
                     {[{value:"LS",label:"Licensed Surveyor (LS)"},{value:"GS",label:"Government Surveyor (GS)"}].map((opt)=>(
                       <label key={opt.value} className={`rp-radio-card${surveyorType===opt.value?" active":""}`} onClick={()=>setSurveyorType(opt.value)}>
                         <input type="radio" name="surveyorType" value={opt.value} checked={surveyorType===opt.value} onChange={()=>setSurveyorType(opt.value)} style={{ accentColor:"var(--brand-gold)" }} />
-                        <span style={{ fontSize:"14px", color:"var(--text-primary)", fontWeight:500 }}>{opt.label}</span>
+                        <span className="auth-radio-title" style={{ fontSize:"14px", color:"var(--text-primary)", fontWeight:500 }}>{opt.label}</span>
                       </label>
                     ))}
                   </div>
@@ -603,7 +608,7 @@ export default function RegisterPage() {
                   <label style={labelStyle}>{f.label}</label>
                   <div style={{ position:"relative" }}>
                     <input type={f.show?"text":"password"} value={f.val} onChange={(e)=>f.set(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder={f.ph} className={`rp-input${f.err?" err":""}`} style={{ paddingRight:"44px" }} inputMode="numeric" maxLength={4} />
-                    <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
+                    <button type="button" onClick={f.toggle} aria-label={f.show?"Hide":"Show"} className="auth-input-eye" style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
                       {f.show ? <EyeOff size={17}/> : <Eye size={17}/>}
                     </button>
                   </div>
@@ -651,8 +656,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Footer links */}
-        <div style={{ textAlign:"center", marginTop:"20px" }}>
-          <p style={{ fontSize:"13px", color:"rgba(107,90,58,.65)", margin:"0 0 6px" }}>
+        <div className="auth-below-card" style={{ textAlign:"center", marginTop:"20px" }}>
+          <p className="auth-below-muted" style={{ fontSize:"13px", color:"rgba(107,90,58,.65)", margin:"0 0 6px" }}>
             Already have an account?{" "}
             <a href="/login" style={{ color:"var(--brand-gold-muted)", fontWeight:700, textDecoration:"none" }}
               onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold)";}}
@@ -660,7 +665,7 @@ export default function RegisterPage() {
               Login here
             </a>
           </p>
-          <p style={{ fontSize:"11px", color:"rgba(107,90,58,.4)", margin:0 }}>
+          <p className="auth-below-fine" style={{ fontSize:"11px", color:"rgba(107,90,58,.4)", margin:0 }}>
             By registering, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>

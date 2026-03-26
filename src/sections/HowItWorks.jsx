@@ -218,17 +218,20 @@ export default function HowItWorks() {
               Process
             </span>
           </div>
-          <h2 style={{
-            fontFamily: "'IBM Plex Serif', Georgia, serif",
-            fontStyle: "italic", fontWeight: 600,
-            fontSize: "clamp(30px, 3.8vw, 52px)", lineHeight: 1.15,
-            background: "var(--hero-panel-bg)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            marginBottom: "14px", letterSpacing: "-0.01em",
-          }}>
+          <h2
+            className="home-serif-title"
+            style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic", fontWeight: 600,
+              fontSize: "clamp(30px, 3.8vw, 52px)", lineHeight: 1.15,
+              background: "var(--hero-panel-bg)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              marginBottom: "14px", letterSpacing: "-0.01em",
+            }}
+          >
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p className="hiw-section-sub" style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>

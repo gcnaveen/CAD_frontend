@@ -6,6 +6,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Homepage from "../pages/Homepage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
+import Cadregisterform from "../pages/form/Cadregisterform.jsx";
 
 // ─── User dashboard (nested via Outlet) ───
 import Home from "../dashboard/user/component/Home"; // your existing Home
@@ -46,6 +47,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Homepage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register/cad-operator" element={<Cadregisterform />} />
 
       {/* Redirect legacy surveyor path */}
       <Route

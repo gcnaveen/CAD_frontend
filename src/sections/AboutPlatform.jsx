@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
 import { FileText, Users, ShieldCheck, X, Check } from "lucide-react";
+import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
 
 export default function AboutPlatform() {
   const lang = useSelector((state) => state.language?.lang || "en");
@@ -122,24 +123,26 @@ export default function AboutPlatform() {
         }
       `}</style>
 
-      {/* Ambient background decorations */}
+      {/* Ambient background — same stack as Login/Register (orbs → Karnataka → survey grid) */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
         <div style={{
-          position: "absolute", top: "-80px", right: "-100px",
-          width: "500px", height: "500px", borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(201,168,76,0.09) 0%, transparent 65%)",
+          position: "absolute", top: "-120px", left: "-100px",
+          width: "600px", height: "600px", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(201,168,76,0.13) 0%, transparent 65%)",
         }} />
         <div style={{
-          position: "absolute", bottom: "-60px", left: "-80px",
-          width: "420px", height: "420px", borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(21,40,21,0.06) 0%, transparent 65%)",
+          position: "absolute", bottom: "-80px", right: "-80px",
+          width: "500px", height: "500px", borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(21,40,21,0.08) 0%, transparent 65%)",
         }} />
-        {/* Subtle dot grid */}
+        <KarnatakaOutlineDecor variant="right" />
         <div style={{
           position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(circle, rgba(201,168,76,0.15) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-          opacity: 0.4,
+          backgroundImage: `
+            linear-gradient(rgba(201,168,76,0.055) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(201,168,76,0.055) 1px, transparent 1px)
+          `,
+          backgroundSize: "52px 52px",
         }} />
       </div>
 
@@ -158,29 +161,35 @@ export default function AboutPlatform() {
             <span className="section-label">The Platform</span>
           </div>
 
-          <h2 style={{
-            fontFamily: "'IBM Plex Serif', Georgia, serif",
-            fontStyle: "italic",
-            fontWeight: 600,
-            fontSize: "clamp(30px, 3.8vw, 52px)",
-            lineHeight: 1.15,
-            background: "var(--hero-panel-bg)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            marginBottom: "16px",
-            letterSpacing: "-0.01em",
-          }}>
+          <h2
+            className="home-serif-title"
+            style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic",
+              fontWeight: 600,
+              fontSize: "clamp(30px, 3.8vw, 52px)",
+              lineHeight: 1.15,
+              background: "var(--hero-panel-bg)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              marginBottom: "16px",
+              letterSpacing: "-0.01em",
+            }}
+          >
             {translations[lang]?.about?.title}
           </h2>
 
-          <p style={{
-            fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
-            color: "var(--text-brown-muted)",
-            lineHeight: 1.8,
-            maxWidth: "560px",
-            margin: "0 auto",
-          }}>
+          <p
+            className="about-section-subtitle"
+            style={{
+              fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
+              color: "var(--text-brown-muted)",
+              lineHeight: 1.8,
+              maxWidth: "560px",
+              margin: "0 auto",
+            }}
+          >
             {translations[lang]?.about?.subtitle}
           </p>
         </div>
@@ -247,7 +256,7 @@ export default function AboutPlatform() {
 
           {/* SOLUTION CARD */}
           <div
-            className="ap-card scroll-reveal"
+            className="ap-card scroll-reveal about-solution-panel"
             data-delay="160"
             style={{
               padding: "clamp(24px, 3vw, 36px)",
@@ -279,14 +288,17 @@ export default function AboutPlatform() {
                 <Check size={20} color="var(--brand-gold)" strokeWidth={2.5} />
               </div>
               <div>
-                <h3 style={{
-                  fontFamily: "'IBM Plex Serif', Georgia, serif",
-                  fontWeight: 600, fontSize: "19px", color: "var(--text-primary)",
-                  margin: 0, marginBottom: "2px",
-                }}>
+                <h3
+                  className="about-sol-heading"
+                  style={{
+                    fontFamily: "'IBM Plex Serif', Georgia, serif",
+                    fontWeight: 600, fontSize: "19px", color: "var(--text-primary)",
+                    margin: 0, marginBottom: "2px",
+                  }}
+                >
                   {translations[lang]?.about?.solutionTitle}
                 </h3>
-                <p style={{ fontSize: "12.5px", color: "var(--text-secondary)", margin: 0 }}>
+                <p className="about-sol-muted" style={{ fontSize: "12.5px", color: "var(--text-secondary)", margin: 0 }}>
                   {translations[lang]?.about?.solutionSubtitle}
                 </p>
               </div>
@@ -304,7 +316,7 @@ export default function AboutPlatform() {
                   }}>
                     <Check size={11} color="var(--brand-gold)" strokeWidth={2.5} />
                   </div>
-                  <p style={{ fontSize: "14px", color: "var(--text-primary)", lineHeight: 1.65, margin: 0, fontWeight: 450 }}>
+                  <p className="about-sol-line" style={{ fontSize: "14px", color: "var(--text-primary)", lineHeight: 1.65, margin: 0, fontWeight: 450 }}>
                     {item}
                   </p>
                 </div>

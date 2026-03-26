@@ -212,13 +212,13 @@ const ProfilePage = () => {
 
         {/* ── Actions ── */}
         <Card className="mb-4">
-          <MenuItem
+          {/* <MenuItem
             icon={<HistoryIcon className="w-5 h-5 text-[var(--user-accent)]" />}
             iconBg="bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))]"
             label="Order History"
             sublabel="View all past CAD requests"
             onClick={() => navigate("/dashboard/user/order-history")}
-          />
+          /> */}
           <Divider />
           <MenuItem
             icon={<PhoneIcon className="w-5 h-5 text-[var(--user-accent)]" />}
