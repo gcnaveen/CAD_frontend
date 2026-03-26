@@ -5,9 +5,12 @@ import { logout } from "../features/auth/authSlice";
 import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
 import { toggleLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
-import { ArrowUpRight, User } from "lucide-react";
+import { useTheme } from "../theme/useTheme.js";
+import { ArrowUpRight } from "lucide-react";
 import InstallButton from "./pwa/InstallButton.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+
+const FALLBACK_LOGO = "/assets/logo.png";
 
 const getDisplayName = (user) => {
   if (!user) return "User";
@@ -39,6 +42,10 @@ const Header = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const lang = useSelector((state) => state.language?.lang || "en");
+  const { resolvedTheme } = useTheme();
+
+  const logoSrc =
+    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.png";
 
   useEffect(() => {
     const stored = localStorage.getItem(USER_KEY);
@@ -131,11 +138,11 @@ const Header = () => {
         }
         @media (max-width: 1023px) {
           .desktop-nav { display: none !important; }
-          .mobile-toggle { display: flex !important; }
+          .mobile-bar-controls { display: flex !important; align-items: center; gap: 8px; flex-shrink: 0; }
         }
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
-          .mobile-toggle { display: none !important; }
+          .mobile-bar-controls { display: none !important; }
         }
       `}</style>
 
@@ -190,12 +197,21 @@ const Header = () => {
               }}
             >
               <img
-                src="/assets/logoblack.png"
-                alt="Logo"
+                src={logoSrc}
+                alt="North-cot"
+                decoding="async"
                 style={{
-                  height: "52px",
+                  height: "58px",
                   width: "auto",
+                  maxHeight: "min(58px, 12vw)",
+                  objectFit: "contain",
+                  objectPosition: "left center",
                   transition: "transform 0.2s ease",
+                }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  if (e.currentTarget.src.endsWith("logo.png")) return;
+                  e.currentTarget.src = FALLBACK_LOGO;
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.02)";
@@ -305,51 +321,95 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Mobile toggle button */}
-            <button
-              className="mobile-toggle"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
-              style={{
-                display: "none",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
-                background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
-                border: "1px solid var(--homepage-cream-border)",
-                cursor: "pointer",
-                color: "var(--brand-green)",
-                boxShadow: "0 1px 6px var(--homepage-card-shadow)",
-              }}
+            {/* Mobile: theme → language → hamburger (matches dashboard header) */}
+            <div
+              className="mobile-bar-controls"
+              style={{ display: "none", alignItems: "center", gap: "8px", flexShrink: 0 }}
             >
-              {isMobileMenuOpen ? (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
+              <ThemeToggle variant="compact" />
+              <button
+                type="button"
+                onClick={() => dispatch(toggleLanguage())}
+                aria-label={t(lang, "header.langToggle.ariaLabel")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background:
+                    "color-mix(in srgb, var(--homepage-cream-border) 65%, var(--bg-secondary))",
+                  borderRadius: "10px",
+                  padding: "2px",
+                  gap: "2px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {["en", "kn"].map((l) => (
+                  <span
+                    key={l}
+                    className={
+                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
+                    }
+                    style={{
+                      padding: "4px 9px",
+                      borderRadius: "7px",
+                      fontSize: "11px",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {t(
+                      l,
+                      l === "en"
+                        ? "header.langToggle.activeEn"
+                        : "header.langToggle.activeKn",
+                    )}
+                  </span>
+                ))}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
+                  border: "1px solid var(--homepage-cream-border)",
+                  cursor: "pointer",
+                  color: "var(--brand-green)",
+                  boxShadow: "0 1px 6px var(--homepage-card-shadow)",
+                }}
+              >
+                {isMobileMenuOpen ? (
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </nav>
 
@@ -373,61 +433,7 @@ const Header = () => {
               padding: "12px",
             }}
           >
-            {/* Mobile lang toggle */}
-            <div
-              style={{
-                padding: "4px 0 8px",
-                borderBottom: "1px solid var(--homepage-cream-border)",
-                marginBottom: "8px",
-              }}
-            >
-              <button
-                onClick={() => dispatch(toggleLanguage())}
-                aria-label={t(lang, "header.langToggle.ariaLabel")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "100%",
-                  background:
-                    "color-mix(in srgb, var(--homepage-cream-border) 55%, var(--bg-secondary))",
-                  borderRadius: "10px",
-                  padding: "3px",
-                  gap: "2px",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {["en", "kn"].map((l) => (
-                  <span
-                    key={l}
-                    className={
-                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
-                    }
-                    style={{
-                      flex: 1,
-                      textAlign: "center",
-                      padding: "7px 12px",
-                      borderRadius: "7px",
-                      fontSize: "12px",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {t(
-                      l,
-                      l === "en"
-                        ? "header.langToggle.activeEn"
-                        : "header.langToggle.activeKn",
-                    )}
-                  </span>
-                ))}
-              </button>
-            </div>
-
-            {/* Mobile nav links */}
-            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 10px" }}>
-              <ThemeToggle variant="compact" />
-            </div>
+            {/* Nav + actions (theme & language are on the top bar on mobile) */}
             {NAV_LINKS.map(({ key, section }) => (
               <button
                 key={key}

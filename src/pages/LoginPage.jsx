@@ -252,6 +252,7 @@ import { userLogin } from "../services/user/userService";
 import { Eye, EyeOff, ArrowRight, Phone, Mail, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
 
 const getRedirectForRole = (role) => {
   const r = (role || "").toUpperCase();
@@ -332,7 +333,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="theme-animate-surface" style={{
+    <div className="theme-animate-surface auth-page" style={{
       minHeight: "100vh",
       background: "var(--homepage-gradient)",
       display: "flex", alignItems: "center", justifyContent: "center",
@@ -473,6 +474,8 @@ export default function LoginPage() {
           background: "radial-gradient(circle, rgba(21,40,21,0.08) 0%, transparent 65%)",
         }} />
 
+        <KarnatakaOutlineDecor variant="auth" />
+
         {/* Survey grid */}
         <div style={{
           position: "absolute", inset: 0,
@@ -530,10 +533,22 @@ export default function LoginPage() {
           animation: mounted ? "logo-in 0.6s ease 0.1s both" : "none",
         }}>
           {/* Logo container with pulsing ring */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            position: "relative", marginBottom: "14px",
-          }}>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            aria-label="Go to home"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+              marginBottom: "14px",
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              cursor: "pointer",
+            }}
+          >
             {/* Outer pulse ring */}
             <div style={{
               position: "absolute", inset: "-10px", borderRadius: "50%",
@@ -567,7 +582,7 @@ export default function LoginPage() {
                 }}
               />
             </div>
-          </div>
+          </button>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "6px" }}>
             <div style={{ height: "1px", width: "32px", background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.5))" }} />
@@ -590,7 +605,7 @@ export default function LoginPage() {
         </div>
 
         {/* ── FORM CARD ── */}
-        <div style={{
+        <div className="auth-form-card" style={{
           background: "rgba(255,255,255,0.68)",
           backdropFilter: "blur(20px)",
           border: "1px solid rgba(232,226,216,0.9)",
@@ -607,7 +622,7 @@ export default function LoginPage() {
 
           {/* Card header */}
           <div style={{ marginBottom: "24px" }}>
-            <h1 style={{
+            <h1 className="auth-card-title" style={{
               fontFamily: "'IBM Plex Serif', Georgia, serif",
               fontStyle: "italic", fontWeight: 600,
               fontSize: "clamp(20px, 3vw, 26px)", color: "var(--brand-green-deep)",
@@ -615,7 +630,7 @@ export default function LoginPage() {
             }}>
               Welcome Back
             </h1>
-            <p style={{ fontSize: "13px", color: "var(--homepage-body-text)", lineHeight: 1.5 }}>
+            <p className="auth-subtitle" style={{ fontSize: "13px", color: "var(--homepage-body-text)", lineHeight: 1.5 }}>
               {loginMode === "phone"
                 ? "Sign in with your phone number and password"
                 : "Sign in with your email and password"}
@@ -623,7 +638,7 @@ export default function LoginPage() {
           </div>
 
           {/* Mode tab toggle */}
-          <div style={{
+          <div className="auth-mode-bar" style={{
             display: "flex",
             background: "rgba(232,226,216,0.5)",
             borderRadius: "11px",
@@ -639,14 +654,12 @@ export default function LoginPage() {
                 key={mode}
                 type="button"
                 onClick={() => { setLoginMode(mode); setMessage({ type: "", text: "" }); setErrors({}); }}
+                className={`auth-tab${loginMode === mode ? " auth-tab--active" : ""}`}
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
                   padding: "9px 12px", borderRadius: "8px", border: "none", cursor: "pointer",
                   fontSize: "13px", fontWeight: 600, letterSpacing: "0.02em",
                   transition: "all 0.2s ease",
-                  background: loginMode === mode ? "white" : "transparent",
-                  color: loginMode === mode ? "var(--brand-green-deep)" : "rgba(100,90,70,0.55)",
-                  boxShadow: loginMode === mode ? "0 1px 6px rgba(0,0,0,0.09)" : "none",
                 }}
               >
                 {icon}{label}
@@ -663,7 +676,7 @@ export default function LoginPage() {
                   <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
                     Phone Number
                   </label>
-                  <div style={{ display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden", border: "1.5px solid rgba(213,200,178,0.8)", background: "rgba(255,255,255,0.6)", transition: "border-color 0.2s, box-shadow 0.2s" }}
+                  <div className="auth-phone-row" style={{ display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden", border: "1.5px solid rgba(213,200,178,0.8)", background: "rgba(255,255,255,0.6)", transition: "border-color 0.2s, box-shadow 0.2s" }}
                     onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.7)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)"; }}
                     onBlurCapture={e => { e.currentTarget.style.borderColor = "rgba(213,200,178,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
                   >
@@ -731,6 +744,7 @@ export default function LoginPage() {
                       color: "rgba(100,90,70,0.5)", padding: "4px",
                       transition: "color 0.2s ease",
                     }}
+                    className="auth-input-eye"
                     onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
                     onMouseLeave={e => { e.currentTarget.style.color = "rgba(100,90,70,0.5)"; }}
                   >
@@ -742,13 +756,16 @@ export default function LoginPage() {
 
               {/* Message */}
               {message.text && (
-                <div style={{
-                  padding: "11px 14px", borderRadius: "10px",
-                  background: message.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
-                  border: `1px solid ${message.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
-                  fontSize: "13px", fontWeight: 500,
-                  color: message.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
-                }}>
+                <div
+                  className={message.type === "success" ? "auth-message auth-message--success" : "auth-message auth-message--error"}
+                  style={{
+                    padding: "11px 14px", borderRadius: "10px",
+                    background: message.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
+                    border: `1px solid ${message.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
+                    fontSize: "13px", fontWeight: 500,
+                    color: message.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
+                  }}
+                >
                   {message.text}
                 </div>
               )}
@@ -772,9 +789,9 @@ export default function LoginPage() {
 
               {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
-                <span style={{ fontSize: "11px", color: "rgba(100,90,70,0.5)", fontWeight: 500 }}>or</span>
-                <div style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
+                <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
+                <span className="auth-divider-label" style={{ fontSize: "11px", color: "rgba(100,90,70,0.5)", fontWeight: 500 }}>or</span>
+                <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
               </div>
 
               {/* Switch mode */}
@@ -789,7 +806,7 @@ export default function LoginPage() {
               </div>
 
               {/* Register */}
-              <p style={{ textAlign: "center", fontSize: "13px", color: "var(--homepage-body-text)", margin: 0 }}>
+              <p className="auth-footer-line" style={{ textAlign: "center", fontSize: "13px", color: "var(--homepage-body-text)", margin: 0 }}>
                 Don't have an account?{" "}
                 <a href="/register" style={{
                   color: "var(--brand-gold-muted)", fontWeight: 700, textDecoration: "none",
@@ -806,12 +823,12 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom trust badge */}
-        <div style={{
+        <div className="auth-below-card" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
           marginTop: "20px",
         }}>
           <Shield size={12} color="rgba(154,112,32,0.5)" />
-          <span style={{ fontSize: "11px", color: "rgba(154,112,32,0.5)", fontWeight: 500, letterSpacing: "0.04em" }}>
+          <span className="auth-below-muted" style={{ fontSize: "11px", color: "rgba(154,112,32,0.5)", fontWeight: 500, letterSpacing: "0.04em" }}>
             Protected by industry-standard encryption
           </span>
         </div>

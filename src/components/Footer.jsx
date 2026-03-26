@@ -139,7 +139,7 @@ export default function Footer() {
             }}>
               <MapPin size={10} color="var(--brand-gold)" />
               <span style={{ fontSize: "11px", fontWeight: 600, color: "rgba(201,168,76,0.75)", letterSpacing: "0.1em" }}>
-                Karnataka Only
+                {tr?.karnatakaOnlyBadge || "Karnataka Only"}
               </span>
             </div>
           </div>
@@ -154,7 +154,8 @@ export default function Footer() {
                     className="footer-link"
                     onClick={() => scrollTo(link.href)}
                   >
-                    {link.name}
+                    {tr?.quickLinks?.[QUICK_LINKS.findIndex((l) => l.href === link.href)] ||
+                      link.name}
                     <ArrowUpRight size={11} className="footer-link-icon" />
                   </button>
                 </li>
@@ -169,7 +170,8 @@ export default function Footer() {
               {SUPPORT_LINKS.map((link) => (
                 <li key={link.name}>
                   <a href={link.href} className="footer-link">
-                    {link.name}
+                    {tr?.supportLinks?.[SUPPORT_LINKS.findIndex((l) => l.href === link.href)] ||
+                      link.name}
                     <ArrowUpRight size={11} className="footer-link-icon" />
                   </a>
                 </li>
@@ -218,7 +220,7 @@ export default function Footer() {
                   <MapPin size={13} color="var(--brand-gold)" />
                 </div>
                 <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", paddingTop: "6px" }}>
-                  Karnataka, India
+                  {tr?.contactLocationLabel || "Karnataka, India"}
                 </span>
               </div>
             </div>
@@ -235,10 +237,10 @@ export default function Footer() {
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", margin: 0 }}>
-              © 2026 North-cot. All rights reserved.
+              {tr?.copyrightText || "© 2026 North-cot. All rights reserved."}
             </p>
             <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)", margin: 0 }}>
-              Designed & developed by{" "}
+              {tr?.designedByLabel || "Designed & developed by"}{" "}
               <a
                 href="https://www.naviinfo.tech/"
                 target="_blank"
@@ -264,21 +266,35 @@ export default function Footer() {
           }}>
             <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(201,168,76,0.4)", display: "inline-block" }} />
             <span style={{ fontSize: "11px", color: "rgba(201,168,76,0.45)", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-              Karnataka Land Surveyors
+              {tr?.karnatakaLandSurveyors || "Karnataka Land Surveyors"}
             </span>
             <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(201,168,76,0.4)", display: "inline-block" }} />
           </div>
 
           <div style={{ display: "flex", gap: "20px" }}>
-            {["Privacy", "Terms", "Cookies"].map((item) => (
-              <a key={item} href={`#${item.toLowerCase()}`}
-                style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", textDecoration: "none", transition: "color 0.2s ease" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.22)"; }}
-              >
-                {item}
-              </a>
-            ))}
+            {(tr?.legalLinks?.length ? tr.legalLinks : ["Privacy", "Terms", "Cookies"]).map((item, idx) => {
+              const anchorKey = ["privacy", "terms", "cookies"][idx] || "legal";
+              return (
+                <a
+                  key={`${anchorKey}-${item}`}
+                  href={`#${anchorKey}`}
+                  style={{
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.22)",
+                    textDecoration: "none",
+                    transition: "color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--brand-gold)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "rgba(255,255,255,0.22)";
+                  }}
+                >
+                  {item}
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>

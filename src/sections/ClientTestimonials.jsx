@@ -5,67 +5,67 @@ import { translations } from "../constants/translation";
 
 const TESTIMONIALS = [
   {
-    name: "Ramesh Kumar",
-    location: "Village Rampur, UP",
-    role: "Land Owner",
-    initials: "RK",
-    text: "I was visiting the tehsil office 4 times with my hand-drawn sketch. Every time they rejected it. With this service, I uploaded my sketch and got a perfect CAD drawing in 2 days. Approved in first visit!",
-  },
-  {
     name: "Sunita Devi",
     location: "Dharwad, Karnataka",
-    role: "Property Owner",
+    role: "Licensed surveyor",
     initials: "SD",
-    text: "Very easy process. I don't know computers much, but my son helped me upload the sketch from phone. The CAD drawing came exactly as needed for property registration. Saved us many trips to taluk office.",
+    text: "Very easy process. I uploaded the Tippani from my phone and got a QC-checked DWG in two days. The tahsildar office accepted the drawing on the first visit — no more running to CAD shops in the city.",
   },
   {
-    name: "Prakash Patil",
-    location: "Nashik, Maharashtra",
-    role: "Farmer",
-    initials: "PP",
-    text: "Government office always said my drawing is not proper. Now with professional CAD design, they accepted immediately. Good service and helpful team. Highly recommend for all farmers and land owners.",
+    name: "Raghavendra Bhat",
+    location: "Udupi, Karnataka",
+    role: "Land surveyor",
+    initials: "RB",
+    text: "Fixed ₹500 is honest pricing. Admin clarified one measurement on WhatsApp, and the final AutoCAD matched my field notes. This is built the way Karnataka surveyors actually work.",
+  },
+  {
+    name: "Prakash Naik",
+    location: "Belagavi, Karnataka",
+    role: "Surveyor",
+    initials: "PN",
+    text: "Earlier I lost almost a week waiting at a CAD bureau. Here the pipeline is clear: upload, assignment, drawing, QC, download. Saves diesel and time on every RTC package.",
   },
   {
     name: "Lakshmi Reddy",
-    location: "Anantapur, Andhra Pradesh",
-    role: "Land Owner",
+    location: "Ballari, Karnataka",
+    role: "Property survey",
     initials: "LR",
-    text: "Saved me so much time and money! The local CAD person wanted ₹5000 and 15 days. Here I got it in 3 days at half the price. The drawing quality is excellent and passed government check first time.",
+    text: "Local drafters quoted ₹4,000–5,000 and two weeks. North-cot delivered in 48 hours with proper layers and scale. Registration desk had no objections.",
   },
   {
-    name: "Mohan Singh",
-    location: "Alwar, Rajasthan",
-    role: "Farmer",
-    initials: "MS",
-    text: "I have 5 acres of agricultural land. Making proper boundary map was very difficult. This service made everything easy. They called me to clarify measurements and delivered perfect government-ready drawing.",
+    name: "Mohan Gowda",
+    location: "Mandya, Karnataka",
+    role: "Farmer & surveyor",
+    initials: "MG",
+    text: "I work mostly from the field. Being able to submit documents from the phone and pay in two steps is perfect. The drawing matched my government sketch boundaries exactly.",
   },
   {
     name: "Kavita Sharma",
-    location: "Satara, Maharashtra",
-    role: "Property Owner",
+    location: "Mysuru, Karnataka",
+    role: "Surveyor",
     initials: "KS",
-    text: "My husband passed away and I needed property transfer documents. The team was very understanding and helped me throughout. Got all CAD drawings for mutation within one week. Very grateful for their support.",
+    text: "Professional communication throughout. They cross-checked my hobli and survey numbers before CAD work started. Exactly what we need for Karnataka land records work.",
   },
   {
-    name: "Rajesh Patel",
-    location: "Mehsana, Gujarat",
-    role: "Land Owner",
+    name: "Rajesh Patil",
+    location: "Vijayapura, Karnataka",
+    role: "Licensed surveyor",
     initials: "RP",
-    text: "Best decision to use this service! The designer called me twice to confirm all details. Final drawing had every dimension perfect. Revenue office approved without a single question.",
+    text: "Best decision for our district practice. DWG plus PDF both were clean, and the secure download link meant I did not have to use random WhatsApp forwards.",
   },
   {
-    name: "Suresh Yadav",
-    location: "Bhopal, Madhya Pradesh",
-    role: "Farmer",
-    initials: "SY",
-    text: "Very professional service. I uploaded sketch on Sunday night, got a call on Monday morning, and received drawing by Tuesday evening. The speed and quality both are excellent. Will use again.",
+    name: "Suresh Kumar",
+    location: "Hassan, Karnataka",
+    role: "Surveyor",
+    initials: "SK",
+    text: "Uploaded on Sunday evening, got QC approval by Tuesday. Speed without cutting corners — the checklist-style review shows before I pay the download fee.",
   },
   {
     name: "Anjali Desai",
-    location: "Valsad, Gujarat",
-    role: "Builder",
+    location: "Bengaluru Rural, Karnataka",
+    role: "Surveyor",
     initials: "AD",
-    text: "Local person wanted ₹8000 and said come after 20 days. Found this service online, paid ₹3500 and got drawing in 4 days. Municipality accepted it without any changes!",
+    text: "We only take Karnataka survey jobs, so a platform that understands Tippani and RTC flow matters. This team speaks our language and keeps the process transparent.",
   },
 ];
 
@@ -96,7 +96,8 @@ export default function ClientTestimonials() {
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.testimonials;
   const sectionRef = useRef(null);
-  const totalPages = Math.ceil(TESTIMONIALS.length / ITEMS_PER_PAGE);
+  const testimonials = tr?.items?.length ? tr.items : TESTIMONIALS;
+  const totalPages = Math.ceil(testimonials.length / ITEMS_PER_PAGE);
 
   useEffect(() => {
     if (isPaused) return;
@@ -149,7 +150,7 @@ export default function ClientTestimonials() {
     setCurrentIndex((p) => (p === 0 ? totalPages - 1 : p - 1));
   };
 
-  const currentCards = TESTIMONIALS.slice(
+  const currentCards = testimonials.slice(
     currentIndex * ITEMS_PER_PAGE,
     currentIndex * ITEMS_PER_PAGE + ITEMS_PER_PAGE
   );
@@ -242,20 +243,23 @@ export default function ClientTestimonials() {
           }}>
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
             <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
-              Testimonials
+              {tr?.kicker || "Testimonials"}
             </span>
           </div>
-          <h2 style={{
-            fontFamily: "'IBM Plex Serif', Georgia, serif",
-            fontStyle: "italic", fontWeight: 600,
-            fontSize: "clamp(28px, 3.8vw, 50px)", lineHeight: 1.15,
-            background: "var(--hero-panel-bg)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            marginBottom: "14px", letterSpacing: "-0.01em",
-          }}>
+          <h2
+            className="home-serif-title"
+            style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic", fontWeight: 600,
+              fontSize: "clamp(28px, 3.8vw, 50px)", lineHeight: 1.15,
+              background: "var(--hero-panel-bg)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              marginBottom: "14px", letterSpacing: "-0.01em",
+            }}
+          >
             {tr?.title}
           </h2>
-          <p style={{ fontSize: "clamp(14px, 1.1vw, 16px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
+          <p className="testimonials-section-sub" style={{ fontSize: "clamp(14px, 1.1vw, 16px)", color: "var(--text-brown-muted)", lineHeight: 1.8, maxWidth: "480px", margin: "0 auto" }}>
             {tr?.subtitle}
           </p>
         </div>
@@ -296,7 +300,7 @@ export default function ClientTestimonials() {
                 </div>
 
                 {/* Quote */}
-                <p style={{
+                <p className="test-quote" style={{
                   fontSize: "13.5px", color: "var(--text-primary)",
                   lineHeight: 1.75, fontStyle: "italic",
                   flex: 1, marginBottom: "20px",
@@ -323,10 +327,10 @@ export default function ClientTestimonials() {
                     </span>
                   </div>
                   <div>
-                    <p style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--brand-green-deep)", margin: 0 }}>{t.name}</p>
+                    <p className="test-author-name" style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--brand-green-deep)", margin: 0 }}>{t.name}</p>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                       <MapPin size={10} color="var(--text-brown-soft)" />
-                      <p style={{ fontSize: "11.5px", color: "var(--text-brown-soft)", margin: 0 }}>{t.location}</p>
+                      <p className="test-author-meta" style={{ fontSize: "11.5px", color: "var(--text-brown-soft)", margin: 0 }}>{t.location}</p>
                     </div>
                   </div>
                   {/* Role badge */}

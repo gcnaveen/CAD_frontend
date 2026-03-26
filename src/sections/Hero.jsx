@@ -156,18 +156,21 @@ const Hero = () => {
 
         {/* HERO TITLE — large, dramatic */}
         <div className="reveal-up mb-5" style={{ maxWidth: "820px" }}>
-          <h1 style={{
-            fontFamily: "'IBM Plex Serif', Georgia, serif",
-            fontStyle: "italic",
-            fontWeight: 600,
-            lineHeight: 1.12,
-            fontSize: "clamp(38px, 5.5vw, 72px)",
-            background: "var(--hero-panel-bg)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            letterSpacing: "-0.01em",
-          }}>
+          <h1
+            className="home-serif-title"
+            style={{
+              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontStyle: "italic",
+              fontWeight: 600,
+              lineHeight: 1.12,
+              fontSize: "clamp(38px, 5.5vw, 72px)",
+              background: "var(--hero-panel-bg)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              letterSpacing: "-0.01em",
+            }}
+          >
             {t(lang, "hero.title")}
           </h1>
         </div>
@@ -194,6 +197,7 @@ const Hero = () => {
         {/* CTA Buttons */}
         <div className="reveal-up flex flex-col sm:flex-row gap-3 mb-10">
           <button
+            type="button"
             onClick={() => navigate("/login")}
             className="magnetic-btn"
             style={{
@@ -214,26 +218,11 @@ const Hero = () => {
           </button>
 
           <button
+            type="button"
             onClick={scrollToHowItWorks}
-            className="magnetic-btn"
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
-              padding: "14px 28px", borderRadius: "14px",
-              background: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)",
-              color: "var(--homepage-cta-ghost-fg)", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
-              border: "1.5px solid rgba(213,207,196,0.8)", cursor: "pointer",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              transition: "all 0.25s ease",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.9)"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.7)"; e.currentTarget.style.borderColor = "rgba(213,207,196,0.8)"; }}
+            className="magnetic-btn hero-cta-secondary"
           >
-            <span style={{
-              width: "30px", height: "30px", borderRadius: "50%",
-              background: "white", border: "1px solid rgba(0,0,0,0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-            }}>
+            <span className="hero-play-bubble">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </span>
             {t(lang, "hero.ctaSecondary")}
@@ -280,14 +269,20 @@ const Hero = () => {
               }}>
                 {stat.icon}
               </div>
-              <div style={{
-                fontFamily: "'IBM Plex Serif', Georgia, serif",
-                fontWeight: 600, fontSize: "20px", color: "var(--brand-green-deep)",
-                lineHeight: 1, marginBottom: "4px",
-              }}>
+              <div
+                className="hero-stat-value"
+                style={{
+                  fontFamily: "'IBM Plex Serif', Georgia, serif",
+                  fontWeight: 600, fontSize: "20px", color: "var(--brand-green-deep)",
+                  lineHeight: 1, marginBottom: "4px",
+                }}
+              >
                 {stat.value}
               </div>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: "var(--text-brown-soft)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              <div
+                className="hero-stat-label"
+                style={{ fontSize: "11px", fontWeight: 500, color: "var(--text-brown-soft)", letterSpacing: "0.05em", textTransform: "uppercase" }}
+              >
                 {stat.label}
               </div>
             </div>
