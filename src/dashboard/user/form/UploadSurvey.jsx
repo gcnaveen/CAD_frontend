@@ -154,14 +154,42 @@ const UploadSurvey = ({
       }
 
       // Upload file to S3
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        body: actualFile,
-        headers: { "Content-Type": actualFile.type },
-      });
+      const redactedUploadUrl = typeof uploadUrl === "string" ? uploadUrl.split("?")[0] : uploadUrl;
+      try {
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          body: actualFile,
+          headers: { "Content-Type": actualFile.type },
+        });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file to S3");
+        if (!uploadResponse.ok) {
+          let details = "";
+          try {
+            details = await uploadResponse.text();
+          } catch {
+            // ignore
+          }
+
+          // Temporary: helps backend verify why presigned PUT fails.
+          console.error("s3 backend log", {
+            uploadUrl: redactedUploadUrl,
+            fileName: actualFile?.name,
+            contentType: actualFile?.type,
+            status: uploadResponse.status,
+            statusText: uploadResponse.statusText,
+            responseBody: typeof details === "string" ? details : "",
+          });
+
+          throw new Error("Failed to upload file to S3");
+        }
+      } catch (e) {
+        console.error("s3 backend log", {
+          uploadUrl: redactedUploadUrl,
+          fileName: actualFile?.name,
+          contentType: actualFile?.type,
+          error: e?.message || String(e),
+        });
+        throw e;
       }
 
       // Store file info in form (fileUrl and metadata)

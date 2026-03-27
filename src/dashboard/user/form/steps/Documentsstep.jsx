@@ -53,7 +53,7 @@ const DocumentsStep = ({
   const [uploading,      setUploading]       = useState({});
   const uploadMode = Form.useWatch("uploadMode", form) ?? "normal";
 
-  const NORMAL_FIELDS = CATEGORIES.map((c) => c.key); // includes other_documents
+  const NORMAL_DOC_FIELDS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
   const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
 
   const hasAnyFiles = (fieldName) => {
@@ -62,30 +62,27 @@ const DocumentsStep = ({
   };
 
   const hasAnyUploads = () => {
-    if (hasAnyFiles("singleUpload")) return true;
-    if (Array.isArray(form.getFieldValue("documentTypes")) && form.getFieldValue("documentTypes")?.length) return true;
-    return NORMAL_FIELDS.some((f) => hasAnyFiles(f));
+    const single = form.getFieldValue("singleUpload");
+    const types  = form.getFieldValue("documentTypes");
+
+    if (Array.isArray(single) && single.length > 0) return true;
+    if (Array.isArray(types) && types.length > 0) return true;
+
+    return NORMAL_DOC_FIELDS.some((f) => {
+      const list = form.getFieldValue(f);
+      return Array.isArray(list) && list.length > 0;
+    });
   };
 
   const clearForMode = (nextMode) => {
-    // HARD mutual exclusivity: clear + ignore the opposite mode entirely.
     if (nextMode === "single") {
-      const otherBefore = form.getFieldValue("other_documents") || [];
-      form.resetFields([...NORMAL_FIELDS, ...SINGLE_FIELDS]);
-      NORMAL_FIELDS.forEach((field) => {
+      // clear normal docs ONLY
+      NORMAL_DOC_FIELDS.forEach((field) => {
         form.setFieldValue(field, []);
-        if (field === "other_documents") {
-          // parent needs to forget other docs meta too
-          otherBefore.forEach((f) => onOtherDocumentRemove?.(f?.uid));
-        } else {
-          onDocumentRemove?.(field);
-        }
+        onDocumentRemove?.(field);
       });
-      form.setFieldValue("singleUpload", []);
-      form.setFieldValue("documentTypes", []);
-      onDocumentRemove?.("singleUpload");
     } else {
-      form.resetFields([...SINGLE_FIELDS]);
+      // clear single mode ONLY
       form.setFieldValue("singleUpload", []);
       form.setFieldValue("documentTypes", []);
       onDocumentRemove?.("singleUpload");
@@ -143,8 +140,44 @@ const DocumentsStep = ({
         : await getImagePresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: villageId });
       const { uploadUrl, fileUrl, key } = result?.data ?? result;
       if (!uploadUrl || !fileUrl) throw new Error("Failed to get upload URL");
-      const res = await fetch(uploadUrl, { method: "PUT", body: actual, headers: { "Content-Type": actual.type } });
-      if (!res.ok) throw new Error("Upload to storage failed");
+      const redactedUploadUrl = typeof uploadUrl === "string" ? uploadUrl.split("?")[0] : uploadUrl;
+      try {
+        const res = await fetch(uploadUrl, {
+          method: "PUT",
+          body: actual,
+          headers: { "Content-Type": actual.type },
+        });
+
+        if (!res.ok) {
+          let details = "";
+          try {
+            details = await res.text();
+          } catch {
+            // ignore
+          }
+
+          // Temporary: helps backend verify why presigned PUT fails.
+          console.error("s3 backend log", {
+            uploadUrl: redactedUploadUrl,
+            fileName: actual?.name,
+            contentType: actual?.type,
+            status: res.status,
+            statusText: res.statusText,
+            responseBody: typeof details === "string" ? details : "",
+          });
+
+          throw new Error("Upload to storage failed");
+        }
+      } catch (e) {
+        // If fetch throws (network/CORS), still log something useful.
+        console.error("s3 backend log", {
+          uploadUrl: redactedUploadUrl,
+          fileName: actual?.name,
+          contentType: actual?.type,
+          error: e?.message || String(e),
+        });
+        throw e;
+      }
       const uid  = file.uid || `upload-${Date.now()}`;
       const meta = { fileUrl, fileName: file.name || actual.name, mimeType: file.type || actual.type, size: file.size || actual.size };
       const cur  = form.getFieldValue(fieldName) || [];

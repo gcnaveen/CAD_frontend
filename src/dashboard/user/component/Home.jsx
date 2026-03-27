@@ -29,10 +29,31 @@ const PlusIcon = ({ className = "" }) => (
 
 const Home = () => {
   const navigate = useNavigate();
-  const userName =
-    useSelector((s) => s.auth?.userName) ||
-    localStorage.getItem("userName") ||
-    "User";
+  const authSlice = useSelector((s) => s.auth);
+  const userName = useMemo(() => {
+    const fromRedux =
+      authSlice?.user?.name?.first ||
+      authSlice?.user?.name?.last ||
+      authSlice?.userName;
+
+    let fromStorageUserName = localStorage.getItem("userName");
+    let fromStorageUser;
+    try {
+      const raw = localStorage.getItem("user");
+      fromStorageUser = raw ? JSON.parse(raw) : null;
+    } catch {
+      fromStorageUser = null;
+    }
+
+    const first = fromStorageUser?.name?.first;
+    const last = fromStorageUser?.name?.last;
+    const full = [first, last].filter(Boolean).join(" ").trim();
+
+    return (typeof fromRedux === "string" && fromRedux.trim()) ||
+      (typeof full === "string" && full) ||
+      (typeof fromStorageUserName === "string" && fromStorageUserName.trim()) ||
+      "User";
+  }, [authSlice]);
 
   const [drafts, setDrafts] = useState([]);
   const [draftTotal, setDraftTotal] = useState(0);

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import ThemeToggle from "../../components/ThemeToggle.jsx";
 import InstallButton from "../../components/pwa/InstallButton.jsx";
+import { API_BASE_URL } from "../../../config";
 
 const STEPS = [
   { key: 1, label: "Profile", short: "You", Icon: User },
@@ -24,11 +26,19 @@ const initialForm = {
   address: "",
   skills: "",
   yearsExperience: "",
+  resumeUrl: "",
 };
 
 function digitsOnly(s) {
   return (s || "").replace(/\D/g, "");
 }
+
+const publicApiClient = axios.create({
+  baseURL: API_BASE_URL || "",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 export default function Cadregisterform() {
   const navigate = useNavigate();
@@ -37,6 +47,10 @@ export default function Cadregisterform() {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [karnatakaConfirmed, setKarnatakaConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [isResumeUploading, setIsResumeUploading] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState("");
 
   const progressPct = useMemo(
     () => ((step - 1) / (STEPS.length - 1)) * 100,
@@ -46,6 +60,76 @@ export default function Cadregisterform() {
   const setField = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
+    setSubmitError("");
+  };
+
+  const parseSkills = (skillsText) =>
+    String(skillsText || "")
+      .split(/[\n,]/)
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+
+  const mapApiFieldToFormField = (field) => {
+    const key = String(field || "").trim();
+    if (key === "name") return "fullName";
+    if (key === "phone") return "mobile";
+    if (key === "yearsOfExperience") return "yearsExperience";
+    return key;
+  };
+
+  const handleResumeUpload = async (ev) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      setErrors((prev) => ({ ...prev, resumeUrl: "Resume must be 10MB or smaller" }));
+      ev.target.value = "";
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, resumeUrl: undefined }));
+    setSubmitError("");
+    setIsResumeUploading(true);
+
+    try {
+      const entityId =
+        digitsOnly(form.mobile) ||
+        form.email.trim() ||
+        `cad-interest-${Date.now()}`;
+      const presignedResponse = await publicApiClient.post("/api/upload/image", {
+        fileName: file.name,
+        contentType: file.type || "application/pdf",
+        entityId,
+      });
+      const presigned = presignedResponse?.data?.data ?? presignedResponse?.data;
+      const { uploadUrl, fileUrl } = presigned || {};
+      if (!uploadUrl || !fileUrl) {
+        throw new Error("Failed to get upload URL for resume");
+      }
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/pdf",
+        },
+      });
+      if (!uploadResponse.ok) {
+        throw new Error("Resume upload failed");
+      }
+
+      setField("resumeUrl", fileUrl);
+      setResumeFileName(file.name);
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        resumeUrl: error?.message || "Unable to upload resume right now. Please try again.",
+      }));
+    } finally {
+      ev.target.value = "";
+      setIsResumeUploading(false);
+    }
   };
 
   const validateStep = (s) => {
@@ -82,17 +166,47 @@ export default function Cadregisterform() {
     else navigate(-1);
   };
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault();
     if (!validateStep(3)) return;
+    setSubmitError("");
+    setIsSubmitting(true);
     const payload = {
-      ...form,
-      mobile: digitsOnly(form.mobile),
-      yearsExperience: Number(form.yearsExperience),
-      karnatakaOperatorOnly: true,
+      name: form.fullName.trim(),
+      email: form.email.trim(),
+      phone: digitsOnly(form.mobile),
+      address: form.address.trim(),
+      skills: parseSkills(form.skills),
+      yearsOfExperience: Number(form.yearsExperience),
+      resumeUrl: form.resumeUrl.trim() || undefined,
     };
-    console.info("[CAD operator registration]", payload);
-    setSubmitted(true);
+    try {
+      await publicApiClient.post("/api/cad-interest", payload);
+      setSubmitted(true);
+    } catch (err) {
+      const responseData = err?.response?.data;
+      const apiMessage =
+        responseData?.message ||
+        err?.message ||
+        "Unable to submit your application right now. Please try again.";
+      setSubmitError(apiMessage);
+
+      const backendErrors = Array.isArray(responseData?.errors) ? responseData.errors : [];
+      if (backendErrors.length > 0) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          backendErrors.forEach((errorItem) => {
+            const mappedField = mapApiFieldToFormField(errorItem?.field);
+            if (mappedField && errorItem?.message) {
+              next[mappedField] = errorItem.message;
+            }
+          });
+          return next;
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -445,6 +559,60 @@ export default function Cadregisterform() {
                   />
                 }
               />
+              <Field
+                label="Resume (optional)"
+                error={errors.resumeUrl}
+                hint="Upload PDF/DOC/DOCX (max 10MB). It will be attached as a link."
+                input={
+                  <div className="flex flex-col gap-2.5">
+                    <label
+                      className="inline-flex w-fit cursor-pointer items-center justify-center rounded-full px-4 py-2.5 text-[13px] font-semibold transition-transform hover:scale-[1.01]"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(201,168,76,0.28)",
+                        color: "rgba(248,250,252,0.9)",
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleResumeUpload}
+                        disabled={isResumeUploading}
+                        className="hidden"
+                      />
+                      {isResumeUploading ? "Uploading resume..." : "Upload resume"}
+                    </label>
+                    {form.resumeUrl && (
+                      <div
+                        className="flex items-center justify-between gap-2 rounded-[12px] border px-3 py-2"
+                        style={{
+                          borderColor: "rgba(201,168,76,0.24)",
+                          background: "rgba(255,255,255,0.04)",
+                        }}
+                      >
+                        <p
+                          className="truncate"
+                          style={{ margin: 0, fontSize: "12px", color: "rgba(226,232,240,0.82)" }}
+                          title={resumeFileName || form.resumeUrl}
+                        >
+                          {resumeFileName || "Resume uploaded"}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setField("resumeUrl", "");
+                            setResumeFileName("");
+                          }}
+                          className="rounded-full border border-[rgba(255,255,255,0.18)] px-2.5 py-1 text-[11px] font-semibold"
+                          style={{ color: "rgba(226,232,240,0.85)", background: "transparent" }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
               <div>
                 <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-[rgba(201,168,76,0.22)] bg-[rgba(255,255,255,0.04)] p-3.5 sm:p-4">
                   <input
@@ -472,6 +640,14 @@ export default function Cadregisterform() {
           )}
 
           <div className="mt-auto flex flex-col-reverse gap-3 pt-8 sm:flex-row sm:justify-end">
+            {submitError && step === 3 && (
+              <p
+                className="w-full sm:mr-auto sm:max-w-[65%]"
+                style={{ margin: 0, fontSize: "12px", color: "#fca5a5", lineHeight: 1.5 }}
+              >
+                {submitError}
+              </p>
+            )}
             {step < 3 ? (
               <button
                 type="button"
@@ -490,15 +666,17 @@ export default function Cadregisterform() {
             ) : (
               <button
                 type="submit"
+                disabled={isSubmitting || isResumeUploading}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border-0 py-3.5 text-[15px] font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98] sm:w-auto sm:min-w-[180px]"
                 style={{
                   background: "rgba(244, 239, 230, 0.96)",
                   color: "#0f2418",
-                  cursor: "pointer",
+                  cursor: isSubmitting || isResumeUploading ? "not-allowed" : "pointer",
+                  opacity: isSubmitting || isResumeUploading ? 0.85 : 1,
                   boxShadow: "0 10px 32px rgba(0,0,0,0.22)",
                 }}
               >
-                Submit application
+                {isSubmitting ? "Submitting..." : isResumeUploading ? "Upload in progress..." : "Submit application"}
                 <Check size={18} strokeWidth={2.25} />
               </button>
             )}

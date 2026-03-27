@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   getImagePresignedUrl,
   getAudioPresignedUrl,
@@ -12,11 +11,50 @@ import {
  * @param {File} file - File to upload
  */
 async function putFileToS3(uploadUrl, file) {
-  await axios.put(uploadUrl, file, {
-    headers: {
-      "Content-Type": file.type,
-    },
-  });
+  // Use fetch so the browser behavior matches our other uploads (Documentsstep.jsx).
+  // This also gives clearer status errors when S3 rejects the PUT.
+  const headers = {};
+  if (file?.type) headers["Content-Type"] = file.type;
+
+  const redactedUploadUrl = typeof uploadUrl === "string" ? uploadUrl.split("?")[0] : uploadUrl;
+
+  try {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers,
+    });
+
+    if (!res.ok) {
+      let details = "";
+      try {
+        details = await res.text();
+      } catch {
+        // ignore
+      }
+
+      // Temporary: helps backend verify why presigned PUT fails.
+      console.error("s3 backend log", {
+        uploadUrl: redactedUploadUrl,
+        fileName: file?.name,
+        contentType: file?.type,
+        status: res.status,
+        statusText: res.statusText,
+        responseBody: typeof details === "string" ? details : "",
+      });
+
+      const trimmed = typeof details === "string" ? details.slice(0, 300) : "";
+      throw new Error(`S3 PUT failed (${res.status} ${res.statusText}) ${trimmed}`.trim());
+    }
+  } catch (err) {
+    console.error("s3 backend log", {
+      uploadUrl: redactedUploadUrl,
+      fileName: file?.name,
+      contentType: file?.type,
+      error: err?.message || String(err),
+    });
+    throw err;
+  }
 }
 
 /**

@@ -77,6 +77,7 @@ const UserUploadForm = ({
 
   const [step,          setStep]          = useState(0);
   const [loading,       setLoading]       = useState(false);
+  const [stepLoading,   setStepLoading]   = useState(false);
   const [draftSaving,   setDraftSaving]   = useState(false);
   const [draftLoading,  setDraftLoading]  = useState(false);
   const [draftId,       setDraftId]       = useState(null);
@@ -103,11 +104,32 @@ const UserUploadForm = ({
 
   /* ── Navigation ── */
   const goNext = async () => {
+    if (stepLoading) return;
     try {
       const fields = STEP_FIELDS[step];
       if (fields.length > 0) await form.validateFields(fields);
+
+      const payload = buildDraftPayload(form.getFieldsValue(true));
+      const currentDraftId = draftId || draftIdFromUrl;
+
+      setStepLoading(true);
+      if (step === 0 && !currentDraftId) {
+        const created = await createDraft(payload);
+        const nextDraftId = created?._id ?? created?.id;
+        if (!nextDraftId) throw new Error("Draft ID missing from createDraft response");
+        setDraftId(nextDraftId);
+      } else {
+        if (!currentDraftId) throw new Error("Draft ID missing. Please save draft and try again.");
+        await updateDraft(currentDraftId, payload);
+      }
+
       setStep((s) => Math.min(s + 1, 3));
-    } catch { /* validation failed, ant shows inline errors */ }
+    } catch (e) {
+      if (e?.errorFields) return; // validation failed, ant shows inline errors
+      message.error(e?.message || "Failed to save draft");
+    } finally {
+      setStepLoading(false);
+    }
   };
   const goPrev = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -137,6 +159,7 @@ const UserUploadForm = ({
   const handleCancel = () => {
     resetFormState();
     onCancel?.();
+    navigate("/dashboard/user");
   };
 
   /* ── Submit ── */
@@ -149,24 +172,20 @@ const UserUploadForm = ({
     setLoading(true);
     try {
       const values = form.getFieldsValue(true);
+      const currentDraftId = draftId || draftIdFromUrl;
+
+      if (!currentDraftId) {
+        message.error("Draft ID missing. Please continue from Step 1 to save draft first.");
+        return;
+      }
 
       if (!values.village) {
         message.error("Please select village first");
         return;
       }
 
-      // STRICT mutual exclusivity + validation (single vs normal).
-      // Only treat uploads as present when we have an uploaded `fileUrl`.
-      const singleMeta =
-        uploadedDocs.singleUpload?.fileUrl ? uploadedDocs.singleUpload : toMeta(values.singleUpload?.[0]);
-      const hasSingleUpload = Boolean(singleMeta?.fileUrl?.startsWith("http"));
-
-      const hasAnyNormalUpload = DOCUMENT_FIELDS.some((fieldName) => {
-        const fileList = form.getFieldValue(fieldName) || values[fieldName];
-        const first = Array.isArray(fileList) ? fileList[0] : null;
-        const meta = uploadedDocs[fieldName] || toMeta(first);
-        return Boolean(meta?.fileUrl?.startsWith("http"));
-      });
+      // Use explicit form mode only. Never infer mode from uploaded files.
+      const uploadMode = form.getFieldValue("uploadMode") ?? "normal";
       const hasAnyMainNormal = MAIN_DOCUMENT_FIELDS.some((fieldName) => {
         const fileList = form.getFieldValue(fieldName) || values[fieldName];
         const first = Array.isArray(fileList) ? fileList[0] : null;
@@ -174,18 +193,18 @@ const UserUploadForm = ({
         return Boolean(meta?.fileUrl?.startsWith("http"));
       });
 
-      const uploadMode = values.uploadMode ?? "normal";
-
       if (uploadMode === "single") {
+        const singleMeta =
+          uploadedDocs.singleUpload?.fileUrl ? uploadedDocs.singleUpload : toMeta(values.singleUpload?.[0]);
+        const hasSingleUpload = Boolean(singleMeta?.fileUrl?.startsWith("http"));
         if (!hasSingleUpload) { message.error("Single mode: please upload exactly one document"); return; }
         const docTypes = Array.isArray(values.documentTypes) ? values.documentTypes : [];
         if (docTypes.length === 0) { message.error("Single mode: select at least one document type"); return; }
-        if (hasAnyNormalUpload) { message.error("Single mode: remove normal uploads (switching mode will clear them)"); return; }
       } else {
-        if (hasSingleUpload) { message.error("Normal mode: remove single upload (switching mode will clear it)"); return; }
         if (!hasAnyMainNormal) { message.error("Normal mode: upload at least one main document (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
       }
       const payload = {
+        draftId: currentDraftId,
         surveyType: values.surveyType,
         district: values.district,
         taluka: values.taluka,
@@ -216,39 +235,20 @@ const UserUploadForm = ({
         }
         const hasMain = MAIN_DOCUMENT_FIELDS.some((f) => payload[f]);
         if (!hasMain) { message.error("At least one main document required (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
-        try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
-
-        // Backend requires `singleUpload` even in normal mode.
-        // Derive it from the first available MAIN document (keeps payload structure unchanged).
-        const pick =
-          payload.moolaTippani ||
-          payload.atlas ||
-          payload.rrPakkabook ||
-          null;
-        if (pick?.url) {
-          payload.singleUpload = { ...pick };
-        } else {
-          message.error("Normal mode: unable to derive singleUpload (upload a main document)");
-          return;
-        }
       }
+      try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
 
       // Defensive payload cleanup (no mixed-mode payloads, ever).
       if (uploadMode === "single") {
         DOCUMENT_FIELDS.forEach((k) => { delete payload[k]; });
-        delete payload.other_documents;
       } else {
+        delete payload.singleUpload;
         delete payload.documentTypes;
         DOCUMENT_TYPE_KEYS.forEach((k) => { delete payload[k]; });
       }
 
-      // Debugging aid: confirm we don't send `uploadMode: "single"` without `singleUpload`.
-      // Check browser console when you hit the backend error.
-      console.debug("[UserUploadForm] submit payload", {
-        uploadMode: payload.uploadMode,
-        hasSingleUpload: Boolean(payload.singleUpload?.url),
-        hasAnyMainDoc: DOCUMENT_FIELDS.some((f) => Boolean(payload[f]?.url)),
-      });
+      console.log("UPLOAD MODE:", uploadMode);
+      console.log("FINAL PAYLOAD:", payload);
 
       const result = await createSketchUpload(payload);
       if (result.success) {
@@ -266,19 +266,8 @@ const UserUploadForm = ({
     const si = (k, v) => { if (v !== undefined && v !== null && v !== "") p[k] = v; };
     si("surveyType", values.surveyType); si("district", values.district); si("taluka", values.taluka);
     si("hobli", values.hobli); si("village", values.village); si("surveyNo", values.surveyNo);
-    // Same logic as submit: only treat uploads as present when we have `fileUrl` ready.
-    const singleMeta =
-      uploadedDocs.singleUpload?.fileUrl ? uploadedDocs.singleUpload : toMeta(values.singleUpload?.[0]);
-    const hasSingleUpload = Boolean(singleMeta?.fileUrl?.startsWith("http"));
-
-    const hasNormalUpload = DOCUMENT_FIELDS.some((fieldName) => {
-      const fileList = form.getFieldValue(fieldName) || values[fieldName];
-      const first = Array.isArray(fileList) ? fileList[0] : null;
-      const meta = uploadedDocs[fieldName] || toMeta(first);
-      return Boolean(meta?.fileUrl?.startsWith("http"));
-    });
-    // Draft must obey the same mutual-exclusivity rules as submit.
-    const resolvedMode = values.uploadMode ?? "normal";
+    // Use explicit form mode only. Never infer mode from uploaded files.
+    const resolvedMode = form.getFieldValue("uploadMode") ?? "normal";
     si("others", values.others); si("uploadMode", resolvedMode);
     si("googleSuperimpose", values.googleSuperimpose);
     if (audioData?.fileUrl) p.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
@@ -293,29 +282,22 @@ const UserUploadForm = ({
         const m = uploadedDocs[f] || toMeta((values[f] || [])[0]);
         if (m?.fileUrl) p[f] = { url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 };
       }
-
-      // Backend requires `singleUpload` even in normal mode; derive it from main docs.
-      const pick = p.moolaTippani || p.atlas || p.rrPakkabook || null;
-      if (pick?.url) p.singleUpload = { ...pick };
     }
-    // `other_documents` is part of normal mode only (prevents mixed-mode drafts).
-    if (mode !== "single") {
-      const otherList = values.other_documents;
-      if (Array.isArray(otherList) && otherList.length > 0) {
-        const processed = [];
-        for (const file of otherList) {
-          const m = (file?.uid && uploadedOther[file.uid]) || toMeta(file);
-          if (m?.fileUrl?.startsWith("http")) processed.push({ url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 });
-        }
-        if (processed.length > 0) p.other_documents = processed;
+    const otherList = values.other_documents;
+    if (Array.isArray(otherList) && otherList.length > 0) {
+      const processed = [];
+      for (const file of otherList) {
+        const m = (file?.uid && uploadedOther[file.uid]) || toMeta(file);
+        if (m?.fileUrl?.startsWith("http")) processed.push({ url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 });
       }
+      if (processed.length > 0) p.other_documents = processed;
     }
 
     // Defensive payload cleanup (drafts must be mutually exclusive too).
     if (mode === "single") {
       DOCUMENT_FIELDS.forEach((k) => { delete p[k]; });
-      delete p.other_documents;
     } else {
+      delete p.singleUpload;
       delete p.documentTypes;
       DOCUMENT_TYPE_KEYS.forEach((k) => { delete p[k]; });
     }
@@ -361,9 +343,7 @@ const UserUploadForm = ({
           hobli: draft.hobli?.name ?? draft.hobli?.label ?? null,
           village: draft.village?.name ?? draft.village?.label ?? null,
         });
-        // Some draft responses may not include `uploadMode`.
-        // If `singleUpload` exists, infer `single` to prefill the correct uploader.
-        const uploadMode = draft.uploadMode ?? (draft?.singleUpload?.url ? "single" : "normal");
+        const uploadMode = draft.uploadMode ?? "normal";
 
         // Hard reset upload caches before hydrating (prevents mixed-mode ghosts).
         setUploadedDocs({});
@@ -508,9 +488,14 @@ const UserUploadForm = ({
                 <button
                   type="button"
                   onClick={goNext}
+                  disabled={stepLoading}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors"
                 >
-                  Continue <ArrowRight />
+                  {stepLoading ? (
+                    <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving...</>
+                  ) : (
+                    <>Continue <ArrowRight /></>
+                  )}
                 </button>
               ) : (
                 <button

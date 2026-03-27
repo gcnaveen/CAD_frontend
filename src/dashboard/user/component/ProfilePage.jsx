@@ -1,5 +1,5 @@
 // src/dashboard/user/pages/ProfilePage.jsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
@@ -149,9 +149,37 @@ const ProfilePage = () => {
   const WHATSAPP_URL =
     "https://api.whatsapp.com/send/?phone=919876543210&text=Hi+North-cot+Support&type=phone_number&app_absent=0";
 
-  const userName  = useSelector((s) => s.auth?.userName) || localStorage.getItem("userName") || "User";
-  const userPhone = useSelector((s) => s.auth?.phone)    || localStorage.getItem("userPhone") || "—";
-  const userRole  = useSelector((s) => s.auth?.role)     || "USER";
+  const authSlice = useSelector((s) => s.auth);
+  const storedUser = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const user = authSlice?.user || storedUser || null;
+  const userName = useMemo(() => {
+    const first = user?.name?.first;
+    const last = user?.name?.last;
+    const full = [first, last].filter(Boolean).join(" ").trim();
+    return (
+      (typeof full === "string" && full) ||
+      authSlice?.userName ||
+      localStorage.getItem("userName") ||
+      "User"
+    );
+  }, [authSlice?.userName, user]);
+
+  const userPhone =
+    user?.auth?.phone ||
+    authSlice?.phone ||
+    localStorage.getItem("userPhone") ||
+    "—";
+
+  const userRole = user?.role || authSlice?.role || "USER";
+  const userStatus = user?.status || "—";
 
   const roleLabel = {
     SURVEYOR: "Government Surveyor",
@@ -189,6 +217,12 @@ const ProfilePage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
                 <p className="text-xs font-semibold text-fg-muted">{roleLabel}</p>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[11px] font-bold text-fg-muted">Status</span>
+                <span className="px-2.5 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)] text-[11px] font-extrabold">
+                  {userStatus}
+                </span>
               </div>
             </div>
 
