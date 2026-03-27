@@ -27,6 +27,7 @@ import ViewDistricts from "../dashboard/superadmin/districts/ViewDistricts";
 import ViewTalukas from "../dashboard/superadmin/talukas/ViewTalukas";
 import ViewHoblis from "../dashboard/superadmin/hoblis/ViewHoblis";
 import ViewVillages from "../dashboard/superadmin/villages/ViewVillages";
+import ViewCadInterests from "../dashboard/superadmin/cadinterest/ViewCadInterests";
 import AdminAssignmentsPage from "../pages/AdminAssignmentsPage.jsx";
 
 // CAD
@@ -109,6 +110,7 @@ export default function AppRoutes() {
         <Route path="admin-users" element={<ViewAdminUsers />} />
         <Route path="cad-centers" element={<ViewCadCenters />} />
         <Route path="cad-users" element={<ViewCadUsers />} />
+        <Route path="cad-interest" element={<ViewCadInterests />} />
         <Route path="assignments" element={<AdminAssignmentsPage />} />
         <Route path="districts" element={<ViewDistricts />} />
         <Route path="talukas" element={<ViewTalukas />} />

@@ -1,6 +1,15 @@
-import apiClient from "../apiClient.js";
+import axios from "axios";
+import { API_BASE_URL } from "../../../config";
 
 const UPLOAD_BASE = "/api/upload";
+
+// Upload APIs are intentionally unauthenticated; use a client without auth interceptors.
+const uploadClient = axios.create({
+  baseURL: API_BASE_URL || "",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 /**
  * Get presigned URL for image upload.
@@ -9,7 +18,7 @@ const UPLOAD_BASE = "/api/upload";
  * @returns {Promise<{ uploadUrl: string, fileUrl: string, key: string }>}
  */
 export async function getImagePresignedUrl(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/image`, payload);
+  const { data } = await uploadClient.post(`${UPLOAD_BASE}/image`, payload);
   return data?.data ?? data;
 }
 
@@ -20,7 +29,7 @@ export async function getImagePresignedUrl(payload) {
  * @returns {Promise<{ uploadUrl: string, fileUrl: string, key: string }>}
  */
 export async function getAudioPresignedUrl(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/audio`, payload);
+  const { data } = await uploadClient.post(`${UPLOAD_BASE}/audio`, payload);
   return data?.data ?? data;
 }
 
@@ -31,6 +40,6 @@ export async function getAudioPresignedUrl(payload) {
  * @returns {Promise<unknown>}
  */
 export async function deleteUploadedFile(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/delete`, payload);
+  const { data } = await uploadClient.post(`${UPLOAD_BASE}/delete`, payload);
   return data;
 }

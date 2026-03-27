@@ -693,7 +693,7 @@ export default function LoginPage() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="98765 43210"
+                      placeholder="Please enter your phone number"
                       style={{
                         flex: 1, background: "transparent", border: "none", outline: "none",
                         padding: "13px 14px", fontSize: "14.5px", color: "var(--text-primary)",
@@ -710,7 +710,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Please enter your email address"
                     className={`lp-input${errors.email ? " error" : ""}`}
                   />
                   {errors.email && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.email}</p>}

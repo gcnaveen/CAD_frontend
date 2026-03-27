@@ -13,6 +13,7 @@ import {
   ApartmentOutlined,
   DesktopOutlined,
   SearchOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -37,6 +38,11 @@ const allMenuItems = [
     key: "/superadmin/cad-users",
     icon: <DesktopOutlined />,
     label: "View CAD Users",
+  },
+  {
+    key: "/superadmin/cad-interest",
+    icon: <FormOutlined />,
+    label: "CAD Interest",
   },
   {
     key: "master-data",
