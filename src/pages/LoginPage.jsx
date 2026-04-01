@@ -248,7 +248,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../features/auth/authSlice";
-import { userLogin } from "../services/user/userService";
+import {
+  userLogin,
+  surveyorForgotPasswordStart,
+  surveyorForgotPasswordReset,
+} from "../services/user/userService";
 import { Eye, EyeOff, ArrowRight, Phone, Mail, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -287,6 +291,14 @@ export default function LoginPage() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState({});
   const [mounted, setMounted] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState({ type: "", text: "" });
+  const [forgotErrors, setForgotErrors] = useState({});
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -330,6 +342,99 @@ export default function LoginPage() {
     setLoginMode((m) => (m === "phone" ? "email" : "phone"));
     setMessage({ type: "", text: "" });
     setErrors({});
+    setShowForgotPassword(false);
+    setForgotStep(1);
+    setForgotOtp("");
+    setForgotNewPassword("");
+    setForgotMessage({ type: "", text: "" });
+    setForgotErrors({});
+  };
+
+  const handleOpenForgotPassword = () => {
+    setShowForgotPassword(true);
+    setForgotStep(1);
+    setForgotPhone(phone.replace(/\D/g, "").slice(0, 10));
+    setForgotOtp("");
+    setForgotNewPassword("");
+    setForgotMessage({ type: "", text: "" });
+    setForgotErrors({});
+  };
+
+  const handleForgotPasswordStart = async () => {
+    const cleanedPhone = forgotPhone.replace(/\D/g, "").slice(0, 10);
+    setForgotErrors({});
+    setForgotMessage({ type: "", text: "" });
+
+    if (!/^\d{10}$/.test(cleanedPhone)) {
+      setForgotErrors({ phone: "Please enter a valid 10-digit phone number" });
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const response = await surveyorForgotPasswordStart({ phone: cleanedPhone });
+      const body = response?.data ?? response;
+      const expiresAt = body?.data?.expiresAt;
+      setForgotPhone(cleanedPhone);
+      setForgotStep(2);
+      setForgotMessage({
+        type: "success",
+        text: expiresAt
+          ? `OTP sent to phone. It expires at ${new Date(expiresAt).toLocaleTimeString()}. Use 123456 for testing.`
+          : "OTP sent to phone. Use 123456 for testing.",
+      });
+    } catch (err) {
+      setForgotMessage({
+        type: "error",
+        text: err?.message ?? "Failed to send OTP. Please try again.",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotPasswordReset = async () => {
+    const cleanedPhone = forgotPhone.replace(/\D/g, "").slice(0, 10);
+    const cleanedOtp = forgotOtp.replace(/\D/g, "").slice(0, 6);
+    const cleanedPassword = forgotNewPassword.replace(/\D/g, "").slice(0, 4);
+    const nextErrors = {};
+    setForgotMessage({ type: "", text: "" });
+
+    if (!/^\d{10}$/.test(cleanedPhone)) nextErrors.phone = "Please enter a valid 10-digit phone number";
+    if (!/^\d{6}$/.test(cleanedOtp)) nextErrors.otp = "OTP must be exactly 6 digits";
+    if (!/^\d{4}$/.test(cleanedPassword)) nextErrors.password = "Password must be exactly 4 digits";
+    if (Object.keys(nextErrors).length) {
+      setForgotErrors(nextErrors);
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotErrors({});
+    try {
+      await surveyorForgotPasswordReset({
+        phone: cleanedPhone,
+        otp: cleanedOtp,
+        password: cleanedPassword,
+      });
+      setShowForgotPassword(false);
+      setForgotStep(1);
+      setForgotOtp("");
+      setForgotNewPassword("");
+      setPassword(cleanedPassword);
+      setPhone(cleanedPhone);
+      setLoginMode("phone");
+      setMessage({
+        type: "success",
+        text: "Password reset successful. Please login with your new password.",
+      });
+    } catch (err) {
+      setForgotMessage({
+        type: "error",
+        text: err?.message ?? "Failed to reset password. Please try again.",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -753,6 +858,120 @@ export default function LoginPage() {
                 </div>
                 {errors.password && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.password}</p>}
               </div>
+
+              {loginMode === "phone" && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-6px" }}>
+                  <button
+                    type="button"
+                    onClick={handleOpenForgotPassword}
+                    className="mode-toggle-btn"
+                    style={{ fontSize: "12px" }}
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+
+              {loginMode === "phone" && showForgotPassword && (
+                <div style={{
+                  border: "1px solid rgba(213,200,178,0.75)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  background: "rgba(255,255,255,0.52)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}>
+                  <p style={{ margin: 0, fontSize: "12px", color: "var(--homepage-body-text)", fontWeight: 600 }}>
+                    {forgotStep === 1 ? "Forgot Password - Step 1: Send OTP" : "Forgot Password - Step 2: Verify OTP"}
+                  </p>
+
+                  <input
+                    type="tel"
+                    value={forgotPhone}
+                    onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="Phone number (10 digits)"
+                    className={`lp-input${forgotErrors.phone ? " error" : ""}`}
+                    maxLength={10}
+                  />
+                  {forgotErrors.phone && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.phone}</p>}
+
+                  {forgotStep === 2 && (
+                    <>
+                      <input
+                        type="text"
+                        value={forgotOtp}
+                        onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="Enter OTP (use 123456 for testing)"
+                        className={`lp-input${forgotErrors.otp ? " error" : ""}`}
+                        inputMode="numeric"
+                        maxLength={6}
+                      />
+                      {forgotErrors.otp && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.otp}</p>}
+
+                      <input
+                        type="password"
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        placeholder="New 4-digit password"
+                        className={`lp-input${forgotErrors.password ? " error" : ""}`}
+                        inputMode="numeric"
+                        maxLength={4}
+                      />
+                      {forgotErrors.password && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.password}</p>}
+                    </>
+                  )}
+
+                  {forgotMessage.text && (
+                    <div style={{
+                      padding: "9px 11px",
+                      borderRadius: "8px",
+                      background: forgotMessage.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
+                      border: `1px solid ${forgotMessage.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
+                      fontSize: "12px",
+                      color: forgotMessage.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
+                    }}>
+                      {forgotMessage.text}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {forgotStep === 1 ? (
+                      <button type="button" className="submit-btn" disabled={forgotLoading} onClick={handleForgotPasswordStart} style={{ padding: "10px", fontSize: "13px" }}>
+                        {forgotLoading ? "Sending OTP..." : "Send OTP"}
+                      </button>
+                    ) : (
+                      <button type="button" className="submit-btn" disabled={forgotLoading} onClick={handleForgotPasswordReset} style={{ padding: "10px", fontSize: "13px" }}>
+                        {forgotLoading ? "Resetting..." : "Verify OTP & Reset"}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setForgotStep(1);
+                        setForgotOtp("");
+                        setForgotNewPassword("");
+                        setForgotMessage({ type: "", text: "" });
+                        setForgotErrors({});
+                      }}
+                      style={{
+                        border: "1px solid rgba(213,200,178,0.8)",
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        background: "rgba(255,255,255,0.65)",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--homepage-body-text)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Message */}
               {message.text && (

@@ -1,7 +1,8 @@
 // src/dashboard/user/pages/RequestsPage.jsx
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
+import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
 const PinIcon = ({ className = "" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -36,50 +37,80 @@ const STATUS_STYLES = {
     "border-line bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] text-danger",
 };
 
-const TABS = ["All", "Active", "Completed", "Cancelled"];
+const TABS = ["all", "active", "completed", "cancelled"];
 
 const RequestsPage = () => {
   const navigate = useNavigate();
-  const token    = useSelector((s) => s.auth?.token);
+  const location = useLocation();
 
   const [orders,  setOrders]  = useState([]);
+  const [counts, setCounts] = useState({ all: 0, active: 0, completed: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
-  const [tab,     setTab]     = useState("All");
+  const [tab,     setTab]     = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedUploadId, setSelectedUploadId] = useState(null);
+
+  const mapStatus = (apiStatus) => {
+    if (apiStatus === "CAD_DELIVERED" || apiStatus === "APPROVED") return "Completed";
+    if (apiStatus === "REJECTED") return "Cancelled";
+    if (apiStatus === "PENDING") return "Pending";
+    return "Active";
+  };
+
+  const getEntityName = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    return value?.name || value?.label || value?.code || "";
+  };
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
-        const res  = await fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setOrders(data?.orders || data || []);
+        const res = await getSurveyorOrders({ bucket: tab, page: 1, limit: 50 });
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        setOrders(rows.map((row, index) => ({
+          serial: index + 1,
+          id: row?.applicationId || row?._id,
+          date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+          status: mapStatus(row?.status),
+          location: [getEntityName(row?.village), getEntityName(row?.hobli), getEntityName(row?.taluka), getEntityName(row?.district)]
+            .filter(Boolean)
+            .join(", "),
+          tags: [row?.surveyType, row?.surveyNo ? `Sy. ${row.surveyNo}` : ""].filter(Boolean),
+          uploadId: row?._id,
+        })));
+        setCounts({
+          all: Number(res?.meta?.counts?.all || 0),
+          active: Number(res?.meta?.counts?.active || 0),
+          completed: Number(res?.meta?.counts?.completed || 0),
+          cancelled: Number(res?.meta?.counts?.cancelled || 0),
+        });
       } catch {
-        // fallback demo
-        setOrders([
-          {
-            serial: 1, id: "NC-2603-00002", date: "11 Mar 2026",
-            status: "Pending",
-            location: "Thalaghattapura, Uttarahalli, Bangalore South, Bangalore Urban",
-            tags: ["11E Sketch", "Sy. 20"],
-          },
-        ]);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [token]);
+  }, [tab]);
 
-  const countFor = (t) =>
-    t === "All" ? orders.length : orders.filter((o) => o.status === t).length;
+  useEffect(() => {
+    const preselect = location?.state?.openOrderId;
+    if (preselect) {
+      setSelectedUploadId(preselect);
+      setDrawerOpen(true);
+    }
+  }, [location?.state]);
 
-  const filtered = orders.filter((o) => {
-    const matchTab    = tab === "All" || o.status === tab;
+  const countFor = (t) => counts[t] || 0;
+
+  const filtered = useMemo(() => orders.filter((o) => {
     const q           = search.toLowerCase();
     const matchSearch = !q || o.id?.toLowerCase().includes(q) || o.location?.toLowerCase().includes(q);
-    return matchTab && matchSearch;
-  });
+    return matchSearch;
+  }), [orders, search]);
 
   return (
     <div className="theme-animate-surface min-h-screen bg-gradient-to-br from-surface via-surface-2 to-surface">
@@ -124,7 +155,7 @@ const RequestsPage = () => {
                   : "bg-surface border-line text-fg-muted hover:border-[color-mix(in_srgb,var(--user-accent)_40%,var(--border-color))] hover:text-[var(--user-accent)]"
               }`}
             >
-              {t} ({countFor(t)})
+              {t.charAt(0).toUpperCase() + t.slice(1)} ({countFor(t)})
             </button>
           ))}
         </div>
@@ -154,7 +185,10 @@ const RequestsPage = () => {
             filtered.map((order) => (
               <button
                 key={order.id}
-                onClick={() => navigate(`/dashboard/user/requests/${order.id}`)}
+                onClick={() => {
+                  setSelectedUploadId(order.uploadId);
+                  setDrawerOpen(true);
+                }}
                 className="w-full rounded-2xl bg-surface border border-line p-4 hover:shadow-md hover:border-[color-mix(in_srgb,var(--user-accent)_40%,var(--border-color))] transition-all text-left group"
               >
                 <div className="flex items-start gap-3">
@@ -200,6 +234,15 @@ const RequestsPage = () => {
             ))
           )}
         </div>
+
+        <SurveyOrderDetailDrawer
+          open={drawerOpen}
+          uploadId={selectedUploadId}
+          onClose={() => {
+            setDrawerOpen(false);
+            setSelectedUploadId(null);
+          }}
+        />
 
       </div>
     </div>

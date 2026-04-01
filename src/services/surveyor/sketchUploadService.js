@@ -61,3 +61,22 @@ export async function getSketchUploads(params = {}) {
     handleError(error, "Failed to fetch sketch uploads");
   }
 }
+
+/**
+ * List surveyor orders with bucket counts
+ * GET /api/surveyor/orders
+ * @param {{
+ *  bucket?: "all" | "active" | "completed" | "cancelled",
+ *  page?: number,
+ *  limit?: number
+ * }} params
+ * @returns {Promise<{ success: boolean, data: any[], meta: any }>}
+ */
+export async function getSurveyorOrders(params = {}) {
+  try {
+    const { data } = await apiClient.get("/api/surveyor/orders", { params });
+    return data;
+  } catch (error) {
+    handleError(error, "Failed to fetch surveyor orders");
+  }
+}

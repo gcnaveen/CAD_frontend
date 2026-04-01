@@ -227,12 +227,12 @@ const ProfilePage = () => {
             </div>
 
             {/* Edit btn */}
-            <button
+            {/* <button
               onClick={() => setShowModal(true)}
               className="w-8 h-8 rounded-xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] flex items-center justify-center hover:opacity-90 transition-colors"
             >
               <EditIcon className="w-3.5 h-3.5 text-[var(--user-accent)]" />
-            </button>
+            </button> */}
           </div>
 
           <Divider />
@@ -254,13 +254,13 @@ const ProfilePage = () => {
             onClick={() => navigate("/dashboard/user/order-history")}
           /> */}
           <Divider />
-          <MenuItem
+          {/* <MenuItem
             icon={<PhoneIcon className="w-5 h-5 text-[var(--user-accent)]" />}
             iconBg="bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))]"
             label="Change Number"
             sublabel="Update your mobile number"
             onClick={() => setShowModal(true)}
-          />
+          /> */}
         </Card>
 
         {/* ── Support & Logout ── */}

@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getDrafts } from "../../../services/draftApi.js";
+import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
+import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
 const PinIcon = ({ className = "" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -58,6 +60,11 @@ const Home = () => {
   const [drafts, setDrafts] = useState([]);
   const [draftTotal, setDraftTotal] = useState(0);
   const [draftsLoading, setDraftsLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderRows, setOrderRows] = useState([]);
+  const [orderCounts, setOrderCounts] = useState({ all: 0, active: 0, completed: 0, cancelled: 0 });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedUploadId, setSelectedUploadId] = useState(null);
 
   const loadDrafts = async () => {
     setDraftsLoading(true);
@@ -83,8 +90,32 @@ const Home = () => {
     loadDrafts();
   }, []);
 
-  // Replace with real data from your API/Redux
-  const stats = { active: 1, completed: 0, spent: 0 };
+  const loadOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const res = await getSurveyorOrders({ bucket: "active", page: 1, limit: 5 });
+      const items = Array.isArray(res?.data) ? res.data : [];
+      const counts = res?.meta?.counts || {};
+      setOrderRows(items);
+      setOrderCounts({
+        all: Number(counts?.all || 0),
+        active: Number(counts?.active || 0),
+        completed: Number(counts?.completed || 0),
+        cancelled: Number(counts?.cancelled || 0),
+      });
+    } catch {
+      setOrderRows([]);
+      setOrderCounts({ all: 0, active: 0, completed: 0, cancelled: 0 });
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const stats = { active: orderCounts.active, completed: orderCounts.completed, spent: 0 };
   const hasDraft = drafts.length > 0;
 
   const pickId = (draft) => draft?._id ?? draft?.id;
@@ -103,16 +134,37 @@ const Home = () => {
   const latestDraft = useMemo(() => drafts[0] ?? null, [drafts]);
   const latestProgress = latestDraft ? getDraftProgress(latestDraft) : { step: 0, total: 3, pct: 0 };
 
-  const activeOrders = [
-    {
-      serial: 1,
-      id: "NC-2603-00002",
-      date: "11 Mar 2026",
-      status: "Pending",
-      location: "Thalaghattapura, Uttarahalli, Bangalore South, Bangalore Urban",
-      tags: ["11E Sketch", "Sy. 20"],
-    },
-  ];
+  const getOrderEntityName = (val) => {
+    if (!val) return "";
+    if (typeof val === "string") return val;
+    return val?.name || val?.label || val?.code || "";
+  };
+
+  const normalizedOrders = useMemo(
+    () =>
+      orderRows.map((row, idx) => {
+        const status =
+          row?.status === "CAD_DELIVERED" || row?.status === "APPROVED"
+            ? "Completed"
+            : row?.status === "REJECTED"
+            ? "Cancelled"
+            : row?.status === "PENDING"
+            ? "Pending"
+            : "Active";
+        return {
+          serial: idx + 1,
+          id: row?.applicationId || row?._id,
+          date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+          status,
+          location: [getOrderEntityName(row?.village), getOrderEntityName(row?.hobli), getOrderEntityName(row?.taluka), getOrderEntityName(row?.district)]
+            .filter(Boolean)
+            .join(", "),
+          tags: [row?.surveyType, row?.surveyNo ? `Sy. ${row.surveyNo}` : ""].filter(Boolean),
+          uploadId: row?._id,
+        };
+      }),
+    [orderRows]
+  );
 
   const statusPill = (status) => {
     const map = {
@@ -275,16 +327,23 @@ const Home = () => {
             </button>
           </div>
 
-          {activeOrders.length === 0 ? (
+          {ordersLoading ? (
+            <div className="rounded-2xl border border-dashed border-line bg-surface/60 py-10 text-center text-fg-muted font-bold text-sm">
+              Loading active orders...
+            </div>
+          ) : normalizedOrders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-line bg-surface/60 py-10 text-center text-fg-muted font-bold text-sm">
               No active orders
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {activeOrders.map((order) => (
+              {normalizedOrders.map((order) => (
                 <button
                   key={order.id}
-                  onClick={() => navigate("/dashboard/user/requests")}
+                  onClick={() => {
+                    setSelectedUploadId(order.uploadId);
+                    setDrawerOpen(true);
+                  }}
                   className="w-full rounded-2xl bg-surface border border-line p-4 hover:shadow-md hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] transition-all text-left"
                 >
                   <div className="flex items-start gap-3">
@@ -331,6 +390,15 @@ const Home = () => {
             </div>
           )}
         </div>
+
+        <SurveyOrderDetailDrawer
+          open={drawerOpen}
+          uploadId={selectedUploadId}
+          onClose={() => {
+            setDrawerOpen(false);
+            setSelectedUploadId(null);
+          }}
+        />
 
       </div>
     </div>
