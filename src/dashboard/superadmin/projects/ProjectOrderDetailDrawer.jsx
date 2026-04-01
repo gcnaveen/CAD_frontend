@@ -571,6 +571,41 @@ const ProjectOrderDetailDrawer = ({
             </>
           )}
 
+          {/* CAD Deliverable (shown only when delivered file exists) */}
+          {order.cadDeliverable?.url && (
+            <>
+              <Divider style={{ margin: "8px 0" }} />
+              <Card size="small" title="CAD Deliverable" style={{ marginBottom: 0 }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <Text strong className="text-sm">
+                      {order.cadDeliverable.fileName || "CAD Deliverable"}
+                    </Text>
+                    <div className="space-y-1" style={{ marginTop: 8 }}>
+                      <Text type="secondary" className="text-xs block">
+                        Type: {order.cadDeliverable.mimeType || "Unknown"} • Size:{" "}
+                        {formatFileSize(order.cadDeliverable.size)}
+                      </Text>
+                      {order.cadDeliverable.uploadedAt && (
+                        <Text type="secondary" className="text-xs block">
+                          Uploaded: {formatDate(order.cadDeliverable.uploadedAt)}
+                        </Text>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="link"
+                    icon={<LinkOutlined />}
+                    onClick={() => window.open(order.cadDeliverable.url, "_blank")}
+                    size="small"
+                  >
+                    View
+                  </Button>
+                </div>
+              </Card>
+            </>
+          )}
+
           {/* Audio Section */}
           <Divider style={{ margin: "8px 0" }} />
           <Card size="small" title="Audio / ಆಡಿಯೋ" style={{ marginBottom: 0 }}>

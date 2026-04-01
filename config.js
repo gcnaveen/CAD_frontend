@@ -1,9 +1,7 @@
-/**
- * DEV DEPENDENCIES
- */
-export const API_BASE_URL = "https://bi9vfl4jf4.execute-api.ap-south-1.amazonaws.com/";
+
+export const API_BASE_URL = "https://m8earcixrb.execute-api.ap-south-1.amazonaws.com/";
 export const BASE_URL = "/";
-export const SOCKET_URL = "https://bi9vfl4jf4.execute-api.ap-south-1.amazonaws.com/";
+export const SOCKET_URL = "https://m8earcixrb.execute-api.ap-south-1.amazonaws.com/";
 export const BASE_LINK = "/";
 export const SOCKET_PATH = "/";
 
