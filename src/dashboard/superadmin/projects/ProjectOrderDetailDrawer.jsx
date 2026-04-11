@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useSelector } from "react-redux";
 import {
   Drawer,
   Typography,
@@ -23,6 +24,8 @@ import {
 } from "@ant-design/icons";
 import apiClient from "../../../services/apiClient.js";
 import { getCadUsers, formatUserDisplayLabel } from "../../../services/assignmentApi.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../../constants/roles.js";
+import CadWalletPayoutSection from "../../../components/cadWallet/CadWalletPayoutSection.jsx";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -142,9 +145,16 @@ const ProjectOrderDetailDrawer = ({
   onClose,
   order,
   onSave,
+  onOrderRefresh,
   readOnly = false,
   loading = false,
 }) => {
+  const roleFromStore = useSelector((s) => s.auth?.role);
+  const userRoleFromStore = useSelector((s) => s.auth?.user?.role);
+  const canManageCadWallet = useMemo(() => {
+    const r = normalizeRoleKey(resolveStoredUserRole(roleFromStore, userRoleFromStore));
+    return !readOnly && r === ROLES.SUPER_ADMIN;
+  }, [readOnly, roleFromStore, userRoleFromStore]);
   const [assignedCadUser, setAssignedCadUser] = useState(null);
   const [status, setStatus] = useState("approved");
   const [note, setNote] = useState("");
@@ -730,7 +740,7 @@ const ProjectOrderDetailDrawer = ({
                   suffixIcon={<UserOutlined />}
                 />
               </div>
-              <div>
+              {/* <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>Due Date</Text>
                 <Input
                   type="datetime-local"
@@ -760,7 +770,7 @@ const ProjectOrderDetailDrawer = ({
                       }}
                   disabled={readOnly}
                 />
-              </div>
+              </div> */}
               <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>Notes</Text>
                 <TextArea
@@ -821,6 +831,14 @@ const ProjectOrderDetailDrawer = ({
               </Card>
             </>
           )}
+
+          <CadWalletPayoutSection
+            order={order}
+            readOnly={readOnly}
+            canManage={canManageCadWallet}
+            onRefresh={onOrderRefresh}
+            cardTitle="CAD wallet & payouts"
+          />
         </Space>
       ) : (
         <div style={{ textAlign: "center", padding: "40px 0" }}>

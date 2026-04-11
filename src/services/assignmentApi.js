@@ -194,6 +194,15 @@ export async function respondCadAssignment(assignmentId, action) {
   }
 }
 
+export async function rejectCadAssignment(assignmentId) {
+  try {
+    const { data } = await apiClient.post(`/api/cad/assignments/${assignmentId}/reject`);
+    return unwrapData(data);
+  } catch (error) {
+    handleError(error, "Failed to reject assignment");
+  }
+}
+
 export async function deliverCadAssignment(assignmentId, payload) {
   try {
     const { data } = await apiClient.post(`/api/cad/assignments/${assignmentId}/deliver`, payload);

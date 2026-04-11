@@ -1,9 +1,27 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Button, Card, Descriptions, Drawer, Spin, Tag, Typography, message } from "antd";
-import { ExternalLink, Music } from "lucide-react";
-import { getSketchUploadById } from "../../../services/surveyor/sketchUploadService.js";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Input,
+  Spin,
+  Tag,
+  Typography,
+  Upload,
+  message,
+} from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import { ExternalLink, Mic, Music, Square, Trash2, Upload as UploadIcon } from "lucide-react";
+import { uploadAudioToS3 } from "../../../services/upload/upload.service.js";
+import {
+  getSketchUploadById,
+  requestCadRevision,
+} from "../../../services/surveyor/sketchUploadService.js";
+import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
 
 const { Text } = Typography;
+const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg";
 
 const STATUS_DISPLAY = {
   PENDING: "Pending",
@@ -66,6 +84,17 @@ const toName = (value) => {
 const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
+  const [revisionRemarks, setRevisionRemarks] = useState("");
+  const [revisionAudio, setRevisionAudio] = useState(null);
+  const [audioUploading, setAudioUploading] = useState(false);
+  const [submittingRevision, setSubmittingRevision] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const timerRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -76,6 +105,13 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
         const res = await getSketchUploadById(uploadId);
         if (res?.success && res?.data) {
           setDetails(res.data);
+          setRevisionRemarks("");
+          setRevisionAudio(null);
+          setAudioBlob(null);
+          if (audioUrl) {
+            URL.revokeObjectURL(audioUrl);
+            setAudioUrl(null);
+          }
         } else {
           message.error("Unable to load order details");
         }
@@ -94,6 +130,166 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       .filter((key) => details[key] === true)
       .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key]);
   }, [details]);
+
+  const canRequestRevision = details?.status === "CAD_DELIVERED";
+  const revisionCount = Array.isArray(details?.revisionRequests)
+    ? details.revisionRequests.length
+    : 0;
+
+  const handleAudioUpload = async (file) => {
+    if (!file || !uploadId) return false;
+    if (file.size > AUDIO_MAX_SIZE_BYTES) {
+      message.error(`Max ${AUDIO_MAX_SIZE_BYTES / 1024 / 1024}MB`);
+      return false;
+    }
+    setAudioUploading(true);
+    try {
+      const result = await uploadAudioToS3(file, String(uploadId));
+      setRevisionAudio({
+        url: result?.fileUrl,
+        fileName: file.name,
+        mimeType: file.type,
+        size: file.size,
+      });
+      message.success("Audio uploaded");
+    } catch (error) {
+      message.error(error?.message || "Audio upload failed");
+    } finally {
+      setAudioUploading(false);
+    }
+    return false;
+  };
+
+  const formatTime = (seconds) =>
+    `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+
+  const clearAudioSelection = () => {
+    setRevisionAudio(null);
+    setAudioBlob(null);
+    setRecordingTime(0);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType: mimeType || undefined });
+      const chunks = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime((prev) => prev + 1), 1000);
+    } catch {
+      message.error("Failed to access microphone. Check permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (!mediaRecorder || !isRecording) return;
+    mediaRecorder.stop();
+    setIsRecording(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const uploadRecordedAudio = async () => {
+    if (!audioBlob) return;
+    const file = new File([audioBlob], `audio-${Date.now()}.webm`, {
+      type: audioBlob.type || "audio/webm",
+    });
+    await handleAudioUpload(file);
+  };
+
+  const handleRequestRevision = async () => {
+    if (!uploadId || submittingRevision || !canRequestRevision) return;
+    const remarks = String(revisionRemarks || "").trim();
+    if (!remarks && !revisionAudio?.url) {
+      message.warning("Add remarks or upload audio to request revision");
+      return;
+    }
+
+    setSubmittingRevision(true);
+    try {
+      const payload = {};
+      if (remarks) payload.remarks = remarks;
+      if (revisionAudio?.url) payload.audio = revisionAudio;
+
+      const revisionRes = await requestCadRevision(uploadId, payload);
+      const payment = revisionRes?.meta?.payment;
+      const paymentRedirectUrl =
+        typeof payment?.redirectUrl === "string" ? payment.redirectUrl.trim() : "";
+
+      // Redirect only when redirectUrl is present (non-empty trimmed string).
+      if (paymentRedirectUrl) {
+        try {
+          localStorage.setItem(
+            "cad:lastPayment",
+            JSON.stringify({
+              uploadId,
+              merchantOrderId: payment?.merchantOrderId ?? null,
+              amountPaise: payment?.amountPaise ?? null,
+              revisionNo: payment?.revisionNo ?? null,
+              startedAt: new Date().toISOString(),
+              redirectUrl: paymentRedirectUrl,
+            })
+          );
+        } catch {
+          // ignore storage failures; redirect should still happen
+        }
+
+        message.success("Redirecting to payment...");
+        window.location.assign(paymentRedirectUrl);
+        return;
+      }
+
+      message.success("Revision request submitted");
+
+      const res = await getSketchUploadById(uploadId);
+      if (res?.success && res?.data) {
+        setDetails(res.data);
+      }
+      setRevisionRemarks("");
+      setRevisionAudio(null);
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to request revision";
+      message.error(msg);
+    } finally {
+      setSubmittingRevision(false);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    },
+    [audioUrl]
+  );
 
   return (
     <Drawer
@@ -204,6 +400,138 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
                   onClick={() => window.open(details.cadDeliverable.url, "_blank")}
                 >
                   Open CAD Deliverable
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {canRequestRevision && (
+            <Card size="small" title="Request Revision">
+              <div className="space-y-3">
+                <p className="text-xs text-fg-muted">
+                  Revisions requested: <span className="font-semibold text-fg">{revisionCount}</span>
+                </p>
+                <p className="text-xs text-fg-muted">
+                  Currently you can request revision multiple times. After payment integration, only one free revision will be available and further revisions may be charged.
+                </p>
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Add remarks for CAD revision"
+                  value={revisionRemarks}
+                  onChange={(e) => setRevisionRemarks(e.target.value)}
+                  maxLength={1000}
+                />
+                <div className="rounded-2xl border border-line bg-surface-2/60 p-4">
+                  <p className="text-[10px] font-bold text-fg-muted uppercase tracking-widest mb-0.5">
+                    ಆಡಿಯೋ
+                  </p>
+                  <p className="text-sm font-extrabold text-fg mb-3">
+                    Voice Note <span className="text-fg-muted font-semibold text-xs">(optional)</span>
+                  </p>
+
+                  {!isRecording && !audioBlob && !revisionAudio && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm transition-colors"
+                      >
+                        <Mic className="w-4 h-4" /> Record Audio
+                      </button>
+                      <Upload
+                        accept={AUDIO_ACCEPT}
+                        showUploadList={false}
+                        beforeUpload={handleAudioUpload}
+                        disabled={audioUploading}
+                      >
+                        <button
+                          type="button"
+                          disabled={audioUploading}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] text-fg font-extrabold text-sm transition-colors"
+                        >
+                          <UploadIcon className="w-4 h-4" />
+                          {audioUploading ? "Uploading..." : "Upload File"}
+                        </button>
+                      </Upload>
+                    </div>
+                  )}
+
+                  {isRecording && (
+                    <div className="flex items-center justify-between rounded-xl bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--danger)_25%,var(--border-color))] p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-danger flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-surface animate-pulse" />
+                        </div>
+                        <div>
+                          <p className="font-extrabold text-danger text-sm">Recording...</p>
+                          <p className="text-xs text-danger font-bold">{formatTime(recordingTime)}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-danger text-white font-extrabold text-sm"
+                      >
+                        <Square className="w-3.5 h-3.5" /> Stop
+                      </button>
+                    </div>
+                  )}
+
+                  {audioBlob && audioUrl && !revisionAudio && (
+                    <div className="space-y-3">
+                      <audio controls src={audioUrl} className="w-full rounded-xl" />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={uploadRecordedAudio}
+                          disabled={audioUploading}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm disabled:opacity-60 transition-colors"
+                        >
+                          <UploadIcon className="w-4 h-4" />
+                          {audioUploading ? "Uploading..." : "Save Recording"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearAudioSelection}
+                          disabled={audioUploading}
+                          className="px-4 py-2.5 rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] text-danger font-extrabold text-sm hover:opacity-90 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {revisionAudio && (
+                    <div className="rounded-xl bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--success)_35%,var(--border-color))] p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-extrabold text-success text-sm">✓ Audio saved</p>
+                          <p className="text-xs text-success font-semibold truncate">
+                            {revisionAudio.fileName || "Audio attached"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearAudioSelection}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-surface text-danger font-bold text-xs hover:bg-surface-2 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" /> Remove
+                        </button>
+                      </div>
+                      {revisionAudio.url && (
+                        <audio controls src={revisionAudio.url} className="w-full rounded-lg" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="primary"
+                  onClick={handleRequestRevision}
+                  loading={submittingRevision}
+                  disabled={audioUploading || submittingRevision}
+                >
+                  Submit Revision Request
                 </Button>
               </div>
             </Card>

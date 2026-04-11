@@ -7,6 +7,7 @@ import {
   formatUserDisplayLabel,
   getCadAssignments,
   getCadSketchUpload,
+  rejectCadAssignment,
   respondCadAssignment,
 } from "../../../services/assignmentApi";
 import { uploadImageToS3 } from "../../../services/upload/upload.service";
@@ -20,6 +21,7 @@ const STATUS_TAG = {
   ON_HOLD: { color: "gold", text: "On Hold" },
   CANCELLED: { color: "red", text: "Cancelled" },
 };
+const ACCEPT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 const ViewCurrentOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -212,8 +214,44 @@ const ViewCurrentOrders = () => {
     }
   };
 
-  const handleAccept = (record) => handleAssignmentAction(record.assignmentId, "accept");
-  const handleReject = (record) => handleAssignmentAction(record.assignmentId, "reject");
+  const isWithinAcceptWindow = (record) => {
+    const assignedAt = record?.orderDate;
+    if (!assignedAt) return true;
+    const assignedTime = new Date(assignedAt).getTime();
+    if (Number.isNaN(assignedTime)) return true;
+    return Date.now() - assignedTime <= ACCEPT_WINDOW_MS;
+  };
+
+  const handleAccept = (record) => {
+    if (!isWithinAcceptWindow(record)) {
+      message.warning("This assignment is older than 2 hours and may have reverted to admin.");
+      fetchAssignments({ page: pagination.page, limit: pagination.limit });
+      return;
+    }
+    handleAssignmentAction(record.assignmentId, "accept");
+  };
+
+  const handleReject = async (record) => {
+    if (!isWithinAcceptWindow(record)) {
+      message.warning("This assignment is older than 2 hours and may have reverted to admin.");
+      await fetchAssignments({ page: pagination.page, limit: pagination.limit });
+      return;
+    }
+    setActionLoading(record.assignmentId, true);
+    try {
+      await rejectCadAssignment(record.assignmentId);
+      message.success("Order rejected");
+      await fetchAssignments({ page: pagination.page, limit: pagination.limit });
+      if (selectedOrder?.assignmentId === record.assignmentId) {
+        setDrawerOpen(false);
+        setSelectedOrder(null);
+      }
+    } catch (error) {
+      message.error(error?.message || "Failed to reject order");
+    } finally {
+      setActionLoading(record.assignmentId, false);
+    }
+  };
 
   const handleUploadCad = async (orderId, files) => {
     const target = orders.find((o) => o.id === orderId);
@@ -335,10 +373,12 @@ const ViewCurrentOrders = () => {
       width: 260,
       render: (_, record) => {
         const status = String(record?.status || "").toUpperCase();
+        const expired = status === "ASSIGNED" && !isWithinAcceptWindow(record);
 
         return (
           <Space>
-            {status === "ASSIGNED" && (
+            {expired && <Tag color="default">Expired</Tag>}
+            {status === "ASSIGNED" && !expired && (
               <>
                 <Button
                   size="small"

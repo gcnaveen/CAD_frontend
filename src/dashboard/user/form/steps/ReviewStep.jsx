@@ -1,6 +1,9 @@
 // src/dashboard/user/form/steps/ReviewStep.jsx
 import React from "react";
-import { Form } from "antd";
+import { Alert, Form, Skeleton, Typography } from "antd";
+import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingCompute.js";
+
+const { Text } = Typography;
 
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-5">
@@ -32,8 +35,25 @@ const Section = ({ title, children }) => (
   </div>
 );
 
-const ReviewStep = ({ form, uploadedDocs, audioData, locationLabels = {} }) => {
+const formatRs = (n) => {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "—";
+  return `₹${x.toFixed(2)}`;
+};
+
+const ReviewStep = ({
+  form,
+  uploadedDocs,
+  audioData,
+  locationLabels = {},
+  sketchPricingLoading = false,
+  sketchPricingError = null,
+  sketchPricingBreakdown = null,
+  checkoutFinalRupees = null,
+}) => {
   const values = form.getFieldsValue(true);
+  /** Must read from watch: value is stored on a hidden field so it survives unmounted drawing step. */
+  const googleSuperimposeOn = Form.useWatch("googleSuperimpose", form) ?? false;
   const uploadMode = values.uploadMode ?? "normal";
 
   const docFields = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
@@ -102,6 +122,60 @@ const ReviewStep = ({ form, uploadedDocs, audioData, locationLabels = {} }) => {
           </div>
         )}
         {otherCount > 0 && <Row label="Other Docs" value={`${otherCount} file(s)`} />}
+      </Section>
+
+      {/* Pricing */}
+      <Section title="Payment estimate">
+        {sketchPricingLoading ? (
+          <div className="py-4 space-y-3">
+            <Skeleton active title={{ width: "40%" }} paragraph={{ rows: 4 }} />
+          </div>
+        ) : (
+          <>
+            {sketchPricingError ? (
+              <div className="mb-3">
+                <Alert type="warning" showIcon message="Using default pricing" description={sketchPricingError} />
+              </div>
+            ) : null}
+            {sketchPricingBreakdown ? (
+              <div>
+                <Row
+                  label="Rate type"
+                  value={sketchPricingBreakdown.isRevision ? "Revision (2+)" : "First-time upload"}
+                />
+                <Row label="Base price" value={formatRs(sketchPricingBreakdown.baseDisplayRupees)} />
+                {sketchPricingBreakdown.discountDisplayRupees > 0 ? (
+                  <Row label="Discount" value={`−${formatRs(sketchPricingBreakdown.discountDisplayRupees)}`} />
+                ) : null}
+                {googleSuperimposeOn ? (
+                  <div className="flex items-start justify-between gap-4 py-3 border-b border-line">
+                    <span className="text-xs font-bold text-fg-muted uppercase tracking-wide shrink-0 min-w-0">
+                      Google Superimpose
+                    </span>
+                    <span className="text-sm font-bold text-fg text-right whitespace-nowrap">
+                      +{formatRs(GOOGLE_SUPERIMPOSE_CHARGE)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="py-3">
+                  <Text strong style={{ fontSize: 16 }}>
+                    Total Payable:{" "}
+                    {formatRs(
+                      checkoutFinalRupees != null
+                        ? checkoutFinalRupees
+                        : Number(sketchPricingBreakdown.afterDiscountRupees ?? 0) +
+                            (googleSuperimposeOn ? GOOGLE_SUPERIMPOSE_CHARGE : 0)
+                    )}
+                  </Text>
+                </div>
+              </div>
+            ) : (
+              <div className="py-3">
+                <p className="text-sm text-fg-muted font-semibold text-center">Pricing unavailable</p>
+              </div>
+            )}
+          </>
+        )}
       </Section>
 
       {/* Confirmation note */}

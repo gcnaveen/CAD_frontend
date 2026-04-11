@@ -564,7 +564,7 @@ export default function RegisterPage() {
               <div>
                 <label style={labelStyle}>Account Type</label>
                 <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
-                  {[{value:"public",label:"General Public / Citizen",sub:"For land owners and property buyers"},{value:"SURVEYOR",label:"Licensed Surveyor",sub:"For Karnataka licensed surveyors"}].map((opt)=>(
+                  {[{value:"public",label:"General Public / Citizen",sub:"For land owners and property buyers"},{value:"SURVEYOR",label:" Surveyor",}].map((opt)=>(
                     <label key={opt.value} className={`rp-radio-card${accountType===opt.value?" active":""}`} onClick={()=>{setAccountType(opt.value);setSurveyorType("");}}>
                       <input type="radio" name="accountType" value={opt.value} checked={accountType===opt.value} onChange={()=>{setAccountType(opt.value);setSurveyorType("");}} style={{ accentColor:"var(--brand-gold)", flexShrink:0 }} />
                       <div>

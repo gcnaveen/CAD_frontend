@@ -1,6 +1,9 @@
 // src/dashboard/user/form/steps/DrawingStep.jsx
 import React, { useRef, useEffect, useState } from "react";
-import { Form, Input, Upload, Button, message } from "antd";
+import { Form, Input, Upload, Button, message, Typography } from "antd";
+import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingCompute.js";
+
+const { Text } = Typography;
 import { Mic, Square, Trash2, Upload as UploadIcon } from "lucide-react";
 import { uploadAudioToS3 } from "../../../../services/upload/upload.service.js";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
@@ -144,32 +147,33 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       />
 
       <div className="space-y-5">
-        {/* Google Superimpose checkbox */}
-        <Form.Item name="googleSuperimpose" valuePropName="checked">
-          <button
-            type="button"
-            onClick={() => form.setFieldValue("googleSuperimpose", !googleSuperimpose)}
-            className={`w-full flex items-start gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
-              googleSuperimpose
-                ? "border-[color-mix(in_srgb,var(--user-accent)_55%,var(--border-color))] bg-[var(--user-accent-soft)]"
-                : "border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-              googleSuperimpose ? "border-[var(--user-accent)] bg-[var(--user-accent)]" : "border-line bg-surface"
-            }`}>
-              {googleSuperimpose && (
-                <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 6L9 17l-5-5" />
-                </svg>
-              )}
-            </div>
-            <div>
-              <p className="font-extrabold text-sm text-fg">Google Superimpose</p>
-              <p className="text-xs text-fg-muted font-semibold mt-0.5">ಗೂಗಲ್ ಉಪಗ್ರಹ ಮೇಲ್ದರ / Satellite overlay on drawing</p>
-            </div>
-          </button>
-        </Form.Item>
+        {/* Google Superimpose — value lives on a persistent Form.Item in UserUploadForm (this is UI only). */}
+        <button
+          type="button"
+          onClick={() => form.setFieldValue("googleSuperimpose", !googleSuperimpose)}
+          className={`w-full flex items-start gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
+            googleSuperimpose
+              ? "border-[color-mix(in_srgb,var(--user-accent)_55%,var(--border-color))] bg-[var(--user-accent-soft)]"
+              : "border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
+          }`}
+        >
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+            googleSuperimpose ? "border-[var(--user-accent)] bg-[var(--user-accent)]" : "border-line bg-surface"
+          }`}>
+            {googleSuperimpose && (
+              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 6L9 17l-5-5" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <p className="font-extrabold text-sm text-fg">Google Superimpose</p>
+            <p className="text-xs text-fg-muted font-semibold mt-0.5">ಗೂಗಲ್ ಉಪಗ್ರಹ ಮೇಲ್ದರ / Satellite overlay on drawing</p>
+          </div>
+        </button>
+        <Text type="secondary" className="block text-xs leading-snug -mt-1 mb-0.5">
+          Selecting Google Superimpose will add ₹{GOOGLE_SUPERIMPOSE_CHARGE} to your total cost.
+        </Text>
 
         {/* Notes */}
         <Form.Item

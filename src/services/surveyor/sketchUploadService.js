@@ -1,4 +1,5 @@
 import apiClient from "../apiClient.js";
+import { normalizeSurveyorSketchPricingPayload } from "../../utils/sketchPricingCompute.js";
 
 const BASE = "/api/surveyor/sketch-uploads";
 
@@ -23,7 +24,11 @@ function handleError(error, fallbackMessage) {
  *   rrPakkabook?: string | { url: string, fileName?: string, mimeType?: string, size?: number },
  *   kharabu?: string | { url: string, fileName?: string, mimeType?: string, size?: number },
  *   audio?: { url: string, fileUrl: string, fileName?: string, mimeType?: string, size?: number },
- *   others?: string
+ *   others?: string,
+ *   amountRupees?: number,
+ *   amountPaise?: number,
+ *   totalPayableRupees?: number,
+ *   isSuperimpose?: boolean
  * }} payload
  * @returns {Promise<{ success: boolean, data: any }>}
  */
@@ -78,5 +83,34 @@ export async function getSurveyorOrders(params = {}) {
     return data;
   } catch (error) {
     handleError(error, "Failed to fetch surveyor orders");
+  }
+}
+
+/**
+ * Request CAD revision for a sketch upload
+ * POST /api/surveyor/sketch-uploads/{uploadId}/revision-request
+ * @param {string} uploadId
+ * @param {{ remarks?: string, audio?: { url: string, fileName?: string, mimeType?: string, size?: number } }} payload
+ * @returns {Promise<{ success: boolean, data: any }>}
+ */
+export async function requestCadRevision(uploadId, payload = {}) {
+  try {
+    const { data } = await apiClient.post(`${BASE}/${uploadId}/revision-request`, payload);
+    return data;
+  } catch (error) {
+    handleError(error, "Failed to request revision");
+  }
+}
+
+/**
+ * Surveyor sketch pricing (upload + revision tiers).
+ * GET /api/surveyor/sketch-pricing
+ */
+export async function getSurveyorSketchPricing() {
+  try {
+    const { data } = await apiClient.get("/api/surveyor/sketch-pricing");
+    return normalizeSurveyorSketchPricingPayload(data);
+  } catch (error) {
+    handleError(error, "Failed to fetch sketch pricing");
   }
 }
