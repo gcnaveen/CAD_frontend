@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Typography, Table, Button, Space, Spin, Empty, message, Tag, Select, Drawer, Input, Form, Switch } from "antd";
 import { EyeOutlined, EditOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
@@ -206,6 +206,17 @@ const ViewCurrentProject = () => {
     setSelectedAssignment(null);
     fetchAssignments(pagination.page, pagination.limit);
   };
+
+  const refreshOrderDetails = useCallback(async () => {
+    const id = orderDetails?._id;
+    if (!id) return;
+    try {
+      const response = await getSketchUploadById(id);
+      if (response?.success && response?.data) setOrderDetails(response.data);
+    } catch (error) {
+      message.error(error?.message || "Failed to refresh order");
+    }
+  }, [orderDetails?._id]);
 
   const handleEdit = (record) => {
     setEditingAssignmentId(record._id);
@@ -532,6 +543,7 @@ const ViewCurrentProject = () => {
         onClose={handleDrawerClose}
         order={orderDetails}
         onSave={handleSaveOrder}
+        onOrderRefresh={refreshOrderDetails}
         readOnly={false}
         loading={loadingDetails}
       />

@@ -32,6 +32,7 @@ export default function SketchTable({
   autoAssignEnabled,
   onAssignClick,
   onEditClick,
+  onCadPayoutClick,
 }) {
   return (
     <div className="theme-animate-surface w-full overflow-hidden rounded-xl border border-line bg-surface">
@@ -45,13 +46,14 @@ export default function SketchTable({
               <th className="px-4 py-3">Assigned CAD User</th>
               <th className="px-4 py-3">Created Date</th>
               <th className="px-4 py-3 text-right">Actions</th>
+              {onCadPayoutClick ? <th className="px-4 py-3 text-right">CAD</th> : null}
             </tr>
           </thead>
 
           <tbody className="divide-y divide-line">
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-fg-muted" colSpan={6}>
+                <td className="px-4 py-6 text-fg-muted" colSpan={onCadPayoutClick ? 7 : 6}>
                   Loading…
                 </td>
               </tr>
@@ -60,9 +62,14 @@ export default function SketchTable({
                 const status = row?.status;
                 const isPending = String(status || "").toUpperCase() === "PENDING";
                 const canAssign = isPending && autoAssignEnabled === false;
-                const canEdit = ["ASSIGNED", "UNDER_REVIEW"].includes(
-                  String(status || "").toUpperCase()
-                );
+                const stUp = String(status || "").toUpperCase();
+                const canEdit = ["ASSIGNED", "UNDER_REVIEW"].includes(stUp);
+                const rowSketchId = row?._id ?? row?.id;
+                const hasSketchId =
+                  rowSketchId != null &&
+                  String(rowSketchId).trim() !== "" &&
+                  String(rowSketchId) !== "-";
+                const canCadPayout = Boolean(onCadPayoutClick && hasSketchId);
 
                 const assignedUserName =
                   formatUserDisplayLabel(row?.assignedCadUser) ||
@@ -125,12 +132,27 @@ export default function SketchTable({
                         ) : null}
                       </div>
                     </td>
+                    {onCadPayoutClick ? (
+                      <td className="px-4 py-3 text-right">
+                        {canCadPayout ? (
+                          <button
+                            type="button"
+                            onClick={() => onCadPayoutClick(row)}
+                            className="rounded-lg border border-[color-mix(in_srgb,var(--success)_40%,var(--border-color))] bg-[color-mix(in_srgb,var(--success)_10%,var(--bg-secondary))] px-3 py-1.5 text-xs font-semibold text-success hover:opacity-90"
+                          >
+                            CAD payout
+                          </button>
+                        ) : (
+                          <span className="text-xs text-fg-muted">—</span>
+                        )}
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td className="px-4 py-6 text-fg-muted" colSpan={6}>
+                <td className="px-4 py-6 text-fg-muted" colSpan={onCadPayoutClick ? 7 : 6}>
                   No sketches found.
                 </td>
               </tr>

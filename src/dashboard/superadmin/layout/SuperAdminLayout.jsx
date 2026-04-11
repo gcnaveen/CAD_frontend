@@ -14,6 +14,7 @@ import {
   DesktopOutlined,
   SearchOutlined,
   FormOutlined,
+  MoneyCollectOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -32,6 +33,12 @@ const allMenuItems = [
     key: "/superadmin/admin-users",
     icon: <UserOutlined />,
     label: "View Admin Users",
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    key: "/superadmin/sketch-pricing",
+    icon: <MoneyCollectOutlined />,
+    label: "Sketch pricing",
     roles: ["SUPER_ADMIN"],
   },
   {

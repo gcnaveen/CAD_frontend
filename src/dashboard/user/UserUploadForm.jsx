@@ -2,9 +2,22 @@
 // Full redesign — 4-step wizard. All original logic preserved.
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Form, message } from "antd";
-import { createSketchUpload }              from "../../services/surveyor/sketchUploadService.js";
+import { Checkbox, Form, Modal, message } from "antd";
+import { createSketchUpload, getSurveyorSketchPricing } from "../../services/surveyor/sketchUploadService.js";
 import { createDraft, getDraftById, updateDraft } from "../../services/draftApi.js";
+import {
+  FALLBACK_SURVEYOR_SKETCH_PRICING,
+  buildSketchCheckoutBreakdown,
+  computeSketchSubmitAmountRupees,
+} from "../../utils/sketchPricingCompute.js";
+
+/** Same truthiness as Ant Design Checkbox (avoids missing +₹200 on superimpose). */
+function isGoogleSuperimposeSelected(form, values) {
+  const a = form.getFieldValue("googleSuperimpose");
+  const b = values?.googleSuperimpose;
+  const v = a !== undefined && a !== null ? a : b;
+  return v === true || v === 1 || v === "true";
+}
 
 
 import DrawingStep from "./form/steps/Drawingstep.jsx";
@@ -75,6 +88,42 @@ const UserUploadForm = ({
   const [searchParams] = useSearchParams();
   const [form]         = Form.useForm();
 
+  const redirectToPayment = (result) => {
+    const payment = result?.meta?.payment;
+    const requiresPayment = Boolean(payment?.requiresPayment);
+    const redirectUrl =
+      typeof payment?.redirectUrl === "string" ? payment.redirectUrl.trim() : "";
+
+    if (!requiresPayment) return false;
+    if (!redirectUrl) {
+      message.error("Payment is required but redirect URL is missing. Please try again.");
+      navigate("/dashboard/user/requests");
+      return true;
+    }
+
+    try {
+      const uploadId = result?.data?._id ?? result?.data?.id ?? null;
+      const merchantOrderId = payment?.merchantOrderId ?? result?.data?.sketchPayment?.merchantOrderId ?? null;
+      const amountPaise = payment?.amountPaise ?? result?.data?.sketchPayment?.amountPaise ?? null;
+      localStorage.setItem(
+        "cad:lastPayment",
+        JSON.stringify({
+          uploadId,
+          merchantOrderId,
+          amountPaise,
+          startedAt: new Date().toISOString(),
+          redirectUrl,
+        })
+      );
+    } catch {
+      // localStorage can fail (private mode / quota). Redirect should still work.
+    }
+
+    // Important: redirect in same tab (PhonePe flow)
+    window.location.assign(redirectUrl);
+    return true;
+  };
+
   const [step,          setStep]          = useState(0);
   const [loading,       setLoading]       = useState(false);
   const [stepLoading,   setStepLoading]   = useState(false);
@@ -92,6 +141,69 @@ const UserUploadForm = ({
     return raw && String(raw).trim() ? String(raw).trim() : null;
   }, [searchParams]);
 
+  /** Optional: `/dashboard/user/upload?revision=1` uses revision tier (2nd+ revision flows). */
+  const isRevision = useMemo(() => {
+    const r = searchParams.get("revision");
+    return r === "1" || r === "true";
+  }, [searchParams]);
+
+  const googleSuperimpose = Form.useWatch("googleSuperimpose", form) ?? false;
+
+  const [uploadPricing, setUploadPricing] = useState(null);
+  const [revisionPricing, setRevisionPricing] = useState(null);
+  const [sketchPricingLoading, setSketchPricingLoading] = useState(false);
+  const [sketchPricingError, setSketchPricingError] = useState(null);
+
+  const sketchPricingReady = uploadPricing !== null && revisionPricing !== null;
+
+  useEffect(() => {
+    if (step !== 3) return;
+    if (sketchPricingReady) return;
+
+    let cancelled = false;
+    (async () => {
+      setSketchPricingLoading(true);
+      setSketchPricingError(null);
+      try {
+        const data = await getSurveyorSketchPricing();
+        if (cancelled) return;
+        setUploadPricing(data.upload);
+        setRevisionPricing(data.revision);
+      } catch (e) {
+        if (cancelled) return;
+        setSketchPricingError(e?.message || "Failed to load pricing");
+        setUploadPricing({ ...FALLBACK_SURVEYOR_SKETCH_PRICING.upload });
+        setRevisionPricing({ ...FALLBACK_SURVEYOR_SKETCH_PRICING.revision });
+      } finally {
+        if (!cancelled) setSketchPricingLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, sketchPricingReady]);
+
+  const sketchPricingBreakdown = useMemo(() => {
+    if (!sketchPricingReady) return null;
+    return buildSketchCheckoutBreakdown({
+      upload: uploadPricing,
+      revision: revisionPricing,
+      isRevision,
+      isGoogleSuperimpose: Boolean(googleSuperimpose),
+    });
+  }, [sketchPricingReady, uploadPricing, revisionPricing, isRevision, googleSuperimpose]);
+
+  /** Single source for submit + review total; recalculates when tier, revision mode, or superimpose toggles. */
+  const finalAmount = useMemo(() => {
+    if (!uploadPricing || !revisionPricing) return 0;
+    return computeSketchSubmitAmountRupees({
+      uploadTier: uploadPricing,
+      revisionTier: revisionPricing,
+      isRevision,
+      isGoogleSuperimpose: Boolean(googleSuperimpose),
+    });
+  }, [googleSuperimpose, uploadPricing, revisionPricing, isRevision]);
+
   /* ── Draft handlers ── */
   const handleDocumentUpload  = (field, data) => setUploadedDocs((p) => ({ ...p, [field]: data }));
   const handleDocumentRemove  = (field)        => setUploadedDocs((p) => { const n = { ...p }; delete n[field]; return n; });
@@ -105,30 +217,54 @@ const UserUploadForm = ({
   /* ── Navigation ── */
   const goNext = async () => {
     if (stepLoading) return;
+
+    const proceed = async () => {
+      try {
+        const fields = STEP_FIELDS[step];
+        if (fields.length > 0) await form.validateFields(fields);
+
+        const payload = buildDraftPayload(form.getFieldsValue(true));
+        const currentDraftId = draftId || draftIdFromUrl;
+
+        setStepLoading(true);
+        if (step === 0 && !currentDraftId) {
+          const created = await createDraft(payload);
+          const nextDraftId = created?._id ?? created?.id;
+          if (!nextDraftId) throw new Error("Draft ID missing from createDraft response");
+          setDraftId(nextDraftId);
+        } else {
+          if (!currentDraftId) throw new Error("Draft ID missing. Please save draft and try again.");
+          await updateDraft(currentDraftId, payload);
+        }
+
+        setStep((s) => Math.min(s + 1, 3));
+      } catch (e) {
+        if (e?.errorFields) return; // validation failed, ant shows inline errors
+        message.error(e?.message || "Failed to save draft");
+      } finally {
+        setStepLoading(false);
+      }
+    };
+
     try {
-      const fields = STEP_FIELDS[step];
-      if (fields.length > 0) await form.validateFields(fields);
-
-      const payload = buildDraftPayload(form.getFieldsValue(true));
-      const currentDraftId = draftId || draftIdFromUrl;
-
-      setStepLoading(true);
-      if (step === 0 && !currentDraftId) {
-        const created = await createDraft(payload);
-        const nextDraftId = created?._id ?? created?.id;
-        if (!nextDraftId) throw new Error("Draft ID missing from createDraft response");
-        setDraftId(nextDraftId);
-      } else {
-        if (!currentDraftId) throw new Error("Draft ID missing. Please save draft and try again.");
-        await updateDraft(currentDraftId, payload);
+      // Drawing step (previous step): confirm if googleSuperimpose not selected
+      if (step === 1) {
+        const googleSuperimpose = Boolean(form.getFieldValue("googleSuperimpose"));
+        if (!googleSuperimpose) {
+          Modal.confirm({
+            title: "Superimpose not selected",
+            content: "You have not selected superimpose. Do you want to continue without it?",
+            okText: "Continue Anyway",
+            cancelText: "Go Back",
+            onOk: proceed,
+          });
+          return;
+        }
       }
 
-      setStep((s) => Math.min(s + 1, 3));
-    } catch (e) {
-      if (e?.errorFields) return; // validation failed, ant shows inline errors
-      message.error(e?.message || "Failed to save draft");
-    } finally {
-      setStepLoading(false);
+      await proceed();
+    } catch {
+      // `proceed` already handles errors and toasts
     }
   };
   const goPrev = () => setStep((s) => Math.max(s - 1, 0));
@@ -153,6 +289,9 @@ const UserUploadForm = ({
     setUploadedDocs({});
     setUploadedOther({});
     setLocationLabels({});
+    setUploadPricing(null);
+    setRevisionPricing(null);
+    setSketchPricingError(null);
     setStep(0);
   };
 
@@ -203,6 +342,8 @@ const UserUploadForm = ({
       } else {
         if (!hasAnyMainNormal) { message.error("Normal mode: upload at least one main document (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
       }
+      const googleOn = isGoogleSuperimposeSelected(form, values);
+
       const payload = {
         draftId: currentDraftId,
         surveyType: values.surveyType,
@@ -214,7 +355,7 @@ const UserUploadForm = ({
       };
       if (values.village) payload.village = values.village;
       if (values.others)               payload.others = values.others;
-      if (values.googleSuperimpose)    payload.googleSuperimpose = true;
+      payload.isSuperimpose = googleOn;
       if (audioData?.fileUrl)          payload.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
 
       if (uploadMode === "single") {
@@ -247,11 +388,51 @@ const UserUploadForm = ({
         DOCUMENT_TYPE_KEYS.forEach((k) => { delete payload[k]; });
       }
 
-      console.log("UPLOAD MODE:", uploadMode);
-      console.log("FINAL PAYLOAD:", payload);
+      // Total Payable = same as review step (tier after discount + Google superimpose). Set last so nothing overwrites.
+      const upTier = uploadPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.upload;
+      const revTier = revisionPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.revision;
+      const checkout = buildSketchCheckoutBreakdown({
+        upload: upTier,
+        revision: revTier,
+        isRevision,
+        isGoogleSuperimpose: googleOn,
+      });
+      const totalPayableRupees = Number(Number(checkout.finalPayableRupees).toFixed(2));
+      const amountPaise = Math.round(totalPayableRupees * 100);
+      payload.amountRupees = totalPayableRupees;
+      payload.totalPayableRupees = totalPayableRupees;
+      // Many PSPs (e.g. PhonePe) expect smallest currency unit; send explicitly so server does not guess.
+      payload.amountPaise = amountPaise;
 
+      console.log("[SketchUpload] payment totals", {
+        totalPayableRupees,
+        amountPaise,
+        isSuperimpose: googleOn,
+        payloadKeys: Object.keys(payload).filter((k) => k.toLowerCase().includes("amount") || k.includes("Payable")),
+      });
+      // console.log("PAYLOAD:", payload);
       const result = await createSketchUpload(payload);
+      // const result = { success: true };
       if (result.success) {
+        const payMeta = result?.meta?.payment ?? {};
+        const serverPaise =
+          payMeta.amountPaise ??
+          result?.data?.sketchPayment?.amountPaise ??
+          result?.data?.sketchPayment?.amount_paise ??
+          null;
+        if (
+          payMeta.requiresPayment &&
+          serverPaise != null &&
+          Number(serverPaise) !== amountPaise
+        ) {
+          const serverRs = Number(serverPaise) / 100;
+          message.warning(
+            `Payment gateway amount is ₹${serverRs.toFixed(2)}, but your order total is ₹${totalPayableRupees.toFixed(2)}. Do not complete payment if that is wrong — contact support. The backend must use amountRupees / amountPaise from this request when creating the checkout.`
+          );
+        }
+        // If backend says payment is required, send user to checkout.
+        if (redirectToPayment(result)) return;
+
         message.success("Request submitted successfully!");
         resetFormState();
         navigate("/dashboard/user");
@@ -269,7 +450,7 @@ const UserUploadForm = ({
     // Use explicit form mode only. Never infer mode from uploaded files.
     const resolvedMode = form.getFieldValue("uploadMode") ?? "normal";
     si("others", values.others); si("uploadMode", resolvedMode);
-    si("googleSuperimpose", values.googleSuperimpose);
+    si("isSuperimpose", Boolean(values.googleSuperimpose));
     if (audioData?.fileUrl) p.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
     const mode = resolvedMode;
     if (mode === "single") {
@@ -365,7 +546,7 @@ const UserUploadForm = ({
           hobli:    draft.hobli?._id    ?? draft.hobli?.id     ?? draft.hobli,
           village:  draft.village?._id  ?? draft.village?.id   ?? draft.village,
           surveyNo: draft.surveyNo, others: draft.others,
-          googleSuperimpose: draft.googleSuperimpose ?? false,
+          googleSuperimpose: draft.isSuperimpose ?? draft.googleSuperimpose ?? false,
         };
         if (uploadMode === "single") {
           const m = toMeta(draft.singleUpload); const item = toFileListItem(m, "draft-singleUpload");
@@ -403,7 +584,19 @@ const UserUploadForm = ({
       onOtherDocumentRemove={handleOtherRemove}
       onClearUploads={handleClearUploads}
     />,
-    <ReviewStep    key={3} form={form} uploadedDocs={uploadedDocs} audioData={audioData} locationLabels={locationLabels} />,
+    <ReviewStep
+      key={3}
+      form={form}
+      uploadedDocs={uploadedDocs}
+      audioData={audioData}
+      locationLabels={locationLabels}
+      sketchPricingLoading={step === 3 && sketchPricingLoading}
+      sketchPricingError={step === 3 ? sketchPricingError : null}
+      sketchPricingBreakdown={step === 3 && !sketchPricingLoading ? sketchPricingBreakdown : null}
+      checkoutFinalRupees={
+        step === 3 && sketchPricingReady && !sketchPricingLoading ? finalAmount : null
+      }
+    />,
   ];
 
   return (
@@ -468,6 +661,10 @@ const UserUploadForm = ({
             <Form.Item name="uploadMode" noStyle>
               <input type="hidden" />
             </Form.Item>
+            {/* Keeps googleSuperimpose in the store when Drawing step unmounts (required for pricing + submit). */}
+            <Form.Item name="googleSuperimpose" valuePropName="checked" hidden noStyle>
+              <Checkbox tabIndex={-1} className="sr-only absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0" />
+            </Form.Item>
             <div className="theme-animate-surface rounded-2xl border border-line bg-surface shadow-sm p-5 sm:p-6 mb-6">
               {STEP_CONTENT[step]}
             </div>
@@ -501,7 +698,11 @@ const UserUploadForm = ({
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={loading || externalLoading}
+                  disabled={
+                    loading ||
+                    externalLoading ||
+                    (step === 3 && (sketchPricingLoading || !sketchPricingReady))
+                  }
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
                 >
                   {loading || externalLoading ? (

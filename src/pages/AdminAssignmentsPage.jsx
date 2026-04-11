@@ -1,6 +1,7 @@
 import React from "react";
+import { message } from "antd";
 import { useSelector } from "react-redux";
-import { ROLES } from "../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../constants/roles.js";
 import {
   createAssignment,
   getCadUsers,
@@ -14,16 +15,8 @@ import {
 import AssignmentFlowToggle from "../components/assignments/AssignmentFlowToggle.jsx";
 import SketchTable from "../components/assignments/SketchTable.jsx";
 import AssignmentModal from "../components/assignments/AssignmentModal.jsx";
-
-function getCurrentRole(roleFromRedux) {
-  if (roleFromRedux) return roleFromRedux;
-  try {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored)?.role : null;
-  } catch {
-    return null;
-  }
-}
+import AssignmentCadPayoutDrawer from "../components/assignments/AssignmentCadPayoutDrawer.jsx";
+import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
 
 function normalizeStatuses(payload) {
   if (!payload) return [];
@@ -79,9 +72,11 @@ function getAssignmentIdFromSketch(sketch) {
 }
 
 export default function AdminAssignmentsPage() {
-  const roleFromRedux = useSelector((s) => s.auth?.role);
-  const currentRole = getCurrentRole(roleFromRedux);
-  const allowed = currentRole === ROLES.ADMIN || currentRole === ROLES.SUPER_ADMIN;
+  const roleFromStore = useSelector((s) => s.auth?.role);
+  const userRoleFromStore = useSelector((s) => s.auth?.user?.role);
+  const roleKey = normalizeRoleKey(resolveStoredUserRole(roleFromStore, userRoleFromStore));
+  const allowed = roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN;
+  const isSuperAdmin = roleKey === ROLES.SUPER_ADMIN;
 
   const [autoAssignEnabled, setAutoAssignEnabled] = React.useState(false);
   const [flowLoading, setFlowLoading] = React.useState(false);
@@ -104,6 +99,10 @@ export default function AdminAssignmentsPage() {
   const [modalInitial, setModalInitial] = React.useState({});
   const [modalError, setModalError] = React.useState("");
   const [modalLoading, setModalLoading] = React.useState(false);
+
+  const [cadDrawerOpen, setCadDrawerOpen] = React.useState(false);
+  const [cadDrawerSketch, setCadDrawerSketch] = React.useState(null);
+  const [cadDrawerLoading, setCadDrawerLoading] = React.useState(false);
 
   const [pageError, setPageError] = React.useState("");
 
@@ -213,6 +212,44 @@ export default function AdminAssignmentsPage() {
     setModalSketch(null);
     setModalError("");
     setModalLoading(false);
+  };
+
+  const closeCadDrawer = () => {
+    setCadDrawerOpen(false);
+    setCadDrawerSketch(null);
+    setCadDrawerLoading(false);
+  };
+
+  const openCadDrawer = async (row) => {
+    const uploadId = row?._id ?? row?.id;
+    if (!uploadId) {
+      message.error("Missing sketch id");
+      return;
+    }
+    setCadDrawerOpen(true);
+    setCadDrawerSketch(row);
+    setCadDrawerLoading(true);
+    try {
+      const res = await getSketchUploadById(uploadId);
+      if (res?.success && res?.data) setCadDrawerSketch(res.data);
+    } catch (err) {
+      message.error(err?.message || "Failed to load sketch");
+    } finally {
+      setCadDrawerLoading(false);
+    }
+  };
+
+  const refreshCadDrawerAndTable = async () => {
+    const id = cadDrawerSketch?._id ?? cadDrawerSketch?.id;
+    if (id) {
+      try {
+        const res = await getSketchUploadById(id);
+        if (res?.success && res?.data) setCadDrawerSketch(res.data);
+      } catch (err) {
+        message.error(err?.message || "Failed to refresh sketch");
+      }
+    }
+    await loadTable();
   };
 
   const submitModal = async (payload) => {
@@ -363,6 +400,16 @@ export default function AdminAssignmentsPage() {
         autoAssignEnabled={autoAssignEnabled}
         onAssignClick={openAssign}
         onEditClick={openEdit}
+        onCadPayoutClick={isSuperAdmin ? openCadDrawer : undefined}
+      />
+
+      <AssignmentCadPayoutDrawer
+        open={cadDrawerOpen}
+        onClose={closeCadDrawer}
+        sketch={cadDrawerSketch}
+        loading={cadDrawerLoading}
+        canManage={isSuperAdmin}
+        onRefresh={refreshCadDrawerAndTable}
       />
 
       <AssignmentModal

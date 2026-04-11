@@ -8,14 +8,16 @@ import {
   Progress,
   Space,
   Divider,
+  Button,
 } from "antd";
 import {
   ProjectOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   SyncOutlined,
-  ExclamationCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { DUMMY_ORDER_STATS } from "./orders/ordersData";
 
 const { Title, Text } = Typography;
@@ -50,6 +52,7 @@ const BarChart = ({ data, colors, height = 12 }) => {
 };
 
 const CADHomePage = () => {
+  const navigate = useNavigate();
   const stats = DUMMY_ORDER_STATS;
   const chartData = [
     { label: "Approved", value: stats.approved },
@@ -69,6 +72,11 @@ const CADHomePage = () => {
       <Title level={3} style={{ marginBottom: 24 }}>
         CAD Center Dashboard
       </Title>
+      <div style={{ marginBottom: 16 }}>
+        <Button type="primary" icon={<EditOutlined />} onClick={() => navigate("/profile")}>
+          Edit Profile
+        </Button>
+      </div>
 
       <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         Order Statistics

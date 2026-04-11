@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Typography, Table, Space, Tag, message } from "antd";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Typography, Table, Space, Tag, message, Button, Tooltip, Modal } from "antd";
 import { getCadInterests } from "../../../services/cadInterestService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import { createUser } from "../../../services/user/userService.js";
 
 const { Title } = Typography;
 
@@ -10,10 +11,21 @@ const toSkillsText = (skills) => {
   return skills.filter(Boolean).join(", ");
 };
 
+const normalizeEmail = (value) => (value == null ? "" : String(value).trim());
+const isValidEmail = (value) => {
+  const email = normalizeEmail(value);
+  // pragmatic validation: good enough for UI gating; backend should be authoritative
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 const ViewCadInterests = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+
+  const [addedUsers, setAddedUsers] = useState([]); // emails successfully created in this session
+  const [alreadyAddedUsers, setAlreadyAddedUsers] = useState([]); // emails that backend says already exist
+  const [addingEmails, setAddingEmails] = useState([]); // emails currently being processed
 
   const fetchCadInterests = useCallback(async () => {
     setLoading(true);
@@ -48,7 +60,51 @@ const ViewCadInterests = () => {
     }));
   };
 
-  const columns = [
+  const handleAddCadUser = useCallback(
+    async (row) => {
+      const email = normalizeEmail(row?.email);
+      if (!isValidEmail(email)) return;
+
+      // avoid duplicate calls (double click / racing)
+      if (addingEmails.includes(email)) return;
+      if (addedUsers.includes(email) || alreadyAddedUsers.includes(email)) return;
+
+      const payload = {
+        role: "CAD",
+        email,
+        password: "1234",
+        firstName: row?.name ?? "",
+        lastName: "",
+      };
+
+      setAddingEmails((prev) => (prev.includes(email) ? prev : [...prev, email]));
+      try {
+        await createUser(payload);
+        setAddedUsers((prev) => (prev.includes(email) ? prev : [...prev, email]));
+        message.success("CAD user created successfully");
+      } catch (err) {
+        const rawMsg = String(err?.message || "");
+        const msg = rawMsg.toLowerCase();
+        const looksLikeDuplicate =
+          msg.includes("already") ||
+          msg.includes("exist") ||
+          msg.includes("duplicate") ||
+          msg.includes("conflict");
+
+        if (looksLikeDuplicate) {
+          setAlreadyAddedUsers((prev) => (prev.includes(email) ? prev : [...prev, email]));
+        } else {
+          message.error("Failed to create CAD user");
+        }
+      } finally {
+        setAddingEmails((prev) => prev.filter((e) => e !== email));
+      }
+    },
+    [addingEmails, addedUsers, alreadyAddedUsers]
+  );
+
+  const columns = useMemo(() => {
+    return [
     {
       title: "SL No",
       key: "slNo",
@@ -119,7 +175,66 @@ const ViewCadInterests = () => {
       width: 180,
       render: (value) => (value ? new Date(value).toLocaleString() : "-"),
     },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 170,
+      fixed: "right",
+      render: (_, row) => {
+        const email = normalizeEmail(row?.email);
+        const emailOk = isValidEmail(email);
+        const isAdding = emailOk && addingEmails.includes(email);
+        const isAdded = emailOk && addedUsers.includes(email);
+        const isAlreadyAdded = emailOk && alreadyAddedUsers.includes(email);
+
+        const disabled = !emailOk || isAdding || isAdded || isAlreadyAdded;
+        const label = isAlreadyAdded ? "Already Added" : isAdded ? "Added" : "Add as CAD User";
+        const tooltip = !emailOk ? "Email required to create user" : undefined;
+
+        const button = (
+          <Button
+            type="primary"
+            size="small"
+            loading={isAdding}
+            disabled={disabled}
+            onClick={() => {
+              if (!emailOk || isAdding || isAdded || isAlreadyAdded) return;
+              Modal.confirm({
+                title: "Confirm Onboarding",
+                content:
+                  "Are you sure you want to onboard this candidate as a CAD user?",
+                okText: "Yes, Add",
+                cancelText: "Cancel",
+                onOk: async () => handleAddCadUser(row),
+              });
+            }}
+          >
+            {label}
+          </Button>
+        );
+
+        return (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            {tooltip ? (
+              <Tooltip title={tooltip}>
+                <span>{button}</span>
+              </Tooltip>
+            ) : (
+              button
+            )}
+          </div>
+        );
+      },
+    },
   ];
+  }, [
+    pagination.page,
+    pagination.limit,
+    addingEmails,
+    addedUsers,
+    alreadyAddedUsers,
+    handleAddCadUser,
+  ]);
 
   return (
     <div>
@@ -146,7 +261,7 @@ const ViewCadInterests = () => {
           showTotal: (total) => `Total ${total} interests`,
         }}
         onChange={handleTableChange}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1550 }}
       />
     </div>
   );

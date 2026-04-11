@@ -1,5 +1,6 @@
 import { useSelector } from "react-redux";
 import { Navigate, useLocation } from "react-router-dom";
+import useProfileGuard from "../hooks/useProfileGuard";
 
 /**
  * Protects routes by redirecting to /login when there is no auth token in Redux.
@@ -9,9 +10,14 @@ import { Navigate, useLocation } from "react-router-dom";
 export default function ProtectedRoute({ children }) {
   const token = useSelector((state) => state.auth?.token);
   const location = useLocation();
+  const profileRedirectPath = useProfileGuard();
 
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (profileRedirectPath) {
+    return <Navigate to={profileRedirectPath} state={{ from: location }} replace />;
   }
 
   return children;

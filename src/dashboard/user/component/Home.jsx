@@ -124,7 +124,7 @@ const Home = () => {
     let done = 0;
     const total = 3;
     if (d?.surveyType && d?.district && d?.taluka && d?.hobli && d?.village && d?.surveyNo) done += 1;
-    if (d?.others || d?.audio?.url || d?.googleSuperimpose) done += 1;
+    if (d?.others || d?.audio?.url || d?.isSuperimpose || d?.googleSuperimpose) done += 1;
     const hasSingle = !!(d?.singleUpload?.url || d?.singleUpload);
     const hasNormal = !!(d?.moolaTippani || d?.hissaTippani || d?.atlas || d?.rrPakkabook || d?.kharabu || d?.documents);
     if (hasSingle || hasNormal) done += 1;
@@ -227,7 +227,7 @@ const Home = () => {
           </div>
 
           {/* Spent */}
-          <div className="rounded-2xl border border-[color-mix(in_srgb,var(--warning)_28%,var(--border-color))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--bg-secondary))] p-3 sm:p-4 flex flex-col gap-2">
+          {/* <div className="rounded-2xl border border-[color-mix(in_srgb,var(--warning)_28%,var(--border-color))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--bg-secondary))] p-3 sm:p-4 flex flex-col gap-2">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-surface flex items-center justify-center shadow-sm">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--warning)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h10M9 12h10M9 16h10M4 8h.01M4 12h.01M4 16h.01" />
@@ -235,7 +235,7 @@ const Home = () => {
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-fg">₹{stats.spent}</div>
             <div className="text-[10px] sm:text-xs font-bold tracking-widest text-fg-muted uppercase">Spent</div>
-          </div>
+          </div> */}
         </div>
 
         {/* ── Drafts preview (latest 3) ── */}
