@@ -25,6 +25,7 @@ import {
   getCadWallet,
   getCadWalletTransactions,
 } from "../../services/cad/cadWalletService.js";
+import { cadBi, cadBiFmt } from "../../dashboard/cad/cadBilingual.js";
 
 const { Title, Text } = Typography;
 
@@ -39,9 +40,9 @@ function getStoredRole() {
 
 function statusTag(status) {
   const s = String(status || "").toUpperCase();
-  if (s === "PAID") return <Tag color="green">PAID</Tag>;
-  if (s === "PARTIAL") return <Tag color="orange">PARTIAL</Tag>;
-  return <Tag color="red">PENDING</Tag>;
+  if (s === "PAID") return <Tag color="green">{cadBi.wallet.tagPaid}</Tag>;
+  if (s === "PARTIAL") return <Tag color="orange">{cadBi.wallet.tagPartial}</Tag>;
+  return <Tag color="red">{cadBi.wallet.tagPending}</Tag>;
 }
 
 function mapTxRow(t, idx) {
@@ -115,7 +116,7 @@ export default function CadWalletPage() {
       setSummary(s);
     } catch (e) {
       setError(e?.message || "Failed to load wallet");
-      message.error(e?.message || "Failed to load wallet");
+      message.error(e?.message || cadBi.wallet.loadFail);
     } finally {
       setSummaryLoading(false);
     }
@@ -129,7 +130,7 @@ export default function CadWalletPage() {
       setRows(res.list.map(mapTxRow));
       setTotal(res.total);
     } catch (e) {
-      message.error(e?.message || "Failed to load transactions");
+      message.error(e?.message || cadBi.wallet.loadTxFail);
       setRows([]);
     } finally {
       setTxLoading(false);
@@ -150,7 +151,7 @@ export default function CadWalletPage() {
     <div>
       <Title level={2} style={{ marginBottom: 24 }}>
         <WalletOutlined style={{ marginRight: 12, color: "var(--accent-color)" }} />
-        Wallet
+        {cadBi.wallet.pageTitle}
       </Title>
 
       {error ? (
@@ -166,7 +167,7 @@ export default function CadWalletPage() {
               <Skeleton active paragraph={{ rows: 1 }} />
             ) : (
               <Statistic
-                title="Total earnings"
+                title={cadBi.wallet.totalEarnings}
                 value={summary.totalEarningsRupees}
                 prefix={<DollarOutlined />}
                 suffix="₹"
@@ -181,7 +182,7 @@ export default function CadWalletPage() {
               <Skeleton active paragraph={{ rows: 1 }} />
             ) : (
               <Statistic
-                title="Received payment"
+                title={cadBi.wallet.receivedPayment}
                 value={summary.receivedPaymentRupees}
                 prefix={<CheckCircleOutlined />}
                 suffix="₹"
@@ -197,7 +198,7 @@ export default function CadWalletPage() {
               <Skeleton active paragraph={{ rows: 1 }} />
             ) : (
               <Statistic
-                title="Pending payment"
+                title={cadBi.wallet.pendingPayment}
                 value={summary.pendingPaymentRupees}
                 prefix={<ClockCircleOutlined />}
                 suffix="₹"
@@ -209,19 +210,20 @@ export default function CadWalletPage() {
         </Col>
       </Row>
 
-      <Card title="Transaction history" bordered={false}>
+      <Card title={cadBi.wallet.transactionHistory} bordered={false}>
         <Table
           rowKey="key"
           loading={txLoading}
           dataSource={rows}
-          locale={{ emptyText: <Empty description="No transactions yet" /> }}
+          locale={{ emptyText: <Empty description={cadBi.wallet.noTransactions} /> }}
           pagination={{
             current: page,
             pageSize: limit,
             total,
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50"],
-            showTotal: (t, range) => `${range[0]}-${range[1]} of ${t}`,
+            showTotal: (t, range) =>
+              cadBiFmt(cadBi.wallet.rangeOf, { a: range[0], b: range[1], t }),
             onChange: (p, ps) => {
               setPage(p);
               setLimit(ps || 20);
@@ -238,15 +240,15 @@ export default function CadWalletPage() {
                   dataSource={record.paymentLog}
                   columns={[
                     {
-                      title: "Amount",
+                      title: cadBi.wallet.amount,
                       render: (_, log) => formatRs(log?.amountRupees ?? log?.amount),
                     },
                     {
-                      title: "Date",
+                      title: cadBi.wallet.date,
                       render: (_, log) => formatDt(log?.recordedAt ?? log?.date ?? log?.createdAt),
                     },
                     {
-                      title: "Recorded by",
+                      title: cadBi.wallet.recordedBy,
                       render: (_, log) => {
                         const rb = log?.recordedBy;
                         if (rb && typeof rb === "object") {
@@ -258,23 +260,23 @@ export default function CadWalletPage() {
                   ]}
                 />
               ) : (
-                <Text type="secondary">No payment log entries.</Text>
+                <Text type="secondary">{cadBi.wallet.noPaymentLog}</Text>
               ),
           }}
           columns={[
-            { title: "Type", dataIndex: "kind", key: "kind", width: 140 },
-            { title: "Revision no.", dataIndex: "revisionNo", key: "rev", width: 100 },
-            { title: "Total (₹)", key: "tot", render: (_, r) => formatRs(r.totalRupees) },
-            { title: "Paid (₹)", key: "paid", render: (_, r) => formatRs(r.paidRupees) },
-            { title: "Remaining (₹)", key: "rem", render: (_, r) => formatRs(r.remainingRupees) },
-            { title: "Status", key: "st", width: 100, render: (_, r) => statusTag(r.status) },
+            { title: cadBi.wallet.type, dataIndex: "kind", key: "kind", width: 140 },
+            { title: cadBi.wallet.revisionNo, dataIndex: "revisionNo", key: "rev", width: 100 },
+            { title: cadBi.wallet.totalRs, key: "tot", render: (_, r) => formatRs(r.totalRupees) },
+            { title: cadBi.wallet.paidRs, key: "paid", render: (_, r) => formatRs(r.paidRupees) },
+            { title: cadBi.wallet.remainingRs, key: "rem", render: (_, r) => formatRs(r.remainingRupees) },
+            { title: cadBi.wallet.status, key: "st", width: 100, render: (_, r) => statusTag(r.status) },
             {
-              title: "Paid %",
+              title: cadBi.wallet.paidPct,
               key: "pct",
               width: 160,
               render: (_, r) => <Progress percent={Math.round(r.paidPercent)} size="small" />,
             },
-            { title: "Date", key: "dt", width: 180, render: (_, r) => formatDt(r.date) },
+            { title: cadBi.wallet.date, key: "dt", width: 180, render: (_, r) => formatDt(r.date) },
           ]}
         />
       </Card>

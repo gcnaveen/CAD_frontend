@@ -21,47 +21,43 @@ import {
   SoundOutlined,
 } from "@ant-design/icons";
 import { formatUserDisplayLabel } from "../../../services/assignmentApi";
+import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Text } = Typography;
 
 const ASSIGNMENT_STATUS_TAG = {
-  ASSIGNED: { color: "blue", text: "Assigned" },
-  IN_PROGRESS: { color: "orange", text: "In Progress" },
-  COMPLETED: { color: "green", text: "Completed" },
-  ON_HOLD: { color: "gold", text: "On Hold" },
-  CANCELLED: { color: "red", text: "Cancelled" },
-  PENDING: { color: "default", text: "Pending" },
+  ASSIGNED: { color: "blue", text: cadBi.orders.assignmentStatus.ASSIGNED },
+  IN_PROGRESS: { color: "orange", text: cadBi.orders.assignmentStatus.IN_PROGRESS },
+  COMPLETED: { color: "green", text: cadBi.orders.assignmentStatus.COMPLETED },
+  ON_HOLD: { color: "gold", text: cadBi.orders.assignmentStatus.ON_HOLD },
+  CANCELLED: { color: "red", text: cadBi.orders.assignmentStatus.CANCELLED },
+  PENDING: { color: "default", text: cadBi.orders.assignmentStatus.PENDING },
+  NEED_CHANGES: { color: "orange", text: cadBi.orders.assignmentStatus.NEED_CHANGES },
 };
 
 const SKETCH_STATUS_DISPLAY = {
-  PENDING: "Pending Review",
-  ASSIGNED: "Assigned",
-  UNDER_REVIEW: "Under Review",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  ON_HOLD: "On Hold",
-  CANCELLED: "Cancelled",
+  PENDING: cadBi.drawer.sketchStatus.PENDING,
+  ASSIGNED: cadBi.drawer.sketchStatus.ASSIGNED,
+  UNDER_REVIEW: cadBi.drawer.sketchStatus.UNDER_REVIEW,
+  APPROVED: cadBi.drawer.sketchStatus.APPROVED,
+  REJECTED: cadBi.drawer.sketchStatus.REJECTED,
+  IN_PROGRESS: cadBi.drawer.sketchStatus.IN_PROGRESS,
+  COMPLETED: cadBi.drawer.sketchStatus.COMPLETED,
+  ON_HOLD: cadBi.drawer.sketchStatus.ON_HOLD,
+  CANCELLED: cadBi.drawer.sketchStatus.CANCELLED,
 };
 
-const DOCUMENT_LABELS = {
-  moolaTippani: { en: "Moola Tippani" },
-  hissaTippani: { en: "Hissa Tippani" },
-  atlas: { en: "Atlas" },
-  rrPakkabook: { en: "RR Pakkabook" },
-  kharabu: { en: "Kharabu" },
-};
+const DOCUMENT_LABEL_KEYS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
 
-const SINGLE_MODE_DOCUMENT_LABELS = {
-  is_originaltippani: { en: "Moola Tippani" },
-  is_hissatippani: { en: "Hissa Tippani" },
-  is_atlas: { en: "Atlas" },
-  is_rrpakkabook: { en: "RR Pakkabook" },
-  is_akarabandu: { en: "Akarabandu" },
-  is_kharabuttar: { en: "Kharab Utthar" },
-  is_mulapatra: { en: "Moola Patra" },
-};
+const SINGLE_MODE_DOCUMENT_KEYS = [
+  "is_originaltippani",
+  "is_hissatippani",
+  "is_atlas",
+  "is_rrpakkabook",
+  "is_akarabandu",
+  "is_kharabuttar",
+  "is_mulapatra",
+];
 
 const formatFileSize = (bytes) => {
   if (!bytes || bytes === 0) return "0 B";
@@ -97,8 +93,8 @@ const formatLocationDisplay = (location) => {
 
 const formatSurveyType = (type) => {
   if (!type) return "—";
-  if (type === "joint_flat") return "Joint Flat";
-  if (type === "single_flat") return "Single Flat";
+  if (type === "joint_flat") return cadBi.drawer.surveyTypes.joint_flat;
+  if (type === "single_flat") return cadBi.drawer.surveyTypes.single_flat;
   return String(type);
 };
 
@@ -120,22 +116,20 @@ const OrderDetailDrawer = ({
 
   const singleModeSelectedLabels = useMemo(
     () =>
-      Object.keys(SINGLE_MODE_DOCUMENT_LABELS)
-        .filter((key) => sketch[key] === true)
-        .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key].en),
+      SINGLE_MODE_DOCUMENT_KEYS.filter((key) => sketch[key] === true).map(
+        (key) => cadBi.drawer.docLabels[key] || key
+      ),
     [sketch]
   );
 
   const normalDocumentItems = useMemo(() => {
     const docs = sketch.documents;
     if (!docs || typeof docs !== "object") return [];
-    return Object.keys(DOCUMENT_LABELS)
-      .map((key) => {
-        const doc = docs[key];
-        const label = DOCUMENT_LABELS[key]?.en || key;
-        return doc?.url ? { key, label, doc } : null;
-      })
-      .filter(Boolean);
+    return DOCUMENT_LABEL_KEYS.map((key) => {
+      const doc = docs[key];
+      const label = cadBi.drawer.docLabels[key] || key;
+      return doc?.url ? { key, label, doc } : null;
+    }).filter(Boolean);
   }, [sketch.documents]);
 
   if (!order) return null;
@@ -166,12 +160,12 @@ const OrderDetailDrawer = ({
 
   const handleUploadSubmit = () => {
     if (fileList.length === 0) {
-      message.warning("Please select at least one file to upload.");
+      message.warning(cadBi.drawer.selectFileWarn);
       return;
     }
     onUploadCad?.(order.id, fileList);
     setFileList([]);
-    message.success("CAD file(s) uploaded successfully.");
+    message.success(cadBi.drawer.uploadSuccess);
     onClose?.();
   };
 
@@ -194,9 +188,7 @@ const OrderDetailDrawer = ({
 
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch (e) {
-      message.error(
-        "Download failed. If the file is hosted on a different domain, your browser may block direct download."
-      );
+      message.error(cadBi.drawer.downloadFail);
     } finally {
       setDownloadingByKey((p) => ({ ...p, [key]: false }));
     }
@@ -209,7 +201,7 @@ const OrderDetailDrawer = ({
     <Drawer
       title={
         <span>
-          Application{" "}
+          {cadBi.drawer.application}{" "}
           <Text strong>{order.orderId || order.applicationId || "—"}</Text>
         </span>
       }
@@ -221,10 +213,10 @@ const OrderDetailDrawer = ({
       extra={
         onSave && (
           <Space>
-            <Button onClick={onClose}>Close</Button>
+            <Button onClick={onClose}>{cadBi.drawer.close}</Button>
             {fileList.length > 0 && (
               <Button type="primary" onClick={handleUploadSubmit}>
-                Upload CAD File(s)
+                {cadBi.drawer.uploadCadFiles}
               </Button>
             )}
           </Space>
@@ -233,65 +225,65 @@ const OrderDetailDrawer = ({
       styles={{ body: { paddingBottom: 24 } }}
     >
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        <Card size="small" title="Assignment">
+        <Card size="small" title={cadBi.drawer.assignment}>
           <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Application ID">
+            <Descriptions.Item label={cadBi.drawer.applicationId}>
               <Text strong>{order.applicationId || order.orderId || "—"}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label="Survey No">
+            <Descriptions.Item label={cadBi.drawer.surveyNo}>
               {order.surveyNo || sketch.surveyNo || "—"}
             </Descriptions.Item>
-            <Descriptions.Item label="Assigned at">
+            <Descriptions.Item label={cadBi.drawer.assignedAt}>
               {formatDate(order.orderDate)}
             </Descriptions.Item>
-            <Descriptions.Item label="Due date">
+            <Descriptions.Item label={cadBi.drawer.dueDate}>
               {order.dueDate ? formatDate(order.dueDate) : "—"}
             </Descriptions.Item>
-            <Descriptions.Item label="Assignment status">
+            <Descriptions.Item label={cadBi.drawer.assignmentStatus}>
               <Tag color={assignmentTag.color}>{assignmentTag.text}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Assignment notes">
+            <Descriptions.Item label={cadBi.drawer.assignmentNotes}>
               {order.note || "—"}
             </Descriptions.Item>
           </Descriptions>
         </Card>
 
-        <Card size="small" title="Survey sketch">
+        <Card size="small" title={cadBi.drawer.surveySketch}>
           <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Survey type">
+            <Descriptions.Item label={cadBi.drawer.surveyType}>
               <Tag>{formatSurveyType(sketch.surveyType)}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="District">
+            <Descriptions.Item label={cadBi.drawer.district}>
               {formatLocationDisplay(sketch.district)}
             </Descriptions.Item>
-            <Descriptions.Item label="Taluka">
+            <Descriptions.Item label={cadBi.drawer.taluka}>
               {formatLocationDisplay(sketch.taluka)}
             </Descriptions.Item>
-            <Descriptions.Item label="Hobli">
+            <Descriptions.Item label={cadBi.drawer.hobli}>
               {formatLocationDisplay(sketch.hobli)}
             </Descriptions.Item>
-            <Descriptions.Item label="Village">
+            <Descriptions.Item label={cadBi.drawer.village}>
               {formatLocationDisplay(sketch.village)}
             </Descriptions.Item>
-            <Descriptions.Item label="Upload status">
+            <Descriptions.Item label={cadBi.drawer.uploadStatus}>
               <Tag>{sketchStatusText}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Others / notes">
+            <Descriptions.Item label={cadBi.drawer.othersNotes}>
               {sketch.others ?? "—"}
             </Descriptions.Item>
-            <Descriptions.Item label="Created">
+            <Descriptions.Item label={cadBi.drawer.created}>
               {formatDate(sketch.createdAt)}
             </Descriptions.Item>
-            <Descriptions.Item label="Updated">
+            <Descriptions.Item label={cadBi.drawer.updated}>
               {formatDate(sketch.updatedAt)}
             </Descriptions.Item>
             {sketch.reviewedAt != null && (
-              <Descriptions.Item label="Reviewed at">
+              <Descriptions.Item label={cadBi.drawer.reviewedAt}>
                 {formatDate(sketch.reviewedAt)}
               </Descriptions.Item>
             )}
             {sketch.reviewedBy != null && (
-              <Descriptions.Item label="Reviewed by">
+              <Descriptions.Item label={cadBi.drawer.reviewedBy}>
                 {typeof sketch.reviewedBy === "object"
                   ? formatUserDisplayLabel(sketch.reviewedBy) || "—"
                   : String(sketch.reviewedBy)}
@@ -301,15 +293,15 @@ const OrderDetailDrawer = ({
         </Card>
 
         {sketch.surveyor && (
-          <Card size="small" title="Surveyor">
+          <Card size="small" title={cadBi.drawer.surveyor}>
             <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="Name">
+              <Descriptions.Item label={cadBi.drawer.name}>
                 {formatUserDisplayLabel(sketch.surveyor) || "—"}
               </Descriptions.Item>
-              <Descriptions.Item label="Phone">
+              <Descriptions.Item label={cadBi.drawer.phone}>
                 {sketch.surveyor?.auth?.phone || "—"}
               </Descriptions.Item>
-              <Descriptions.Item label="Email">
+              <Descriptions.Item label={cadBi.drawer.email}>
                 {sketch.surveyor?.auth?.email || "—"}
               </Descriptions.Item>
             </Descriptions>
@@ -317,11 +309,11 @@ const OrderDetailDrawer = ({
         )}
 
         {showAssignmentNote && (
-          <Card size="small" title="Assignment">
+          <Card size="small" title={cadBi.drawer.assignment}>
             <Alert
               type="warning"
               showIcon
-              message="Changes required"
+              message={cadBi.drawer.changesRequired}
               description={order.note}
               style={{ marginBottom: 0 }}
             />
@@ -329,11 +321,11 @@ const OrderDetailDrawer = ({
         )}
 
         {showSketchStatusNote && (
-          <Card size="small" title="Review note">
+          <Card size="small" title={cadBi.drawer.reviewNote}>
             <Alert
               type="info"
               showIcon
-              message="Status note"
+              message={cadBi.drawer.statusNote}
               description={sketchStatusNoteText}
               style={{ marginBottom: 0 }}
             />
@@ -346,8 +338,12 @@ const OrderDetailDrawer = ({
           size="small"
           title={
             <Space>
-              <span>Uploaded documents</span>
-              {isSingleMode ? <Tag color="blue">Single upload</Tag> : <Tag>Per document</Tag>}
+              <span>{cadBi.drawer.uploadedDocuments}</span>
+              {isSingleMode ? (
+                <Tag color="blue">{cadBi.drawer.singleUpload}</Tag>
+              ) : (
+                <Tag>{cadBi.drawer.perDocument}</Tag>
+              )}
             </Space>
           }
         >
@@ -355,7 +351,7 @@ const OrderDetailDrawer = ({
             <div className="space-y-3">
               <div>
                 <Text type="secondary" className="text-xs block" style={{ marginBottom: 8 }}>
-                  Document types marked on upload
+                  {cadBi.drawer.documentTypesMarked}
                 </Text>
                 <Text className="text-sm">
                   {singleModeSelectedLabels.length
@@ -374,7 +370,7 @@ const OrderDetailDrawer = ({
                   </Text>
                   {sketch.singleUpload.uploadedAt && (
                     <Text type="secondary" className="text-xs block">
-                      Uploaded: {formatDate(sketch.singleUpload.uploadedAt)}
+                      {cadBi.drawer.uploaded}: {formatDate(sketch.singleUpload.uploadedAt)}
                     </Text>
                   )}
                 </div>
@@ -385,7 +381,7 @@ const OrderDetailDrawer = ({
                       onClick={() => window.open(sketch.singleUpload.url, "_blank")}
                       size="small"
                     >
-                      View
+                      {cadBi.drawer.view}
                     </Button>
                     <Button
                       type="link"
@@ -400,7 +396,7 @@ const OrderDetailDrawer = ({
                       }
                       size="small"
                     >
-                      Download
+                      {cadBi.drawer.download}
                     </Button>
                   </Space>
               </div>
@@ -419,7 +415,7 @@ const OrderDetailDrawer = ({
                       icon={<LinkOutlined />}
                       onClick={() => window.open(doc.url, "_blank")}
                     >
-                        View
+                        {cadBi.drawer.view}
                       </Button>,
                       <Button
                         key="download"
@@ -435,7 +431,7 @@ const OrderDetailDrawer = ({
                               )
                             }
                       >
-                        Download
+                        {cadBi.drawer.download}
                     </Button>,
                   ]}
                 >
@@ -477,7 +473,7 @@ const OrderDetailDrawer = ({
                           onClick={() => handleDownload(file.url, file.name || "download", file.url)}
                           size="small"
                         >
-                          Download
+                          {cadBi.drawer.download}
                         </Button>
                       </Space>
                     </Space>
@@ -492,14 +488,14 @@ const OrderDetailDrawer = ({
               )}
             />
           ) : (
-            <Text type="secondary">No sketch files</Text>
+            <Text type="secondary">{cadBi.drawer.noSketchFiles}</Text>
           )}
         </Card>
 
         {Array.isArray(sketch.other_documents) && sketch.other_documents.length > 0 && (
           <>
             <Divider style={{ margin: "8px 0" }} />
-            <Card size="small" title="Other documents">
+            <Card size="small" title={cadBi.drawer.otherDocuments}>
               <List
                 size="small"
                 dataSource={sketch.other_documents}
@@ -516,7 +512,7 @@ const OrderDetailDrawer = ({
                               icon={<LinkOutlined />}
                               onClick={() => window.open(doc.url, "_blank")}
                             >
-                              Open
+                              {cadBi.drawer.open}
                             </Button>,
                             <Button
                               key="d"
@@ -532,7 +528,7 @@ const OrderDetailDrawer = ({
                                 )
                               }
                             >
-                              Download
+                              {cadBi.drawer.download}
                             </Button>,
                           ]
                         : []
@@ -540,7 +536,7 @@ const OrderDetailDrawer = ({
                   >
                     <div>
                       <Text strong className="text-sm">
-                        {doc.fileName || "Document"}
+                        {doc.fileName || cadBi.drawer.documentFallback}
                       </Text>
                       <div>
                         <Text type="secondary" className="text-xs">
@@ -558,7 +554,7 @@ const OrderDetailDrawer = ({
         )}
 
         <Divider style={{ margin: "8px 0" }} />
-        <Card size="small" title="Audio / ಆಡಿಯೋ">
+        <Card size="small" title={cadBi.drawer.audioCardTitle}>
           {order.audio?.url || sketch.audio?.url ? (
             (() => {
               const audio = order.audio?.url ? order.audio : sketch.audio;
@@ -568,15 +564,18 @@ const OrderDetailDrawer = ({
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <SoundOutlined style={{ color: "var(--text-secondary)" }} />
                       <Text strong className="text-sm">
-                        {audio.fileName || "Audio file"}
+                        {audio.fileName || cadBi.drawer.audioFile}
                       </Text>
                     </div>
                     <Text type="secondary" className="text-xs" style={{ display: "block" }}>
-                      Type: {audio.mimeType || "–"} • Size: {formatFileSize(audio.size)}
+                      {cadBiFmt(cadBi.drawer.typeSizeLine, {
+                        mime: audio.mimeType || "–",
+                        size: formatFileSize(audio.size),
+                      })}
                     </Text>
                     {audio.uploadedAt && (
                       <Text type="secondary" className="text-xs" style={{ display: "block" }}>
-                        Uploaded: {formatDate(audio.uploadedAt)}
+                        {cadBi.drawer.uploaded}: {formatDate(audio.uploadedAt)}
                       </Text>
                     )}
                     <div style={{ marginTop: 12 }}>
@@ -586,7 +585,7 @@ const OrderDetailDrawer = ({
                         style={{ width: "100%", maxWidth: 400, height: 36 }}
                         preload="metadata"
                       >
-                        Your browser does not support the audio element.
+                        {cadBi.drawer.audioUnsupported}
                       </audio>
                     </div>
                   </div>
@@ -596,21 +595,21 @@ const OrderDetailDrawer = ({
                     onClick={() => window.open(audio.url, "_blank")}
                     size="small"
                   >
-                    Open
+                    {cadBi.drawer.open}
                   </Button>
                 </div>
               );
             })()
           ) : (
             <Text type="secondary" className="text-sm">
-              No audio uploaded
+              {cadBi.drawer.noAudio}
             </Text>
           )}
         </Card>
 
         <Divider style={{ margin: "8px 0" }} />
 
-        <Card size="small" title="CAD deliverables">
+        <Card size="small" title={cadBi.drawer.cadDeliverables}>
           <List
             size="small"
             dataSource={order.cadFiles || []}
@@ -628,30 +627,29 @@ const OrderDetailDrawer = ({
                     onClick={() => handleDownload(file.url, file.name || "cad-deliverable", file.url)}
                     size="small"
                   >
-                    Download
+                    {cadBi.drawer.download}
                   </Button>
                 </Space>
               </List.Item>
             )}
           />
           {(!order.cadFiles?.length) && (
-            <Text type="secondary">No CAD files uploaded yet</Text>
+            <Text type="secondary">{cadBi.drawer.noCadYet}</Text>
           )}
         </Card>
 
         <Divider style={{ margin: "8px 0" }} />
 
-        <Card size="small" title="Upload CAD file">
+        <Card size="small" title={cadBi.drawer.uploadCadFile}>
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
-            Upload completed CAD drawing files for this application.
+            {cadBi.drawer.uploadCadHelp}
           </Text>
           <Upload {...uploadProps}>
-            <Button icon={<UploadOutlined />}>Select CAD file(s)</Button>
+            <Button icon={<UploadOutlined />}>{cadBi.drawer.selectCadFiles}</Button>
           </Upload>
           {fileList.length > 0 && (
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-              {fileList.length} file(s) selected. Use &quot;Upload CAD File(s)&quot; in the
-              header to submit.
+              {cadBiFmt(cadBi.drawer.filesSelectedHint, { n: fileList.length })}
             </Text>
           )}
         </Card>

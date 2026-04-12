@@ -72,16 +72,14 @@ const Hero = () => {
   }, [lang]);
 
   const stats = useMemo(() => [
-    { icon: <IndianRupee size={16} />, value: t(lang, "hero.stats.priceValue"), label: t(lang, "hero.stats.priceLabel") },
-    { icon: <Clock size={16} />, value: t(lang, "hero.stats.deliveryValue"), label: t(lang, "hero.stats.deliveryLabel") },
-    { icon: <MapPin size={16} />, value: t(lang, "hero.stats.regionValue"), label: t(lang, "hero.stats.regionLabel") },
-    { icon: <ShieldCheck size={16} />, value: t(lang, "hero.stats.qcValue"), label: t(lang, "hero.stats.qcLabel") },
+    { Icon: IndianRupee, value: t(lang, "hero.stats.priceValue"), label: t(lang, "hero.stats.priceLabel") },
+    { Icon: Clock, value: t(lang, "hero.stats.deliveryValue"), label: t(lang, "hero.stats.deliveryLabel") },
+    { Icon: MapPin, value: t(lang, "hero.stats.regionValue"), label: t(lang, "hero.stats.regionLabel") },
+    { Icon: ShieldCheck, value: t(lang, "hero.stats.qcValue"), label: t(lang, "hero.stats.qcLabel") },
   ], [lang]);
 
   const marqueeItems = useMemo(() => [
-    "Licensed Land Surveyors", "AutoCAD Drawings", "₹500 Fixed Price",
-    "48-Hour Delivery", "Karnataka Only", "QC-Assured Process",
-    "Tippani · RTC · Survey", "North-cot Platform",
+    "Karnataka", "Licensed surveyors", "₹500 · 48h", "QC-assured",
   ], []);
 
   return (
@@ -128,165 +126,196 @@ const Hero = () => {
         }} />
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT — copy left, video + stat cards right */}
       <div
         className="flex-1 relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8"
-        style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "40px", display: "flex", flexDirection: "column", justifyContent: "center" }}
+        style={{ paddingTop: "clamp(28px, 4vw, 48px)", paddingBottom: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}
       >
-        {/* Eyebrow badge */}
-        <div className="reveal-up flex items-center gap-3 mb-5">
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "8px",
-            padding: "6px 16px", borderRadius: "100px",
-            background: "rgba(201,168,76,0.12)",
-            border: "1px solid rgba(201,168,76,0.35)",
-          }}>
-            <span style={{ position: "relative", display: "flex", width: "8px", height: "8px" }}>
-              <span style={{
-                position: "absolute", inset: 0, borderRadius: "50%",
-                background: "var(--brand-gold)", opacity: 0.6, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
-              }} />
-              <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "var(--brand-gold)" }} />
-            </span>
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
-              {t(lang, "hero.eyebrow")}
-            </span>
-          </div>
-        </div>
-
-        {/* HERO TITLE — large, dramatic */}
-        <div className="reveal-up mb-5" style={{ maxWidth: "820px" }}>
-          <h1
-            className="home-serif-title"
-            style={{
-              fontFamily: "'IBM Plex Serif', Georgia, serif",
-              fontStyle: "italic",
-              fontWeight: 600,
-              lineHeight: 1.12,
-              fontSize: "clamp(38px, 5.5vw, 72px)",
-              background: "var(--hero-panel-bg)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {t(lang, "hero.title")}
-          </h1>
-        </div>
-
-        {/* Decorative divider */}
-        <div className="reveal-up flex items-center gap-2 mb-5">
-          <div style={{ height: "2px", width: "32px", background: "var(--brand-gold)", borderRadius: "2px" }} />
-          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)" }} />
-          <div style={{ height: "1px", width: "200px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
-        </div>
-
-        {/* Subtitle */}
-        <div className="reveal-up mb-8" style={{ maxWidth: "560px" }}>
-          <p style={{
-            fontSize: "clamp(14.5px, 1.1vw, 16.5px)",
-            lineHeight: 1.8,
-            color: "var(--text-primary)",
-            fontWeight: 400,
-          }}>
-            {t(lang, "hero.subtitle")}
-          </p>
-        </div>
-
-        {/* CTA Buttons */}
-        <div className="reveal-up flex flex-col sm:flex-row gap-3 mb-10">
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="magnetic-btn"
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
-              padding: "14px 32px", borderRadius: "14px",
-              background: "linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 85%, black) 100%)",
-              color: "white", fontWeight: 600, fontSize: "14px", letterSpacing: "0.03em",
-              boxShadow: "0 8px 32px rgba(21,40,21,0.30), 0 2px 8px rgba(21,40,21,0.15)",
-              border: "none", cursor: "pointer",
-              transition: "all 0.25s ease",
-              width: "auto",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 12px 40px rgba(21,40,21,0.40), 0 4px 12px rgba(21,40,21,0.2)"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(21,40,21,0.30), 0 2px 8px rgba(21,40,21,0.15)"; }}
-          >
-            {t(lang, "hero.ctaPrimary")}
-            <ArrowRight size={16} />
-          </button>
-
-          <button
-            type="button"
-            onClick={scrollToHowItWorks}
-            className="magnetic-btn hero-cta-secondary"
-          >
-            <span className="hero-play-bubble">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </span>
-            {t(lang, "hero.ctaSecondary")}
-          </button>
-        </div>
-
-        {/* STAT CARDS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "12px",
-            maxWidth: "720px",
-          }}
-        >
-          {stats.map((stat, i) => (
-            <div
-              key={i}
-              className="stat-card-anim"
-              style={{
-                background: "rgba(255,255,255,0.75)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(232,226,216,0.9)",
-                borderRadius: "16px",
-                padding: "16px",
-                cursor: "default",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = "translateY(-3px)";
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.10)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)";
-              }}
-            >
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:gap-10 xl:gap-12">
+          <div className="flex min-w-0 flex-1 flex-col justify-center lg:max-w-[48%]">
+            {/* Eyebrow */}
+            <div className="reveal-up mb-4">
               <div style={{
-                width: "34px", height: "34px", borderRadius: "10px",
-                background: "rgba(201,168,76,0.12)", color: "var(--brand-gold)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: "10px",
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                padding: "6px 14px", borderRadius: "100px",
+                background: "rgba(201,168,76,0.1)",
+                border: "1px solid rgba(201,168,76,0.28)",
               }}>
-                {stat.icon}
-              </div>
-              <div
-                className="hero-stat-value"
-                style={{
-                  fontFamily: "'IBM Plex Serif', Georgia, serif",
-                  fontWeight: 600, fontSize: "20px", color: "var(--brand-green-deep)",
-                  lineHeight: 1, marginBottom: "4px",
-                }}
-              >
-                {stat.value}
-              </div>
-              <div
-                className="hero-stat-label"
-                style={{ fontSize: "11px", fontWeight: 500, color: "var(--text-brown-soft)", letterSpacing: "0.05em", textTransform: "uppercase" }}
-              >
-                {stat.label}
+                <span style={{ position: "relative", display: "flex", width: "8px", height: "8px" }}>
+                  <span style={{
+                    position: "absolute", inset: 0, borderRadius: "50%",
+                    background: "var(--brand-gold)", opacity: 0.55, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
+                  }} />
+                  <span style={{ position: "relative", width: "8px", height: "8px", borderRadius: "50%", background: "var(--brand-gold)" }} />
+                </span>
+                <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
+                  {t(lang, "hero.eyebrow")}
+                </span>
               </div>
             </div>
-          ))}
+
+            <div className="reveal-up mb-4" style={{ maxWidth: "520px" }}>
+              <h1
+                className="home-serif-title"
+                style={{
+                  fontFamily: "'IBM Plex Serif', Georgia, serif",
+                  fontStyle: "italic",
+                  fontWeight: 600,
+                  lineHeight: 1.14,
+                  fontSize: "clamp(30px, 4.2vw, 52px)",
+                  background: "var(--hero-panel-bg)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {t(lang, "hero.title")}
+              </h1>
+            </div>
+
+            <div className="reveal-up mb-6" style={{ maxWidth: "480px" }}>
+              <p style={{
+                fontSize: "clamp(14px, 1.35vw, 17px)",
+                lineHeight: 1.72,
+                color: "var(--text-primary)",
+                fontWeight: 400,
+              }}>
+                {t(lang, "hero.subtitle")}
+              </p>
+            </div>
+
+            <div className="reveal-up flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="magnetic-btn"
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                  padding: "12px 26px", borderRadius: "14px",
+                  background: "linear-gradient(135deg, var(--homepage-cta-bg) 0%, color-mix(in srgb, var(--homepage-cta-bg) 85%, black) 100%)",
+                  color: "white", fontWeight: 600, fontSize: "14px", letterSpacing: "0.025em",
+                  boxShadow: "0 6px 24px rgba(21,40,21,0.22)",
+                  border: "none", cursor: "pointer",
+                  transition: "all 0.25s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 10px 32px rgba(21,40,21,0.32)"; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 6px 24px rgba(21,40,21,0.22)"; }}
+              >
+                {t(lang, "hero.ctaPrimary")}
+                <ArrowRight size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={scrollToHowItWorks}
+                className="magnetic-btn hero-cta-secondary"
+              >
+                <span className="hero-play-bubble">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </span>
+                {t(lang, "hero.ctaSecondary")}
+              </button>
+            </div>
+          </div>
+
+          <div className="reveal-up flex min-w-0 flex-1 flex-col justify-center lg:max-w-[52%]">
+            <div
+              className="relative w-full overflow-hidden rounded-2xl border shadow-lg"
+              style={{
+                borderColor: "rgba(26,52,25,0.12)",
+                boxShadow: "0 20px 50px rgba(15,30,20,0.12)",
+                aspectRatio: "16 / 10",
+                maxHeight: "min(52vh, 420px)",
+              }}
+            >
+              <video
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster=""
+                aria-label="Karnataka survey context"
+              >
+                <source src="/assets/herobgvideofinal.mp4" type="video/mp4" />
+              </video>
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 40%, rgba(15,40,25,0.08) 100%)",
+                }}
+              />
+            </div>
+
+            <div
+              className="mt-4 grid w-full grid-cols-2 gap-2 sm:gap-3"
+              role="list"
+              aria-label={t(lang, "hero.statsAria")}
+            >
+              {stats.map((stat, i) => {
+                const Icon = stat.Icon;
+                return (
+                  <div
+                    key={i}
+                    role="listitem"
+                    className="stat-card-anim flex min-h-[108px] flex-col items-center justify-center rounded-2xl border px-2 py-3 text-center sm:min-h-[118px] sm:px-3 sm:py-4"
+                    style={{
+                      borderColor: "rgba(26,52,25,0.1)",
+                      background: "rgba(255,255,255,0.78)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 6px 20px rgba(15,30,20,0.06)",
+                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 10px 26px rgba(15,30,20,0.1)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 6px 20px rgba(15,30,20,0.06)";
+                    }}
+                  >
+                    <div
+                      className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10"
+                      style={{
+                        background: "rgba(201,168,76,0.12)",
+                        color: "var(--brand-gold)",
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={2} aria-hidden />
+                    </div>
+                    <div
+                      className="hero-stat-value"
+                      style={{
+                        fontFamily: "'IBM Plex Serif', Georgia, serif",
+                        fontWeight: 600,
+                        fontSize: "clamp(15px, 2.4vw, 18px)",
+                        color: "var(--brand-green-deep)",
+                        lineHeight: 1.15,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {stat.value}
+                    </div>
+                    <div
+                      className="hero-stat-label"
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 600,
+                        color: "var(--text-brown-soft)",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {stat.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

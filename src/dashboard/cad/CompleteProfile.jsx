@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { setCredentials } from "../../features/auth/authSlice";
 import { updateUser } from "../../services/user/userService";
 import { uploadImageToS3 } from "../../services/upload/upload.service";
+import { cadBi, cadBiFmt } from "./cadBilingual";
 
 const { Title, Text } = Typography;
 
@@ -170,10 +171,6 @@ export default function CompleteProfile() {
     }
 
     const errors = form.getFieldsError(fields);
-    console.log("VALUES:", values);
-console.log("IFSC VALID:", IFSC_REGEX.test(values?.ifscCode || ""));
-console.log("ACCOUNT VALID:", ACCOUNT_NUMBER_REGEX.test(values?.accountNumber || ""));
-console.log("ERRORS:", form.getFieldsError(fields));
     return !errors.some((fieldError) => fieldError.errors?.length);
   };
 
@@ -190,9 +187,9 @@ console.log("ERRORS:", form.getFieldsError(fields));
     try {
       const { fileUrl } = await uploadImageToS3(fileObj, String(userId));
       form.setFieldValue(fieldName, fileUrl);
-      message.success("File uploaded successfully");
+      message.success(cadBi.profile.fileUploaded);
     } catch (error) {
-      message.error(error?.message || "Upload failed");
+      message.error(error?.message || cadBi.profile.uploadFailed);
     } finally {
       setUploading((prev) => ({ ...prev, [fieldName]: false }));
     }
@@ -236,7 +233,7 @@ console.log("ERRORS:", form.getFieldsError(fields));
   const handleSubmit = async () => {
     if (submitting || !isFormReadyForSubmit) return;
     if (!userId) {
-      message.error("Failed to update profile");
+      message.error(cadBi.profile.noUserId);
       return;
     }
 
@@ -304,7 +301,7 @@ console.log("ERRORS:", form.getFieldsError(fields));
       localStorage.removeItem(draftKey);
       setIsDraftDirty(false);
 
-      message.success("Profile completed successfully");
+      message.success(cadBi.profile.profileCompleted);
       navigate("/dashboard", { replace: true });
     } catch (error) {
       const validationError = Array.isArray(error?.response?.data?.errors)
@@ -313,7 +310,7 @@ console.log("ERRORS:", form.getFieldsError(fields));
       const msg =
         validationError ||
         error?.response?.data?.message ||
-        "Failed to update profile";
+        cadBi.profile.profileUpdateFail;
       message.error(msg);
     } finally {
       setSubmitting(false);
@@ -326,7 +323,16 @@ console.log("ERRORS:", form.getFieldsError(fields));
       <Form.Item
         label={label}
         name={name}
-        rules={required ? [{ required: true, message: `${label} is required` }] : []}
+        rules={
+          required
+            ? [
+                {
+                  required: true,
+                  message: cadBiFmt(cadBi.profile.rules.fieldRequired, { label }),
+                },
+              ]
+            : []
+        }
       >
         <Space direction="vertical" style={{ width: "100%" }}>
           <Upload
@@ -337,12 +343,12 @@ console.log("ERRORS:", form.getFieldsError(fields));
             disabled={Boolean(uploading[name])}
           >
             <Button icon={<UploadOutlined />} loading={Boolean(uploading[name])}>
-              {value ? "Replace file" : "Upload file"}
+              {value ? cadBi.profile.replaceFile : cadBi.profile.uploadFile}
             </Button>
           </Upload>
           {value ? (
             <a href={value} target="_blank" rel="noreferrer">
-              Preview uploaded file
+              {cadBi.profile.previewFile}
             </a>
           ) : null}
         </Space>
@@ -365,10 +371,10 @@ console.log("ERRORS:", form.getFieldsError(fields));
       >
         <Space direction="vertical" size={8} style={{ width: "100%" }}>
           <Title level={3} style={{ marginBottom: 0 }}>
-            Complete Your Profile
+            {cadBi.profile.pageTitle}
           </Title>
           <Text type="secondary">
-            Step {currentStep + 1}/6 - Finish required details to continue using the CAD portal.
+            {cadBiFmt(cadBi.profile.stepLine, { c: currentStep + 1 })}
           </Text>
           <Progress percent={progressPercent} size="small" showInfo={false} />
         </Space>
@@ -379,12 +385,12 @@ console.log("ERRORS:", form.getFieldsError(fields));
           responsive
           style={{ marginTop: 16, marginBottom: 20 }}
           items={[
-            { title: "Personal" },
-            { title: "KYC" },
-            { title: "Bank" },
-            { title: "UPI" },
-            { title: "Professional" },
-            { title: "Documents" },
+            { title: cadBi.profile.steps.personal },
+            { title: cadBi.profile.steps.kyc },
+            { title: cadBi.profile.steps.bank },
+            { title: cadBi.profile.steps.upi },
+            { title: cadBi.profile.steps.professional },
+            { title: cadBi.profile.steps.documents },
           ]}
         />
 
@@ -399,52 +405,52 @@ console.log("ERRORS:", form.getFieldsError(fields));
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="First Name"
+                  label={cadBi.profile.firstName}
                   name="firstName"
-                  rules={[{ required: true, message: "First name is required" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.firstName }]}
                 >
-                  <Input placeholder="Enter first name" />
+                  <Input placeholder={cadBi.profile.placeholders.firstName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Last Name"
+                  label={cadBi.profile.lastName}
                   name="lastName"
-                  rules={[{ required: true, message: "Last name is required" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.lastName }]}
                 >
-                  <Input placeholder="Enter last name" />
+                  <Input placeholder={cadBi.profile.placeholders.lastName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Phone"
+                  label={cadBi.profile.phone}
                   name="phone"
-                  rules={[{ required: true, message: "Phone is required" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.phone }]}
                 >
-                  <Input placeholder="Enter phone number" />
+                  <Input placeholder={cadBi.profile.placeholders.phone} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label="Email" name="email">
+                <Form.Item label={cadBi.profile.email} name="email">
                   <Input disabled />
                 </Form.Item>
               </Col>
               <Col xs={24}>
                 <Form.Item
-                  label="Address"
+                  label={cadBi.profile.address}
                   name="address"
-                  rules={[{ required: true, message: "Address is required" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.address }]}
                 >
-                  <Input.TextArea rows={3} placeholder="Enter address" />
+                  <Input.TextArea rows={3} placeholder={cadBi.profile.placeholders.address} />
                 </Form.Item>
               </Col>
-              <Col xs={24}>{renderUpload("profilePhotoUrl", "Profile Photo", false)}</Col>
+              <Col xs={24}>{renderUpload("profilePhotoUrl", cadBi.profile.profilePhoto, false)}</Col>
             </Row>
           ) : null}
 
           {currentStep === 1 ? (
             <Row gutter={[12, 12]}>
-              <Col xs={24}>{renderUpload("aadhaarPhotoUrl", "Aadhaar Photo", true)}</Col>
+              <Col xs={24}>{renderUpload("aadhaarPhotoUrl", cadBi.profile.aadhaarPhoto, true)}</Col>
             </Row>
           ) : null}
 
@@ -452,48 +458,48 @@ console.log("ERRORS:", form.getFieldsError(fields));
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Account Number"
+                  label={cadBi.profile.accountNumber}
                   name="accountNumber"
                   rules={[
-                    { required: true, message: "Account number is required" },
+                    { required: true, message: cadBi.profile.rules.accountNumber },
                     {
                       pattern: ACCOUNT_NUMBER_REGEX,
-                      message: "Account number must contain numbers only",
+                      message: cadBi.profile.rules.accountNumberPattern,
                     },
                   ]}
                 >
-                  <Input placeholder="Enter account number" />
+                  <Input placeholder={cadBi.profile.placeholders.accountNumber} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Account Holder Name"
+                  label={cadBi.profile.accountHolderName}
                   name="accountHolderName"
-                  rules={[{ required: true, message: "Account holder name is required" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.accountHolder }]}
                 >
-                  <Input placeholder="Enter account holder name" />
+                  <Input placeholder={cadBi.profile.placeholders.accountHolderName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label="Bank Name" name="bankName">
-                  <Input placeholder="Enter bank name" />
+                <Form.Item label={cadBi.profile.bankName} name="bankName">
+                  <Input placeholder={cadBi.profile.placeholders.bankName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label="Branch Name" name="branchName">
-                  <Input placeholder="Enter branch name" />
+                <Form.Item label={cadBi.profile.branchName} name="branchName">
+                  <Input placeholder={cadBi.profile.placeholders.branchName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="IFSC Code"
+                  label={cadBi.profile.ifscCode}
                   name="ifscCode"
                   rules={[
-                    { required: true, message: "IFSC code is required" },
-                    { pattern: IFSC_REGEX, message: "Enter a valid IFSC code" },
+                    { required: true, message: cadBi.profile.rules.ifscRequired },
+                    { pattern: IFSC_REGEX, message: cadBi.profile.rules.ifscInvalid },
                   ]}
                 >
-                  <Input placeholder="e.g. SBIN0001234" />
+                  <Input placeholder={cadBi.profile.placeholders.ifsc} />
                 </Form.Item>
               </Col>
             </Row>
@@ -502,8 +508,8 @@ console.log("ERRORS:", form.getFieldsError(fields));
           {currentStep === 3 ? (
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={12}>
-                <Form.Item label="UPI ID" name="upiId">
-                  <Input placeholder="name@bank" />
+                <Form.Item label={cadBi.profile.upiId} name="upiId">
+                  <Input placeholder={cadBi.profile.placeholders.upi} />
                 </Form.Item>
               </Col>
             </Row>
@@ -513,29 +519,27 @@ console.log("ERRORS:", form.getFieldsError(fields));
             <Row gutter={[12, 12]}>
               <Col xs={24}>
                 <Form.Item
-                  label="Skills"
+                  label={cadBi.profile.skills}
                   name="skills"
-                  rules={[{ required: true, message: "Select at least one skill" }]}
+                  rules={[{ required: true, message: cadBi.profile.rules.skills }]}
                 >
                   <Select mode="tags" options={SKILL_OPTIONS.map((s) => ({ label: s, value: s }))} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Experience (Years)"
+                  label={cadBi.profile.experienceYears}
                   name="experienceYears"
                   rules={[
-                    { required: true, message: "Experience is required" },
+                    { required: true, message: cadBi.profile.rules.experienceRequired },
                     {
                       validator: (_, value) => {
                         if (value === undefined || value === null || value === "") {
-                          return Promise.reject(new Error("Experience is required"));
+                          return Promise.reject(new Error(cadBi.profile.rules.experienceRequired));
                         }
                         const years = Number(value);
                         if (!Number.isFinite(years) || years < 0 || years > 50) {
-                          return Promise.reject(
-                            new Error("Experience must be between 0 and 50")
-                          );
+                          return Promise.reject(new Error(cadBi.profile.rules.experienceRange));
                         }
                         return Promise.resolve();
                       },
@@ -545,16 +549,16 @@ console.log("ERRORS:", form.getFieldsError(fields));
                   <InputNumber min={0} max={50} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
-              <Col xs={24}>{renderUpload("resumeUrl", "Resume", false)}</Col>
+              <Col xs={24}>{renderUpload("resumeUrl", cadBi.profile.resume, false)}</Col>
             </Row>
           ) : null}
 
           {currentStep === 5 ? (
             <Row gutter={[12, 12]}>
-              <Col xs={24}>{renderUpload("addressProofUrl", "Address Proof", false)}</Col>
+              <Col xs={24}>{renderUpload("addressProofUrl", cadBi.profile.addressProof, false)}</Col>
               {isDraftDirty ? (
                 <Col xs={24}>
-                  <Text type="secondary">Draft auto-save enabled for this form.</Text>
+                  <Text type="secondary">{cadBi.profile.draftSave}</Text>
                 </Col>
               ) : null}
             </Row>
@@ -573,11 +577,11 @@ console.log("ERRORS:", form.getFieldsError(fields));
         >
           <Space style={{ width: "100%", justifyContent: "space-between" }}>
             <Button onClick={handleBack} disabled={currentStep === 0 || submitting}>
-              Back
+              {cadBi.profile.back}
             </Button>
             {currentStep < 5 ? (
               <Button type="primary" onClick={handleNext} disabled={!isCurrentStepValid()}>
-                Next
+                {cadBi.profile.next}
               </Button>
             ) : (
               <Button
@@ -586,7 +590,7 @@ console.log("ERRORS:", form.getFieldsError(fields));
                 onClick={handleSubmit}
                 disabled={!isFormReadyForSubmit || submitting}
               >
-                Submit Profile
+                {cadBi.profile.submitProfile}
               </Button>
             )}
           </Space>

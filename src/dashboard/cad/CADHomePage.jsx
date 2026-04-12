@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { DUMMY_ORDER_STATS } from "./orders/ordersData";
+import { cadBi, cadBiFmt } from "./cadBilingual";
 
 const { Title, Text } = Typography;
 
@@ -55,10 +56,10 @@ const CADHomePage = () => {
   const navigate = useNavigate();
   const stats = DUMMY_ORDER_STATS;
   const chartData = [
-    { label: "Approved", value: stats.approved },
-    { label: "Pending", value: stats.pending },
-    { label: "Need Changes", value: stats.needChanges },
-    { label: "Rejected", value: stats.rejected },
+    { label: cadBi.home.chartApproved, value: stats.approved },
+    { label: cadBi.home.chartPending, value: stats.pending },
+    { label: cadBi.home.chartNeedChanges, value: stats.needChanges },
+    { label: cadBi.home.chartRejected, value: stats.rejected },
   ];
   const chartColors = [
     "var(--success)",
@@ -70,22 +71,22 @@ const CADHomePage = () => {
   return (
     <div style={{ paddingBottom: 24 }}>
       <Title level={3} style={{ marginBottom: 24 }}>
-        CAD Center Dashboard
+        {cadBi.home.pageTitle}
       </Title>
       <div style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<EditOutlined />} onClick={() => navigate("/profile")}>
-          Edit Profile
+          {cadBi.home.editProfile}
         </Button>
       </div>
 
       <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
-        Order Statistics
+        {cadBi.home.orderStats}
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="Total Orders"
+              title={cadBi.home.totalOrders}
               value={stats.total}
               prefix={<ProjectOutlined style={{ color: "var(--accent-color)" }} />}
             />
@@ -94,7 +95,7 @@ const CADHomePage = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="Approved Orders"
+              title={cadBi.home.approvedOrders}
               value={stats.approved}
               prefix={<CheckCircleOutlined style={{ color: "var(--success)" }} />}
             />
@@ -110,7 +111,7 @@ const CADHomePage = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="Rejected Orders"
+              title={cadBi.home.rejectedOrders}
               value={stats.rejected}
               prefix={<CloseCircleOutlined style={{ color: "var(--danger)" }} />}
             />
@@ -126,12 +127,15 @@ const CADHomePage = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="In Progress"
+              title={cadBi.home.inProgress}
               value={stats.pending + stats.needChanges}
               prefix={<SyncOutlined style={{ color: "var(--accent-color)" }} />}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Pending: {stats.pending} · Need changes: {stats.needChanges}
+              {cadBiFmt(cadBi.home.pendingNeedChanges, {
+                p: stats.pending,
+                n: stats.needChanges,
+              })}
             </Text>
           </Card>
         </Col>
@@ -140,11 +144,11 @@ const CADHomePage = () => {
       <Divider style={{ margin: "24px 0" }} />
 
       <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
-        Orders by Status
+        {cadBi.home.ordersByStatus}
       </Title>
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title="Status breakdown">
+          <Card size="small" title={cadBi.home.statusBreakdown}>
             <BarChart data={chartData} colors={chartColors} height={24} />
             <Space
               split={<Divider type="vertical" />}
@@ -155,31 +159,31 @@ const CADHomePage = () => {
                 <span style={{ color: chartColors[0], fontWeight: 600 }}>
                   {stats.approved}
                 </span>{" "}
-                Approved
+                {cadBi.home.chartApproved}
               </Text>
               <Text>
                 <span style={{ color: chartColors[1], fontWeight: 600 }}>
                   {stats.pending}
                 </span>{" "}
-                Pending
+                {cadBi.home.chartPending}
               </Text>
               <Text>
                 <span style={{ color: chartColors[2], fontWeight: 600 }}>
                   {stats.needChanges}
                 </span>{" "}
-                Need changes
+                {cadBi.home.chartNeedChanges}
               </Text>
               <Text>
                 <span style={{ color: chartColors[3], fontWeight: 600 }}>
                   {stats.rejected}
                 </span>{" "}
-                Rejected
+                {cadBi.home.chartRejected}
               </Text>
             </Space>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card size="small" title="Completion rate">
+          <Card size="small" title={cadBi.home.completionRate}>
             <Progress
               type="circle"
               percent={Math.round((stats.approved / stats.total) * 100)}
@@ -187,7 +191,7 @@ const CADHomePage = () => {
               format={(p) => `${p}%`}
             />
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-              {stats.approved} of {stats.total} orders approved
+              {cadBiFmt(cadBi.home.approvedOfTotal, { a: stats.approved, t: stats.total })}
             </Text>
           </Card>
         </Col>

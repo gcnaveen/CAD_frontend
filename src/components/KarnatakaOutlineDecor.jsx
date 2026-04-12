@@ -1,6 +1,6 @@
 import React from "react";
 
-/** Karnataka district outline (stroke). Asset: public/karnataka-outline.svg (Wikimedia CC BY-SA 3.0). */
+/** Karnataka map (filled districts). Asset: public/karnataka-outline.svg (Wikimedia CC BY-SA 3.0). */
 export default function KarnatakaOutlineDecor({ variant = "center" }) {
   const rootClass =
     variant === "right"
