@@ -10,6 +10,7 @@ export const translations = {
         howItWorks: "How it works",
         benefits: "Benefits",
         testimonials: "Testimonials",
+        faq: "FAQ",
       },
       auth: {
         login: "Login",
@@ -40,6 +41,7 @@ export const translations = {
         qcValue: "✓ QC",
         qcLabel: "assured",
       },
+      statsAria: "Service highlights",
       badge: {
         title: "Government Approved",
         subtitle: "Professional CAD Drawings",
@@ -328,6 +330,40 @@ export const translations = {
         },
       ],
     },
+    faq: {
+      kicker: "FAQ",
+      title: "Questions surveyors ask",
+      subtitle:
+        "Short answers about how to order, pricing, revisions, and refunds. Use the EN / ಕನ್ನಡ toggle in the header to read in your preferred language.",
+      langHint: "Language: switch EN or ಕನ್ನಡ in the top bar.",
+      items: [
+        {
+          question: "How do I order a CAD drawing?",
+          answer:
+            "Create an account and log in. Enter your land details, upload clear survey documents (for example your Tippani), and pay ₹100 as the booking fee to confirm the order. Our team reviews the files, assigns a CAD operator, and after QC approval you pay ₹400 and download the DWG and PDF.",
+        },
+        {
+          question: "What is the price for one survey drawing?",
+          answer:
+            "Each professional 2D AutoCAD drawing is a fixed ₹500 in total: ₹100 when you submit the order, and ₹400 when the drawing is ready and QC-approved, before download. There are no separate hidden charges for the standard drawing package.",
+        },
+        {
+          question: "What if I am not satisfied and need revisions?",
+          answer:
+            "The first revision after delivery is free if you request it within 48 hours. After that, each additional revision costs ₹100. Request changes clearly so we can update the drawing quickly and avoid extra rounds.",
+        },
+        {
+          question: "What is your refund policy?",
+          answer:
+            "A full refund is available only if your order has not yet been assigned to a CAD operator. After assignment, or once the drawing is completed and paid for download, we do not offer refunds. Revision fees, once paid, are also not refundable.",
+        },
+        {
+          question: "How long does delivery take?",
+          answer:
+            "We target delivery within 48 hours from a clear, complete upload and successful payment. If documents are unclear or admin needs extra information, the timeline may start after those issues are resolved.",
+        },
+      ],
+    },
     footer: {
       tagline: "On-demand CAD drawings for Karnataka land surveyors.",
       quickLinksTitle: "Quick Links",
@@ -349,6 +385,7 @@ export const translations = {
         howItWorks: "ಹೇಗೆ ಕಾರ್ಯ",
         benefits: "ಲಾಭಗಳು",
         testimonials: "ಅಭಿಪ್ರಾಯಗಳು",
+        faq: "ಪ್ರಶ್ನೋತ್ತರ",
       },
       auth: {
         login: "ಲಾಗಿನ್",
@@ -379,6 +416,7 @@ export const translations = {
         qcValue: "✓ QC",
         qcLabel: "ಖಾತ್ರಿ",
       },
+      statsAria: "ಸೇವಾ ಮುಖ್ಯಾಂಶಗಳು",
       badge: {
         title: "ಸರ್ಕಾರಿ ಅನುಮೋದನೆ",
         subtitle: "ವೃತ್ತಿಪರ CAD ಡ್ರಾಯಿಂಗ್‌ಗಳು",
@@ -661,6 +699,40 @@ export const translations = {
           role: "ಭೂಮಾಪಕ",
           initials: "AD",
           text: "ನಾವು ಕೇವಲ ಕರ್ನಾಟಕ ಸರ್ವೇ ಕೆಲಸಗಳನ್ನೇ ತೆಗೆದುಕೊಳ್ಳುತ್ತೇವೆ. ಆದ್ದರಿಂದ Tippani ಮತ್ತು RTC ಫ್ಲೋವನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುವ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಮುಖ್ಯ. ತಂಡ ನಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ಮಾತನಾಡುತ್ತದೆ ಮತ್ತು ಪ್ರಕ್ರಿಯೆಯನ್ನು ಪಾರದರ್ಶಕವಾಗಿರಿಸುತ್ತದೆ.",
+        },
+      ],
+    },
+    faq: {
+      kicker: "FAQ",
+      title: "ಭೂಮಾಪಕರು ಕೇಳುವ ಪ್ರಶ್ನೆಗಳು",
+      subtitle:
+        "ಆರ್ಡರ್, ಬೆಲೆ, ಪರಿಷ್ಕರಣೆ ಮತ್ತು ರಿಫಂಡ್ ಬಗ್ಗೆ ಸಂಕ್ಷಿಪ್ತ ಉತ್ತರಗಳು. ನಿಮಗೆ ಬೇಕಾದ ಭಾಷೆಯಲ್ಲಿ ಓದಲು ಹೆಡರ್‌ನಲ್ಲಿನ EN / ಕನ್ನಡ ಬಟನ್ ಬಳಸಿ.",
+      langHint: "ಭಾಷೆ: ಮೇಲಿನ ಪಟ್ಟಿಯಲ್ಲಿ EN ಅಥವಾ ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಿ.",
+      items: [
+        {
+          question: "CAD ಡ್ರಾಯಿಂಗ್ ಹೇಗೆ ಆರ್ಡರ್ ಮಾಡುವುದು?",
+          answer:
+            "ಖಾತೆ ತೆರೆದು ಲಾಗಿನ್ ಮಾಡಿ. ಜಮೀನಿನ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ, ಸ್ಪಷ್ಟ ಸರ್ವೇ ದಾಖಲೆಗಳನ್ನು (ಉದಾ. ಟಿಪ್ಪಣಿ) ಅಪ್ಲೋಡ್ ಮಾಡಿ, ಆರ್ಡರ್ ದೃಢೀಕರಿಸಲು ₹100 ಬುಕಿಂಗ್ ಶುಲ್ಕ ಪಾವತಿಸಿ. ನಮ್ಮ ತಂಡ ಫೈಲ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸುತ್ತದೆ. QC ಅನುಮೋದನೆಯ ನಂತರ ₹400 ಪಾವತಿಸಿ DWG ಮತ್ತು PDF ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
+        },
+        {
+          question: "ಒಂದು ಸರ್ವೇ ಡ್ರಾಯಿಂಗ್‌ಗೆ ಬೆಲೆ ಎಷ್ಟು?",
+          answer:
+            "ಪ್ರತಿ ವೃತ್ತಿಪರ 2D AutoCAD ಡ್ರಾಯಿಂಗ್‌ಗೆ ಒಟ್ಟು ಸ್ಥಿರ ₹500: ಆರ್ಡರ್ ಸಲ್ಲಿಸುವಾಗ ₹100, ಡ್ರಾಯಿಂಗ್ ಸಿದ್ಧವಾಗಿ QC ಅನುಮೋದನೆಯ ನಂತರ ಡೌನ್‌ಲೋಡ್‌ಗೂ ಮೊದಲು ₹400. ಸಾಮಾನ್ಯ ಡ್ರಾಯಿಂಗ್ ಪ್ಯಾಕೇಜ್‌ಗೆ ಪ್ರತ್ಯೇಕ ಗುಪ್ತ ಶುಲ್ಕಗಳಿಲ್ಲ.",
+        },
+        {
+          question: "ಕೆಲಸ ತೃಪ್ತಿಕರವಾಗಿಲ್ಲದಿದ್ದರೆ ಪರಿಷ್ಕರಣೆ ಬೇಕಾದರೆ?",
+          answer:
+            "ಡಿಲಿವರಿಯ ನಂತರ ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ವಿನಂತಿಸಿದರೆ ಉಚಿತ. ಅದರ ನಂತರ ಪ್ರತಿ ಹೆಚ್ಚುವರಿ ಪರಿಷ್ಕರಣೆಗೆ ₹100. ಬದಲಾವಣೆಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿದರೆ ನಾವು ತ್ವರಿತವಾಗಿ ತಿದ್ದುಪಡಿ ಮಾಡಲು ಸಾಧ್ಯ.",
+        },
+        {
+          question: "ರಿಫಂಡ್ ನೀತಿ ಏನು?",
+          answer:
+            "ನಿಮ್ಮ ಆರ್ಡರ್ ಇನ್ನೂ CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸದಿದ್ದರೆ ಮಾತ್ರ ಸಂಪೂರ್ಣ ರಿಫಂಡ್ ಲಭ್ಯ. ನಿಯೋಜನೆಯ ನಂತರ, ಅಥವಾ ಡ್ರಾಯಿಂಗ್ ಪೂರ್ಣಗೊಂಡು ಡೌನ್‌ಲೋಡ್ ಶುಲ್ಕ ಪಾವತಿಸಿದ ನಂತರ ರಿಫಂಡ್ ಇರುವುದಿಲ್ಲ. ಪಾವತಿಸಿದ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕಗಳೂ ರಿಫಂಡ್ ಆಗುವುದಿಲ್ಲ.",
+        },
+        {
+          question: "ಡೆಲಿವರಿ ಎಷ್ಟು ಬೇಗ?",
+          answer:
+            "ಸ್ಪಷ್ಟ ಮತ್ತು ಪೂರ್ಣ ದಾಖಲೆಗಳ ಅಪ್ಲೋಡ್ ಮತ್ತು ಯಶಸ್ವಿ ಪಾವತಿಯ ನಂತರ ಸಾಮಾನ್ಯವಾಗಿ 48 ಗಂಟೆಯೊಳಗೆ ಗುರಿ. ದಾಖಲೆಗಳು ಅಸ್ಪಷ್ಟವಾಗಿದ್ದರೆ ಅಥವಾ ಆಡ್ಮಿನ್ ಹೆಚ್ಚಿನ ಮಾಹಿತಿ ಕೇಳಿದರೆ, ಸಮಸ್ಯೆ ಬಗೆಹರಿದ ನಂತರ ಸಮಯ ಗಣನೆ ಪ್ರಾರಂಭವಾಗಬಹುದು.",
         },
       ],
     },

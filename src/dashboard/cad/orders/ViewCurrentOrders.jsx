@@ -11,15 +11,16 @@ import {
   respondCadAssignment,
 } from "../../../services/assignmentApi";
 import { uploadImageToS3 } from "../../../services/upload/upload.service";
+import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Title } = Typography;
 
 const STATUS_TAG = {
-  ASSIGNED: { color: "blue", text: "Assigned" },
-  IN_PROGRESS: { color: "orange", text: "In Progress" },
-  COMPLETED: { color: "green", text: "Completed" },
-  ON_HOLD: { color: "gold", text: "On Hold" },
-  CANCELLED: { color: "red", text: "Cancelled" },
+  ASSIGNED: { color: "blue", text: cadBi.orders.assignmentStatus.ASSIGNED },
+  IN_PROGRESS: { color: "orange", text: cadBi.orders.assignmentStatus.IN_PROGRESS },
+  COMPLETED: { color: "green", text: cadBi.orders.assignmentStatus.COMPLETED },
+  ON_HOLD: { color: "gold", text: cadBi.orders.assignmentStatus.ON_HOLD },
+  CANCELLED: { color: "red", text: cadBi.orders.assignmentStatus.CANCELLED },
 };
 const ACCEPT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
@@ -154,7 +155,7 @@ const ViewCurrentOrders = () => {
       );
       setPagination({ page: resolvedPage, limit: resolvedLimit, total });
     } catch (error) {
-      message.error(error?.message || "Failed to load current orders");
+      message.error(error?.message || cadBi.orders.loadCurrentFail);
     } finally {
       setTableLoading(false);
     }
@@ -189,7 +190,7 @@ const ViewCurrentOrders = () => {
       );
       setDrawerOpen(true);
     } catch (error) {
-      message.error(error?.message || "Failed to load order details");
+      message.error(error?.message || cadBi.orders.loadDetailFail);
       setSelectedOrder(record);
       setDrawerOpen(true);
     } finally {
@@ -201,14 +202,14 @@ const ViewCurrentOrders = () => {
     setActionLoading(assignmentId, true);
     try {
       await respondCadAssignment(assignmentId, action);
-      message.success(action === "accept" ? "Order accepted" : "Order rejected");
+      message.success(action === "accept" ? cadBi.orders.orderAccepted : cadBi.orders.orderRejected);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       if (selectedOrder?.assignmentId === assignmentId) {
         setDrawerOpen(false);
         setSelectedOrder(null);
       }
     } catch (error) {
-      message.error(error?.message || "Failed to update order status");
+      message.error(error?.message || cadBi.orders.updateStatusFail);
     } finally {
       setActionLoading(assignmentId, false);
     }
@@ -224,7 +225,7 @@ const ViewCurrentOrders = () => {
 
   const handleAccept = (record) => {
     if (!isWithinAcceptWindow(record)) {
-      message.warning("This assignment is older than 2 hours and may have reverted to admin.");
+      message.warning(cadBi.orders.acceptWindowWarn);
       fetchAssignments({ page: pagination.page, limit: pagination.limit });
       return;
     }
@@ -233,21 +234,21 @@ const ViewCurrentOrders = () => {
 
   const handleReject = async (record) => {
     if (!isWithinAcceptWindow(record)) {
-      message.warning("This assignment is older than 2 hours and may have reverted to admin.");
+      message.warning(cadBi.orders.acceptWindowWarn);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       return;
     }
     setActionLoading(record.assignmentId, true);
     try {
       await rejectCadAssignment(record.assignmentId);
-      message.success("Order rejected");
+      message.success(cadBi.orders.orderRejected);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       if (selectedOrder?.assignmentId === record.assignmentId) {
         setDrawerOpen(false);
         setSelectedOrder(null);
       }
     } catch (error) {
-      message.error(error?.message || "Failed to reject order");
+      message.error(error?.message || cadBi.orders.updateStatusFail);
     } finally {
       setActionLoading(record.assignmentId, false);
     }
@@ -257,7 +258,7 @@ const ViewCurrentOrders = () => {
     const target = orders.find((o) => o.id === orderId);
     if (!target?.assignmentId) return;
     if (!files?.length) {
-      message.warning("Please select a CAD file to deliver.");
+      message.warning(cadBi.orders.selectCadFile);
       return;
     }
     const file = files[0];
@@ -270,12 +271,12 @@ const ViewCurrentOrders = () => {
         mimeType: file.type || "application/octet-stream",
         size: file.size || 0,
       });
-      message.success("CAD deliverable submitted successfully");
+      message.success(cadBi.orders.cadDelivered);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       setDrawerOpen(false);
       setSelectedOrder(null);
     } catch (error) {
-      message.error(error?.message || "Failed to deliver CAD file");
+      message.error(error?.message || cadBi.orders.deliverFail);
     } finally {
       setActionLoading(target.assignmentId, false);
     }
@@ -295,13 +296,13 @@ const ViewCurrentOrders = () => {
 
   const columns = [
     {
-      title: "Sl. No",
+      title: cadBi.orders.slNo,
       key: "slNo",
       width: 80,
       render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
-      title: "Assigned at",
+      title: cadBi.orders.assignedAt,
       dataIndex: "orderDate",
       key: "orderDate",
       width: 180,
@@ -309,7 +310,7 @@ const ViewCurrentOrders = () => {
       sorter: (a, b) => new Date(a.orderDate || 0) - new Date(b.orderDate || 0),
     },
     {
-      title: "Application ID",
+      title: cadBi.orders.applicationId,
       dataIndex: "applicationId",
       key: "applicationId",
       width: 200,
@@ -329,7 +330,7 @@ const ViewCurrentOrders = () => {
     //   width: 220,
     // },
     {
-      title: "Due date",
+      title: cadBi.orders.dueDate,
       dataIndex: "dueDate",
       key: "dueDate",
       width: 170,
@@ -344,7 +345,7 @@ const ViewCurrentOrders = () => {
     //   width: 160,
     // },
     {
-      title: "Status",
+      title: cadBi.orders.status,
       key: "status",
       width: 140,
       render: (_, record) => {
@@ -353,7 +354,7 @@ const ViewCurrentOrders = () => {
       },
     },
     {
-      title: "Details",
+      title: cadBi.orders.details,
       key: "details",
       width: 160,
       render: (_, record) => (
@@ -363,12 +364,12 @@ const ViewCurrentOrders = () => {
           onClick={() => handleViewDetails(record)}
           loading={!!actionLoadingById[record.assignmentId]}
         >
-          View Details
+          {cadBi.orders.viewDetails}
         </Button>
       ),
     },
     {
-      title: "Action",
+      title: cadBi.orders.action,
       key: "action",
       width: 260,
       render: (_, record) => {
@@ -377,7 +378,7 @@ const ViewCurrentOrders = () => {
 
         return (
           <Space>
-            {expired && <Tag color="default">Expired</Tag>}
+            {expired && <Tag color="default">{cadBi.orders.expired}</Tag>}
             {status === "ASSIGNED" && !expired && (
               <>
                 <Button
@@ -386,7 +387,7 @@ const ViewCurrentOrders = () => {
                   onClick={() => handleAccept(record)}
                   loading={!!actionLoadingById[record.assignmentId]}
                 >
-                  Accept
+                  {cadBi.orders.accept}
                 </Button>
                 <Button
                   size="small"
@@ -394,7 +395,7 @@ const ViewCurrentOrders = () => {
                   onClick={() => handleReject(record)}
                   loading={!!actionLoadingById[record.assignmentId]}
                 >
-                  Reject
+                  {cadBi.orders.reject}
                 </Button>
               </>
             )}
@@ -406,7 +407,7 @@ const ViewCurrentOrders = () => {
                 onClick={() => handleViewDetails(record)}
                 loading={!!actionLoadingById[record.assignmentId]}
               >
-                Upload Drawing
+                {cadBi.orders.uploadDrawing}
               </Button>
             )}
           </Space>
@@ -418,11 +419,10 @@ const ViewCurrentOrders = () => {
   return (
     <div>
       <Title level={3} style={{ marginBottom: 24 }}>
-        View Current Projects
+        {cadBi.orders.currentTitle}
       </Title>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        Survey sketch assignments for your CAD account. Open details to view files,
-        upload CAD deliverables, and see notes.
+        {cadBi.orders.currentIntro}
       </Typography.Paragraph>
 
       <Table
@@ -436,7 +436,7 @@ const ViewCurrentOrders = () => {
           pageSize: pagination.limit,
           total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} orders`,
+          showTotal: (total) => cadBiFmt(cadBi.orders.totalOrders, { n: total }),
         }}
         scroll={{ x: 1200 }}
       />

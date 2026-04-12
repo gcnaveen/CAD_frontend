@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Layout, Menu, Button, Typography } from "antd";
 import {
   HomeOutlined,
@@ -15,35 +15,39 @@ import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
+import { cadBi } from "../cadBilingual";
 import "./cadlayout.css";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
-
-const menuItems = [
-  { key: "/dashboard/cad", icon: <HomeOutlined />, label: "Home" },
-  {
-    key: "/dashboard/cad/current-orders",
-    icon: <ProjectOutlined />,
-    label: "View Current Projects",
-  },
-  {
-    key: "/dashboard/cad/order-history",
-    icon: <HistoryOutlined />,
-    label: "View Order History",
-  },
-  {
-    key: "/dashboard/cad/wallet",
-    icon: <WalletOutlined />,
-    label: "View Wallet",
-  },
-];
 
 const CADLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+
+  const menuItems = useMemo(
+    () => [
+      { key: "/dashboard/cad", icon: <HomeOutlined />, label: cadBi.layout.menuHome },
+      {
+        key: "/dashboard/cad/current-orders",
+        icon: <ProjectOutlined />,
+        label: cadBi.layout.menuCurrent,
+      },
+      {
+        key: "/dashboard/cad/order-history",
+        icon: <HistoryOutlined />,
+        label: cadBi.layout.menuHistory,
+      },
+      {
+        key: "/dashboard/cad/wallet",
+        icon: <WalletOutlined />,
+        label: cadBi.layout.menuWallet,
+      },
+    ],
+    []
+  );
 
   const handleMenuClick = (e) => {
     navigate(e.key);
@@ -103,7 +107,7 @@ const CADLayout = () => {
           >
             <img
               src="/assets/logo.png"
-              alt="North Cot CAD"
+              alt={cadBi.layout.logoAlt}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
               onError={(e) => {
                 e.target.style.display = "none";
@@ -138,7 +142,7 @@ const CADLayout = () => {
                 lineHeight: 1.3,
               }}
             >
-              CAD Center
+              {cadBi.layout.siderBrand}
             </Text>
           )}
         </div>
@@ -196,7 +200,7 @@ const CADLayout = () => {
               }
               onClick={() => setCollapsed(!collapsed)}
               className="cad-trigger"
-              aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+              aria-label={collapsed ? cadBi.layout.expandMenu : cadBi.layout.collapseMenu}
             />
             <Text
               strong
@@ -206,7 +210,7 @@ const CADLayout = () => {
                 margin: 0,
               }}
             >
-              North Cot CAD Project
+              {cadBi.layout.headerTitle}
             </Text>
           </div>
 
@@ -227,7 +231,7 @@ const CADLayout = () => {
               className="cad-logout"
               style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
             >
-              Logout
+              {cadBi.layout.logout}
             </Button>
           </div>
         </Header>

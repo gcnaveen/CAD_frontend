@@ -32,6 +32,7 @@ const NAV_LINKS = [
   { key: "header.nav.howItWorks", section: "how-it-works" },
   { key: "header.nav.benefits", section: "benefits" },
   { key: "header.nav.testimonials", section: "testimonials" },
+  { key: "header.nav.faq", section: "faq" },
 ];
 
 const Header = () => {

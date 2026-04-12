@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { Typography, Table, Button, Tag } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import OrderDetailDrawer from "./OrderDetailDrawer";
+import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Title } = Typography;
 
 const STATUS_TAG = {
-  approved: { color: "green", text: "Approved" },
-  rejected: { color: "red", text: "Rejected" },
-  need_changes: { color: "orange", text: "Need Changes" },
-  pending: { color: "blue", text: "Pending" },
+  approved: { color: "green", text: cadBi.orders.historyStatus.approved },
+  rejected: { color: "red", text: cadBi.orders.historyStatus.rejected },
+  need_changes: { color: "orange", text: cadBi.orders.historyStatus.need_changes },
+  pending: { color: "blue", text: cadBi.orders.historyStatus.pending },
 };
 
 const ViewAllOrders = () => {
@@ -45,38 +46,38 @@ const ViewAllOrders = () => {
 
   const columns = [
     {
-      title: "Sl. No",
+      title: cadBi.orders.slNo,
       key: "slNo",
       width: 80,
       render: (_, __, index) => index + 1,
     },
     {
-      title: "Order Date",
+      title: cadBi.orders.orderDate,
       dataIndex: "orderDate",
       key: "orderDate",
       width: 120,
       sorter: (a, b) => new Date(a.orderDate) - new Date(b.orderDate),
     },
     {
-      title: "Order ID",
+      title: cadBi.orders.orderId,
       dataIndex: "orderId",
       key: "orderId",
       width: 120,
     },
     {
-      title: "Customer Name",
+      title: cadBi.orders.customerName,
       dataIndex: "customerName",
       key: "customerName",
       sorter: (a, b) => a.customerName.localeCompare(b.customerName),
     },
     {
-      title: "Phone",
+      title: cadBi.orders.phoneCol,
       dataIndex: "phoneNumber",
       key: "phoneNumber",
       width: 140,
     },
     {
-      title: "Status",
+      title: cadBi.orders.status,
       key: "status",
       width: 130,
       render: (_, record) => {
@@ -84,15 +85,15 @@ const ViewAllOrders = () => {
         return <Tag color={config.color}>{config.text}</Tag>;
       },
       filters: [
-        { text: "Approved", value: "approved" },
-        { text: "Rejected", value: "rejected" },
-        { text: "Need Changes", value: "need_changes" },
-        { text: "Pending", value: "pending" },
+        { text: cadBi.orders.historyStatus.approved, value: "approved" },
+        { text: cadBi.orders.historyStatus.rejected, value: "rejected" },
+        { text: cadBi.orders.historyStatus.need_changes, value: "need_changes" },
+        { text: cadBi.orders.historyStatus.pending, value: "pending" },
       ],
       onFilter: (value, record) => record.status === value,
     },
     {
-      title: "Action",
+      title: cadBi.orders.action,
       key: "action",
       width: 140,
       render: (_, record) => (
@@ -101,7 +102,7 @@ const ViewAllOrders = () => {
           icon={<EyeOutlined />}
           onClick={() => handleViewDetails(record)}
         >
-          View Details
+          {cadBi.orders.viewDetails}
         </Button>
       ),
     },
@@ -110,11 +111,10 @@ const ViewAllOrders = () => {
   return (
     <div>
       <Title level={3} style={{ marginBottom: 24 }}>
-        View Order History
+        {cadBi.orders.historyTitle}
       </Title>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        All orders (current, completed, and rejected). View details and upload
-        CAD files where applicable.
+        {cadBi.orders.historyIntro}
       </Typography.Paragraph>
 
       <Table
@@ -124,7 +124,7 @@ const ViewAllOrders = () => {
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} orders`,
+          showTotal: (total) => cadBiFmt(cadBi.orders.totalOrders, { n: total }),
         }}
         scroll={{ x: 800 }}
       />
