@@ -868,6 +868,37 @@ body,
 .homepage-font ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 .homepage-font ::-webkit-scrollbar-thumb { background: var(--brand-gold); border-radius: 2px; }
 
+/* Legal pages (Privacy, Terms) */
+.homepage-font .legal-prose h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 28px 0 10px 0;
+  letter-spacing: 0.02em;
+}
+.homepage-font .legal-prose h2:first-child { margin-top: 0; }
+.homepage-font .legal-prose h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 20px 0 8px 0;
+}
+.homepage-font .legal-prose p { margin: 0 0 12px 0; }
+.homepage-font .legal-prose ul,
+.homepage-font .legal-prose ol {
+  margin: 0 0 14px 0;
+  padding-left: 1.25rem;
+}
+.homepage-font .legal-prose li { margin-bottom: 6px; }
+.homepage-font .legal-prose a {
+  color: var(--brand-gold-muted);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.homepage-font .legal-prose a:hover { color: var(--brand-gold); }
+.homepage-font .legal-prose strong { color: var(--text-primary); font-weight: 600; }
+
 /* ══════════════════════════════════════════
    CAD Upload Wizard — Ant Design overrides
    (scoped to .upload-form-wrap)

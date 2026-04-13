@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
@@ -11,10 +12,16 @@ const QUICK_LINKS = [
 ];
 
 const SUPPORT_LINKS = [
-  { name: "FAQ", href: "#faq" },
-  { name: "Privacy Policy", href: "#privacy" },
-  { name: "Terms of Service", href: "#terms" },
-  { name: "Refund Policy", href: "#refund" },
+  { name: "FAQ", to: "/#faq" },
+  { name: "Privacy Policy", to: "/privacy-policy" },
+  { name: "Terms of Service", to: "/terms-and-conditions" },
+  { name: "Refund Policy", to: "/terms-and-conditions#refund-policy" },
+];
+
+const LEGAL_BOTTOM_LINKS = [
+  { to: "/privacy-policy", anchorKey: "privacy" },
+  { to: "/terms-and-conditions", anchorKey: "terms" },
+  { to: "/privacy-policy#cookies", anchorKey: "cookies" },
 ];
 
 export default function Footer() {
@@ -169,11 +176,10 @@ export default function Footer() {
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
               {SUPPORT_LINKS.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="footer-link">
-                    {tr?.supportLinks?.[SUPPORT_LINKS.findIndex((l) => l.href === link.href)] ||
-                      link.name}
+                  <Link to={link.to} className="footer-link">
+                    {tr?.supportLinks?.[SUPPORT_LINKS.findIndex((l) => l.to === link.to)] || link.name}
                     <ArrowUpRight size={11} className="footer-link-icon" />
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -271,13 +277,14 @@ export default function Footer() {
             <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "rgba(201,168,76,0.4)", display: "inline-block" }} />
           </div>
 
-          <div style={{ display: "flex", gap: "20px" }}>
-            {(tr?.legalLinks?.length ? tr.legalLinks : ["Privacy", "Terms", "Cookies"]).map((item, idx) => {
-              const anchorKey = ["privacy", "terms", "cookies"][idx] || "legal";
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+            {LEGAL_BOTTOM_LINKS.map((legal, idx) => {
+              const labels = tr?.legalLinks?.length ? tr.legalLinks : ["Privacy", "Terms", "Cookies"];
+              const item = labels[idx] || ["Privacy", "Terms", "Cookies"][idx];
               return (
-                <a
-                  key={`${anchorKey}-${item}`}
-                  href={`#${anchorKey}`}
+                <Link
+                  key={legal.anchorKey}
+                  to={legal.to}
                   style={{
                     fontSize: "12px",
                     color: "rgba(255,255,255,0.22)",
@@ -292,7 +299,7 @@ export default function Footer() {
                   }}
                 >
                   {item}
-                </a>
+                </Link>
               );
             })}
           </div>
