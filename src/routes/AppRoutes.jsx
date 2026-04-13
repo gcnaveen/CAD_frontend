@@ -10,6 +10,8 @@ import Cadregisterform from "../pages/form/Cadregisterform.jsx";
 import PaymentReturnPage from "../pages/PaymentReturnPage.jsx";
 import PaymentSuccessPage from "../pages/PaymentSuccessPage.jsx";
 import PaymentFailurePage from "../pages/PaymentFailurePage.jsx";
+import PrivacyPolicy from "../pages/PrivacyPolicy.jsx";
+import TermsandCondition from "../pages/TermsandCondition.jsx";
 
 // ─── User dashboard (nested via Outlet) ───
 import Home from "../dashboard/user/component/Home"; // your existing Home
@@ -52,6 +54,8 @@ export default function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<Homepage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-and-conditions" element={<TermsandCondition />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/register/cad-operator" element={<Cadregisterform />} />
