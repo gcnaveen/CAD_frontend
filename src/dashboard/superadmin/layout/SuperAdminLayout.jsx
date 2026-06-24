@@ -15,6 +15,9 @@ import {
   SearchOutlined,
   FormOutlined,
   MoneyCollectOutlined,
+  PayCircleOutlined,
+  FileSearchOutlined,
+  SolutionOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -42,6 +45,12 @@ const allMenuItems = [
     roles: ["SUPER_ADMIN"],
   },
   {
+    key: "/superadmin/pay-cad-user",
+    icon: <PayCircleOutlined />,
+    label: "Pay CAD User",
+    roles: ["SUPER_ADMIN"],
+  },
+  {
     key: "/superadmin/cad-users",
     icon: <DesktopOutlined />,
     label: "View CAD Users",
@@ -50,6 +59,12 @@ const allMenuItems = [
     key: "/superadmin/cad-interest",
     icon: <FormOutlined />,
     label: "CAD Interest",
+  },
+  {
+    key: "/superadmin/survey-draft-reports",
+    icon: <FileSearchOutlined />,
+    label: "Survey draft reports",
+    roles: ["ADMIN", "SUPER_ADMIN"],
   },
   {
     key: "master-data",
@@ -61,6 +76,12 @@ const allMenuItems = [
       { key: "/superadmin/hoblis", icon: <ClusterOutlined />, label: "Hoblis" },
       { key: "/superadmin/villages", icon: <ApartmentOutlined />, label: "Villages" },
     ],
+  },
+  {
+    key: "/superadmin/assignments",
+    icon: <SolutionOutlined />,
+    label: "Sketch Assignments",
+    roles: ["ADMIN", "SUPER_ADMIN"],
   },
   {
     key: "/superadmin/projects",

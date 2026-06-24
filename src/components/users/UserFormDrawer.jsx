@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Drawer, Form, Input, Button, Space, Typography, Select, Spin, message } from "antd";
 import { useSelector } from "react-redux";
 import { createUser, updateUser, getUserById } from "../../services/user/userService.js";
-import { getDistricts } from "../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../services/masters/talukaService.js";
 import { getCadCenters } from "../../services/masters/cadcenterservice.js";
 
@@ -48,7 +48,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
   // Load districts for SURVEYOR role
   useEffect(() => {
     if (isSurveyor) {
-      getDistricts()
+      getActiveDistricts()
         .then((res) => {
           const districtsList = normalizeList(res);
           setDistricts(districtsList);
@@ -149,7 +149,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
       // Fetch user data
       Promise.all([
         getUserById(userId),
-        isSurveyor && districtsLoaded ? Promise.resolve(districts) : isSurveyor ? getDistricts().then((res) => normalizeList(res)) : Promise.resolve([])
+        isSurveyor && districtsLoaded ? Promise.resolve(districts) : isSurveyor ? getActiveDistricts().then((res) => normalizeList(res)) : Promise.resolve([])
       ])
         .then(([userRes, districtsList]) => {
           const user = userRes?.data?.user ?? userRes?.data ?? userRes;

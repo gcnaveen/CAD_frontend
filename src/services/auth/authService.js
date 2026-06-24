@@ -1,4 +1,9 @@
 import apiClient from "../apiClient.js";
+import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
+
+function unwrapResponse(body) {
+  return body?.data ?? body;
+}
 
 /**
  * Register Super Admin
@@ -83,10 +88,9 @@ export async function verifyOtp(payload) {
 export async function surveyorStart(payload) {
   try {
     const { data } = await apiClient.post("/api/auth/surveyor/start", payload);
-    return data;
+    return unwrapResponse(data);
   } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Failed to send OTP";
-    throw new Error(message);
+    throw new Error(getApiErrorMessage(error, "Failed to send OTP"));
   }
 }
 
@@ -98,10 +102,9 @@ export async function surveyorStart(payload) {
 export async function surveyorVerifyOtp(payload) {
   try {
     const { data } = await apiClient.post("/api/auth/surveyor/verify-otp", payload);
-    return data;
+    return unwrapResponse(data);
   } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Failed to verify OTP";
-    throw new Error(message);
+    throw new Error(getApiErrorMessage(error, "Failed to verify OTP"));
   }
 }
 
@@ -114,10 +117,35 @@ export async function surveyorVerifyOtp(payload) {
 export async function surveyorComplete(payload) {
   try {
     const { data } = await apiClient.post("/api/auth/surveyor/complete", payload);
-    return data;
+    return unwrapResponse(data);
   } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Registration failed";
-    throw new Error(message);
+    throw new Error(getApiErrorMessage(error, "Registration failed"));
+  }
+}
+
+/**
+ * Surveyor forgot password – send OTP
+ * POST /api/auth/surveyor/forgot-password/start
+ */
+export async function surveyorForgotPasswordStart(payload) {
+  try {
+    const { data } = await apiClient.post("/api/auth/surveyor/forgot-password/start", payload);
+    return unwrapResponse(data);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to send OTP"));
+  }
+}
+
+/**
+ * Surveyor forgot password – verify OTP and set new password
+ * POST /api/auth/surveyor/forgot-password/reset
+ */
+export async function surveyorForgotPasswordReset(payload) {
+  try {
+    const { data } = await apiClient.post("/api/auth/surveyor/forgot-password/reset", payload);
+    return unwrapResponse(data);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to reset password"));
   }
 }
 

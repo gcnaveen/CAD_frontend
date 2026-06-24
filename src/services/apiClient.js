@@ -33,14 +33,23 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const AUTH_401_EXEMPT_PATHS = [
+  "/api/auth/login",
+  "/api/auth/surveyor/verify-otp",
+  "/api/auth/surveyor/forgot-password/reset",
+];
+
+function isAuth401Exempt(url = "") {
+  return AUTH_401_EXEMPT_PATHS.some((path) => String(url).includes(path));
+}
+
 // Response interceptor: Handle 401 unauthorized
-// Do NOT redirect when 401 is from the login endpoint (invalid credentials) — let LoginPage show the error and keep form values
+// Do NOT redirect for login/OTP flows — let the page show the error and keep form values
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const isLoginRequest = String(error.config?.url || "").includes("/api/auth/login");
-      if (!isLoginRequest) {
+      if (!isAuth401Exempt(error.config?.url)) {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         if (storeRef?.dispatch) {

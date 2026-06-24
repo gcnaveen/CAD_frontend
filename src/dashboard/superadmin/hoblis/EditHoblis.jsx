@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Space, Typography, Select } from "antd";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../services/masters/talukaService.js";
 
 const { Title } = Typography;
@@ -17,7 +17,7 @@ const EditHoblis = ({ initialValues, onCancel, onSubmit, loading = false }) => {
   const [talukas, setTalukas] = useState([]);
 
   useEffect(() => {
-    getDistricts()
+    getActiveDistricts()
       .then((res) => setDistricts(normalizeList(res)))
       .catch(() => setDistricts([]));
   }, []);

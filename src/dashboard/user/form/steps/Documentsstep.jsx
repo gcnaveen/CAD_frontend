@@ -41,6 +41,7 @@ const SectionHeader = ({ icon, titleKn, titleEn, subtitle }) => (
 
 const DocumentsStep = ({
   form,
+  isPublicSurveyorCategory = false,
   onDocumentUpload,
   onDocumentRemove,
   onOtherDocumentUpload,
@@ -51,6 +52,7 @@ const DocumentsStep = ({
   const [enabled, setEnabled] = useState({});
   const [otherDocName, setOtherDocName] = useState("");
   const uploadMode = Form.useWatch("uploadMode", form) ?? "normal";
+  const hasDocumentsAnswer = Form.useWatch("hasDocuments", form);
 
   const NORMAL_DOC_FIELDS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
   const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
@@ -273,6 +275,49 @@ const DocumentsStep = ({
         }
       />
 
+      {isPublicSurveyorCategory && (
+        <div className="mb-5 rounded-2xl border border-line bg-surface p-4">
+          <p className="text-sm font-extrabold text-fg mb-2">Do you have PDF/documents?</p>
+          <p className="text-xs text-fg-muted font-semibold mb-3">
+            For public surveyor category, document upload is optional. You can continue with minimum details.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => form.setFieldsValue({ hasDocuments: true })}
+              className={`px-3 py-2 rounded-xl border text-sm font-bold ${
+                hasDocumentsAnswer === true
+                  ? "border-[var(--user-accent)] bg-[var(--user-accent-soft)] text-[var(--user-accent)]"
+                  : "border-line bg-surface text-fg-muted"
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                form.setFieldsValue({ hasDocuments: false });
+              }}
+              className={`px-3 py-2 rounded-xl border text-sm font-bold ${
+                hasDocumentsAnswer === false
+                  ? "border-[var(--user-accent)] bg-[var(--user-accent-soft)] text-[var(--user-accent)]"
+                  : "border-line bg-surface text-fg-muted"
+              }`}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isPublicSurveyorCategory && hasDocumentsAnswer !== true ? (
+        <div className="rounded-2xl border border-line bg-surface p-4">
+          <p className="text-sm font-bold text-fg">
+            You can continue without uploading documents.
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Upload Mode toggle */}
       <div className="flex gap-2 mb-5">
         {["normal", "single"].map((m) => {
@@ -602,6 +647,8 @@ const DocumentsStep = ({
             );
           })}
         </div>
+      )}
+        </>
       )}
 
     </div>

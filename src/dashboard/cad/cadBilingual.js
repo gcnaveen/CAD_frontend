@@ -37,7 +37,7 @@ export const cadBi = {
   orders: {
     currentTitle: "View Current Projects / ಪ್ರಸ್ತುತ ಯೋಜನೆಗಳು",
     currentIntro:
-      "Survey sketch assignments for your CAD account. Open details to view files, upload CAD deliverables, and see notes. / ನಿಮ್ಮ CAD ಖಾತೆಗೆ ಸರ್ವೇ ಸ್ಕೆಚ್ ನಿಯೋಜನೆಗಳು. ಫೈಲ್‌ಗಳನ್ನು ನೋಡಲು, CAD ಫೈಲ್ ಸಲ್ಲಿಸಲು, ಟಿಪ್ಪಣಿಗಳನ್ನು ನೋಡಲು ವಿವರಗಳನ್ನು ತೆರೆಯಿರಿ.",
+      "Survey sketch assignments for your CAD account. Accept an assignment to view files, upload CAD deliverables, and see notes. / ನಿಮ್ಮ CAD ಖಾತೆಗೆ ಸರ್ವೇ ಸ್ಕೆಚ್ ನಿಯೋಜನೆಗಳು. ಫೈಲ್‌ಗಳನ್ನು ನೋಡಲು, CAD ಫೈಲ್ ಸಲ್ಲಿಸಲು ಮತ್ತು ಟಿಪ್ಪಣಿಗಳನ್ನು ನೋಡಲು ಮೊದಲು ನಿಯೋಜನೆಯನ್ನು ಸ್ವೀಕರಿಸಿ.",
     historyTitle: "View Order History / ಆರ್ಡರ್ ಇತಿಹಾಸ",
     historyIntro:
       "All orders (current, completed, and rejected). View details and upload CAD files where applicable. / ಎಲ್ಲಾ ಆರ್ಡರ್‌ಗಳು (ಪ್ರಸ್ತುತ, ಪೂರ್ಣ, ತಿರಸ್ಕೃತ). ಅಗತ್ಯವಿದ್ದಲ್ಲಿ ವಿವರಗಳು ಮತ್ತು CAD ಫೈಲ್ ಅಪ್ಲೋಡ್.",
@@ -52,6 +52,8 @@ export const cadBi = {
     status: "Status / ಸ್ಥಿತಿ",
     details: "Details / ವಿವರಗಳು",
     viewDetails: "View Details / ವಿವರಗಳನ್ನು ನೋಡಿ",
+    viewDetailsAcceptFirst:
+      "Accept the assignment first to view details / ವಿವರಗಳನ್ನು ನೋಡಲು ಮೊದಲು ನಿಯೋಜನೆಯನ್ನು ಸ್ವೀಕರಿಸಿ",
     action: "Action / ಕ್ರಿಯೆ",
     totalOrders: "Total {n} orders / ಒಟ್ಟು {n} ಆರ್ಡರ್‌ಗಳು",
     accept: "Accept / ಸ್ವೀಕರಿಸಿ",
@@ -146,6 +148,7 @@ export const cadBi = {
       PENDING: "Pending Review / ಪರಿಶೀಲನೆ ಬಾಕಿ",
       ASSIGNED: "Assigned / ನಿಯೋಜಿಸಲಾಗಿದೆ",
       UNDER_REVIEW: "Under Review / ಪರಿಶೀಲನೆಯಲ್ಲಿ",
+      UNDER_REVISION: "Under Revision / ಪರಿಷ್ಕರಣೆಗಾಗಿ",
       APPROVED: "Approved / ಅನುಮೋದಿತ",
       REJECTED: "Rejected / ತಿರಸ್ಕೃತ",
       IN_PROGRESS: "In Progress / ಪ್ರಗತಿಯಲ್ಲಿ",

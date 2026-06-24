@@ -1,7 +1,8 @@
 import React from "react";
 import { Drawer, Spin, Typography, Descriptions, Tag } from "antd";
 import CadWalletPayoutSection from "../cadWallet/CadWalletPayoutSection.jsx";
-import { formatUserDisplayLabel } from "../../services/assignmentApi.js";
+import { formatUserDisplayLabel, resolveAssignmentIdFromEntity } from "../../services/assignmentApi.js";
+import AssignmentFeedbackViewer from "./AssignmentFeedbackViewer.jsx";
 
 const { Text, Title } = Typography;
 
@@ -18,6 +19,7 @@ export default function AssignmentCadPayoutDrawer({
 }) {
   const id = sketch?._id ?? sketch?.id ?? "—";
   const status = String(sketch?.status ?? "—");
+  const assignmentIdForFeedback = resolveAssignmentIdFromEntity(sketch);
 
   return (
     <Drawer
@@ -58,6 +60,13 @@ export default function AssignmentCadPayoutDrawer({
                   "—"}
               </Descriptions.Item>
             </Descriptions>
+          </div>
+
+          <div>
+            <Title level={5} style={{ marginBottom: 8 }}>
+              Surveyor feedback (CAD)
+            </Title>
+            <AssignmentFeedbackViewer assignmentId={assignmentIdForFeedback} />
           </div>
 
           <CadWalletPayoutSection

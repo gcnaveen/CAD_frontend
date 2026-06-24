@@ -21,6 +21,12 @@ import {
   SoundOutlined,
 } from "@ant-design/icons";
 import { formatUserDisplayLabel } from "../../../services/assignmentApi";
+import {
+  downloadRemoteFile,
+  hasUploadedFiles,
+  normalizeFileList,
+  normalizeSingleFile,
+} from "../../../utils/sketchFileUtils";
 import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Text } = Typography;
@@ -39,6 +45,7 @@ const SKETCH_STATUS_DISPLAY = {
   PENDING: cadBi.drawer.sketchStatus.PENDING,
   ASSIGNED: cadBi.drawer.sketchStatus.ASSIGNED,
   UNDER_REVIEW: cadBi.drawer.sketchStatus.UNDER_REVIEW,
+  UNDER_REVISION: cadBi.drawer.sketchStatus.UNDER_REVISION,
   APPROVED: cadBi.drawer.sketchStatus.APPROVED,
   REJECTED: cadBi.drawer.sketchStatus.REJECTED,
   IN_PROGRESS: cadBi.drawer.sketchStatus.IN_PROGRESS,
@@ -103,9 +110,11 @@ const OrderDetailDrawer = ({
   onClose,
   order,
   onUploadCad,
+  uploadLoading = false,
   onSave,
 }) => {
   const [fileList, setFileList] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   const [downloadingByKey, setDownloadingByKey] = useState({});
 
   useEffect(() => {
@@ -125,16 +134,28 @@ const OrderDetailDrawer = ({
   const normalDocumentItems = useMemo(() => {
     const docs = sketch.documents;
     if (!docs || typeof docs !== "object") return [];
-    return DOCUMENT_LABEL_KEYS.map((key) => {
-      const doc = docs[key];
+    return DOCUMENT_LABEL_KEYS.flatMap((key) => {
       const label = cadBi.drawer.docLabels[key] || key;
-      return doc?.url ? { key, label, doc } : null;
-    }).filter(Boolean);
+      const files = normalizeFileList(docs[key]);
+      return files.map((doc, index) => ({
+        key: `${key}-${index}`,
+        label: files.length > 1 ? `${label} (${index + 1})` : label,
+        doc,
+      }));
+    });
   }, [sketch.documents]);
+
+  const singleUploadFiles = useMemo(
+    () => normalizeFileList(sketch.singleUpload),
+    [sketch.singleUpload]
+  );
+  const sketchAudioFile = useMemo(() => normalizeSingleFile(sketch.audio), [sketch.audio]);
+  const orderAudioFile = useMemo(() => normalizeSingleFile(order?.audio), [order?.audio]);
 
   if (!order) return null;
 
   const assignmentStatus = String(order.status || "").toUpperCase();
+  const detailsLocked = assignmentStatus === "ASSIGNED" || order.isAccepted === false;
   const assignmentTag =
     ASSIGNMENT_STATUS_TAG[assignmentStatus] || ASSIGNMENT_STATUS_TAG.PENDING;
   const sketchStatus = sketch.status ? String(sketch.status).toUpperCase() : "";
@@ -158,36 +179,30 @@ const OrderDetailDrawer = ({
     },
   };
 
-  const handleUploadSubmit = () => {
+  const handleUploadSubmit = async () => {
     if (fileList.length === 0) {
       message.warning(cadBi.drawer.selectFileWarn);
       return;
     }
-    onUploadCad?.(order.id, fileList);
-    setFileList([]);
-    message.success(cadBi.drawer.uploadSuccess);
-    onClose?.();
+    setSubmitting(true);
+    try {
+      await onUploadCad?.(order.id, fileList);
+      setFileList([]);
+    } catch {
+      // Parent shows error message.
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const isUploading = submitting || uploadLoading;
 
   const handleDownload = async (url, fileName, key = url) => {
     if (!url) return;
     try {
       setDownloadingByKey((p) => ({ ...p, [key]: true }));
-      // Fetch as blob and trigger download via object URL so the SPA doesn't navigate away.
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName || "download";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    } catch (e) {
+      await downloadRemoteFile(url, fileName || "download");
+    } catch {
       message.error(cadBi.drawer.downloadFail);
     } finally {
       setDownloadingByKey((p) => ({ ...p, [key]: false }));
@@ -195,7 +210,8 @@ const OrderDetailDrawer = ({
   };
 
   const filesList = order.sketchDetails?.uploadedFiles || [];
-  const isSingleMode = order.sketchDetails?.isSingleMode || Boolean(sketch.singleUpload?.url);
+  const isSingleMode =
+    order.sketchDetails?.isSingleMode || hasUploadedFiles(sketch.singleUpload);
 
   return (
     <Drawer
@@ -215,7 +231,7 @@ const OrderDetailDrawer = ({
           <Space>
             <Button onClick={onClose}>{cadBi.drawer.close}</Button>
             {fileList.length > 0 && (
-              <Button type="primary" onClick={handleUploadSubmit}>
+              <Button type="primary" loading={isUploading} onClick={handleUploadSubmit}>
                 {cadBi.drawer.uploadCadFiles}
               </Button>
             )}
@@ -225,6 +241,13 @@ const OrderDetailDrawer = ({
       styles={{ body: { paddingBottom: 24 } }}
     >
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        {detailsLocked && (
+          <Alert
+            type="warning"
+            showIcon
+            message={cadBi.orders.viewDetailsAcceptFirst}
+          />
+        )}
         <Card size="small" title={cadBi.drawer.assignment}>
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label={cadBi.drawer.applicationId}>
@@ -248,6 +271,7 @@ const OrderDetailDrawer = ({
           </Descriptions>
         </Card>
 
+        {!detailsLocked && (
         <Card size="small" title={cadBi.drawer.surveySketch}>
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label={cadBi.drawer.surveyType}>
@@ -291,24 +315,9 @@ const OrderDetailDrawer = ({
             )}
           </Descriptions>
         </Card>
-
-        {sketch.surveyor && (
-          <Card size="small" title={cadBi.drawer.surveyor}>
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label={cadBi.drawer.name}>
-                {formatUserDisplayLabel(sketch.surveyor) || "—"}
-              </Descriptions.Item>
-              <Descriptions.Item label={cadBi.drawer.phone}>
-                {sketch.surveyor?.auth?.phone || "—"}
-              </Descriptions.Item>
-              <Descriptions.Item label={cadBi.drawer.email}>
-                {sketch.surveyor?.auth?.email || "—"}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
         )}
 
-        {showAssignmentNote && (
+        {!detailsLocked && showAssignmentNote && (
           <Card size="small" title={cadBi.drawer.assignment}>
             <Alert
               type="warning"
@@ -320,7 +329,7 @@ const OrderDetailDrawer = ({
           </Card>
         )}
 
-        {showSketchStatusNote && (
+        {!detailsLocked && showSketchStatusNote && (
           <Card size="small" title={cadBi.drawer.reviewNote}>
             <Alert
               type="info"
@@ -332,6 +341,8 @@ const OrderDetailDrawer = ({
           </Card>
         )}
 
+        {!detailsLocked && (
+        <>
         <Divider style={{ margin: "8px 0" }} />
 
         <Card
@@ -347,7 +358,7 @@ const OrderDetailDrawer = ({
             </Space>
           }
         >
-          {isSingleMode && sketch.singleUpload?.url ? (
+          {isSingleMode && singleUploadFiles.length > 0 ? (
             <div className="space-y-3">
               <div>
                 <Text type="secondary" className="text-xs block" style={{ marginBottom: 8 }}>
@@ -359,26 +370,26 @@ const OrderDetailDrawer = ({
                     : "—"}
                 </Text>
               </div>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <Text strong className="text-sm block">
-                    {sketch.singleUpload.fileName || "Document"}
-                  </Text>
-                  <Text type="secondary" className="text-xs block">
-                    {sketch.singleUpload.mimeType || "—"} •{" "}
-                    {formatFileSize(sketch.singleUpload.size)}
-                  </Text>
-                  {sketch.singleUpload.uploadedAt && (
-                    <Text type="secondary" className="text-xs block">
-                      {cadBi.drawer.uploaded}: {formatDate(sketch.singleUpload.uploadedAt)}
+              {singleUploadFiles.map((file, index) => (
+                <div key={file.url || index} className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <Text strong className="text-sm block">
+                      {file.fileName || `Document ${index + 1}`}
                     </Text>
-                  )}
-                </div>
+                    <Text type="secondary" className="text-xs block">
+                      {file.mimeType || "—"} • {formatFileSize(file.size)}
+                    </Text>
+                    {file.uploadedAt && (
+                      <Text type="secondary" className="text-xs block">
+                        {cadBi.drawer.uploaded}: {formatDate(file.uploadedAt)}
+                      </Text>
+                    )}
+                  </div>
                   <Space>
                     <Button
                       type="link"
                       icon={<LinkOutlined />}
-                      onClick={() => window.open(sketch.singleUpload.url, "_blank")}
+                      onClick={() => window.open(file.url, "_blank")}
                       size="small"
                     >
                       {cadBi.drawer.view}
@@ -386,20 +397,17 @@ const OrderDetailDrawer = ({
                     <Button
                       type="link"
                       icon={<DownloadOutlined />}
-                      loading={!!downloadingByKey[sketch.singleUpload.url]}
+                      loading={!!downloadingByKey[file.url]}
                       onClick={() =>
-                        handleDownload(
-                          sketch.singleUpload.url,
-                          sketch.singleUpload.fileName || "download",
-                          sketch.singleUpload.url
-                        )
+                        handleDownload(file.url, file.fileName || "download", file.url)
                       }
                       size="small"
                     >
                       {cadBi.drawer.download}
                     </Button>
                   </Space>
-              </div>
+                </div>
+              ))}
             </div>
           ) : normalDocumentItems.length > 0 ? (
             <List
@@ -555,9 +563,9 @@ const OrderDetailDrawer = ({
 
         <Divider style={{ margin: "8px 0" }} />
         <Card size="small" title={cadBi.drawer.audioCardTitle}>
-          {order.audio?.url || sketch.audio?.url ? (
+          {orderAudioFile || sketchAudioFile ? (
             (() => {
-              const audio = order.audio?.url ? order.audio : sketch.audio;
+              const audio = orderAudioFile || sketchAudioFile;
               return (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -610,30 +618,54 @@ const OrderDetailDrawer = ({
         <Divider style={{ margin: "8px 0" }} />
 
         <Card size="small" title={cadBi.drawer.cadDeliverables}>
-          <List
-            size="small"
-            dataSource={order.cadFiles || []}
-            renderItem={(file) => (
-              <List.Item>
-                <Space>
-                  <FileOutlined />
-                  <a href={file.url} target="_blank" rel="noopener noreferrer">
-                    {file.name}
-                  </a>
-                  <Button
-                    type="link"
-                    icon={<DownloadOutlined />}
-                    loading={!!downloadingByKey[file.url]}
-                    onClick={() => handleDownload(file.url, file.name || "cad-deliverable", file.url)}
-                    size="small"
-                  >
-                    {cadBi.drawer.download}
-                  </Button>
-                </Space>
-              </List.Item>
-            )}
-          />
-          {(!order.cadFiles?.length) && (
+          {(order.cadFiles?.length ?? 0) > 0 ? (
+            <List
+              size="small"
+              dataSource={order.cadFiles}
+              renderItem={(file) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      key="open"
+                      type="link"
+                      size="small"
+                      icon={<LinkOutlined />}
+                      onClick={() => window.open(file.url, "_blank")}
+                    >
+                      {cadBi.drawer.view}
+                    </Button>,
+                    <Button
+                      key="download"
+                      type="link"
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      loading={!!downloadingByKey[file.url]}
+                      onClick={() =>
+                        handleDownload(file.url, file.name || "cad-deliverable", file.url)
+                      }
+                    >
+                      {cadBi.drawer.download}
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={
+                      <Space>
+                        <FileOutlined />
+                        <Text strong className="text-sm">{file.name}</Text>
+                      </Space>
+                    }
+                    description={
+                      <Text type="secondary" className="text-xs">
+                        {file.mimeType || "—"} • {formatFileSize(file.size)}
+                        {file.uploadedAt ? ` • ${formatDate(file.uploadedAt)}` : ""}
+                      </Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          ) : (
             <Text type="secondary">{cadBi.drawer.noCadYet}</Text>
           )}
         </Card>
@@ -644,8 +676,10 @@ const OrderDetailDrawer = ({
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
             {cadBi.drawer.uploadCadHelp}
           </Text>
-          <Upload {...uploadProps}>
-            <Button icon={<UploadOutlined />}>{cadBi.drawer.selectCadFiles}</Button>
+          <Upload {...uploadProps} disabled={isUploading}>
+            <Button icon={<UploadOutlined />} disabled={isUploading}>
+              {cadBi.drawer.selectCadFiles}
+            </Button>
           </Upload>
           {fileList.length > 0 && (
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
@@ -653,6 +687,8 @@ const OrderDetailDrawer = ({
             </Text>
           )}
         </Card>
+        </>
+        )}
       </Space>
     </Drawer>
   );

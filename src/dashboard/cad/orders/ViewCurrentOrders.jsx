@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Typography, Table, Button, Tag, Space, message } from "antd";
+import { Typography, Table, Button, Tag, Space, message, Tooltip } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import {
@@ -7,13 +7,61 @@ import {
   formatUserDisplayLabel,
   getCadAssignments,
   getCadSketchUpload,
+  isCadAssignmentAccepted,
   rejectCadAssignment,
+  resolveCadAssignmentId,
+  resolveCadAssignmentStatus,
   respondCadAssignment,
 } from "../../../services/assignmentApi";
 import { uploadImageToS3 } from "../../../services/upload/upload.service";
+import {
+  flattenDocumentEntries,
+  hasUploadedFiles,
+  normalizeFileList,
+} from "../../../utils/sketchFileUtils";
 import { cadBi, cadBiFmt } from "../cadBilingual";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+
+const splitBilingual = (label) => {
+  const text = String(label || "");
+  const slash = text.indexOf(" / ");
+  if (slash === -1) return { en: text, kn: null };
+  return { en: text.slice(0, slash), kn: text.slice(slash + 3) };
+};
+
+const BilingualTableTitle = ({ label }) => {
+  const { en, kn } = splitBilingual(label);
+  if (!kn) return en;
+  return (
+    <div className="cad-bilingual-th">
+      <span className="cad-bilingual-th-en">{en}</span>
+      <span className="cad-bilingual-th-kn">{kn}</span>
+    </div>
+  );
+};
+
+const BilingualStatusTag = ({ label, color }) => {
+  const { en, kn } = splitBilingual(label);
+  if (!kn) return <Tag color={color}>{en}</Tag>;
+  return (
+    <Tag color={color} className="cad-bilingual-tag">
+      <span className="cad-bilingual-tag-en">{en}</span>
+      <span className="cad-bilingual-tag-kn">{kn}</span>
+    </Tag>
+  );
+};
+
+const BilingualButtonLabel = ({ label }) => {
+  const { en, kn } = splitBilingual(label);
+  if (!kn) return en;
+  return (
+    <span className="cad-bilingual-btn-label">
+      <span>{en}</span>
+      <span className="cad-bilingual-btn-label-kn">{kn}</span>
+    </span>
+  );
+};
 
 const STATUS_TAG = {
   ASSIGNED: { color: "blue", text: cadBi.orders.assignmentStatus.ASSIGNED },
@@ -24,11 +72,14 @@ const STATUS_TAG = {
 };
 const ACCEPT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
+const canViewOrderDetails = (record) => Boolean(record?.isAccepted);
+
 const ViewCurrentOrders = () => {
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [tableLoading, setTableLoading] = useState(false);
   const [actionLoadingById, setActionLoadingById] = useState({});
+  const [detailLoadingId, setDetailLoadingId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -37,13 +88,24 @@ const ViewCurrentOrders = () => {
   };
 
   const mapUploadedFiles = (documents = {}) =>
-    Object.values(documents || {})
-      .filter((file) => file?.url)
-      .map((file, index) => ({
-        id: `${file.fileName || "file"}-${index}`,
-        name: file.fileName || `Document ${index + 1}`,
-        url: file.url,
-      }));
+    flattenDocumentEntries(documents).map(({ key, file, label }) => ({
+      id: key,
+      name: file.fileName || label || "Document",
+      url: file.url,
+      mimeType: file.mimeType,
+      size: file.size,
+      uploadedAt: file.uploadedAt,
+    }));
+
+  const mapCadDeliverables = (cadDeliverable) =>
+    normalizeFileList(cadDeliverable).map((file, index) => ({
+      id: `${file.fileName || "cad"}-${index}`,
+      name: file.fileName || `CAD Deliverable ${index + 1}`,
+      url: file.url,
+      mimeType: file.mimeType,
+      size: file.size,
+      uploadedAt: file.uploadedAt,
+    }));
 
   const mapAssignmentToOrder = useCallback((assignment, sketch) => {
     if (!assignment) return null;
@@ -73,23 +135,23 @@ const ViewCurrentOrders = () => {
     ].filter(Boolean);
 
     const uploadedFromDocuments = mapUploadedFiles(sketchData?.documents);
-    const uploadedFromSingle =
-      sketchData?.singleUpload?.url
-        ? [
-            {
-              id: "single-upload",
-              name: sketchData.singleUpload.fileName || "Uploaded document",
-              url: sketchData.singleUpload.url,
-              mimeType: sketchData.singleUpload.mimeType,
-              size: sketchData.singleUpload.size,
-              uploadedAt: sketchData.singleUpload.uploadedAt,
-            },
-          ]
-        : [];
+    const uploadedFromSingle = normalizeFileList(sketchData?.singleUpload).map((file, index) => ({
+      id: `single-upload-${index}`,
+      name: file.fileName || "Uploaded document",
+      url: file.url,
+      mimeType: file.mimeType,
+      size: file.size,
+      uploadedAt: file.uploadedAt,
+    }));
+
+    const assignmentId = resolveCadAssignmentId(assignment);
+    const assignmentStatus = resolveCadAssignmentStatus(assignment);
+    const isAccepted = isCadAssignmentAccepted(assignment);
 
     return {
-      id: assignment._id,
-      assignmentId: assignment._id,
+      id: assignmentId || assignment._id || assignment.id,
+      assignmentId,
+      isAccepted,
       rawAssignment: assignment,
       uploadId:
         typeof assignment.surveyorSketchUpload === "string"
@@ -111,7 +173,7 @@ const ViewCurrentOrders = () => {
         sketchData.surveyorPhone ||
         sketchData.surveyor?.auth?.phone ||
         "—",
-      status: assignment.status || "ASSIGNED",
+      status: assignmentStatus,
       note: assignment.notes ?? "",
       sketchStatusNote: sketchData.statusNote ?? null,
       sketchUpload: sketchData,
@@ -122,12 +184,10 @@ const ViewCurrentOrders = () => {
           locationLine ||
           "Survey sketch details",
         uploadedFiles: uploadedFromSingle.length ? uploadedFromSingle : uploadedFromDocuments,
-        isSingleMode: Boolean(sketchData?.singleUpload?.url),
+        isSingleMode: hasUploadedFiles(sketchData?.singleUpload),
       },
       audio: sketchData?.audio || null,
-      cadFiles: sketchData?.cadDeliverable?.url
-        ? [{ name: sketchData.cadDeliverable.fileName || "CAD Deliverable", url: sketchData.cadDeliverable.url }]
-        : [],
+      cadFiles: mapCadDeliverables(sketchData?.cadDeliverable),
     };
   }, []);
 
@@ -166,13 +226,17 @@ const ViewCurrentOrders = () => {
   }, [fetchAssignments]);
 
   const handleViewDetails = async (record) => {
+    if (!canViewOrderDetails(record)) {
+      message.warning(cadBi.orders.viewDetailsAcceptFirst);
+      return;
+    }
     const uploadId = record?.uploadId;
     if (!uploadId) {
       setSelectedOrder(record);
       setDrawerOpen(true);
       return;
     }
-    setActionLoading(record.assignmentId, true);
+    setDetailLoadingId(record.assignmentId);
     try {
       const sketch = await getCadSketchUpload(uploadId);
       const raw = record.rawAssignment;
@@ -194,7 +258,7 @@ const ViewCurrentOrders = () => {
       setSelectedOrder(record);
       setDrawerOpen(true);
     } finally {
-      setActionLoading(record.assignmentId, false);
+      setDetailLoadingId(null);
     }
   };
 
@@ -261,22 +325,29 @@ const ViewCurrentOrders = () => {
       message.warning(cadBi.orders.selectCadFile);
       return;
     }
-    const file = files[0];
     setActionLoading(target.assignmentId, true);
     try {
-      const { fileUrl } = await uploadImageToS3(file, target.uploadId || target.assignmentId);
-      await deliverCadAssignment(target.assignmentId, {
-        url: fileUrl,
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        size: file.size || 0,
-      });
+      const entityId = target.uploadId || target.assignmentId;
+      const uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const { fileUrl } = await uploadImageToS3(file, entityId);
+          return {
+            url: fileUrl,
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            size: file.size || 0,
+            uploadedAt: new Date().toISOString(),
+          };
+        })
+      );
+      await deliverCadAssignment(target.assignmentId, { files: uploadedFiles });
       message.success(cadBi.orders.cadDelivered);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       setDrawerOpen(false);
       setSelectedOrder(null);
     } catch (error) {
       message.error(error?.message || cadBi.orders.deliverFail);
+      throw error;
     } finally {
       setActionLoading(target.assignmentId, false);
     }
@@ -296,25 +367,33 @@ const ViewCurrentOrders = () => {
 
   const columns = [
     {
-      title: cadBi.orders.slNo,
+      title: <BilingualTableTitle label={cadBi.orders.slNo} />,
       key: "slNo",
-      width: 80,
+      width: 72,
+      align: "center",
       render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
-      title: cadBi.orders.assignedAt,
+      title: <BilingualTableTitle label={cadBi.orders.assignedAt} />,
       dataIndex: "orderDate",
       key: "orderDate",
-      width: 180,
-      render: (value) => (value ? new Date(value).toLocaleString("en-IN") : "—"),
+      width: 168,
+      render: (value) => (
+        <span className="cad-table-date">{value ? new Date(value).toLocaleString("en-IN") : "—"}</span>
+      ),
       sorter: (a, b) => new Date(a.orderDate || 0) - new Date(b.orderDate || 0),
     },
     {
-      title: cadBi.orders.applicationId,
+      title: <BilingualTableTitle label={cadBi.orders.applicationId} />,
       dataIndex: "applicationId",
       key: "applicationId",
-      width: 200,
-      ellipsis: true,
+      width: 196,
+      ellipsis: { showTitle: false },
+      render: (value) => (
+        <Tooltip title={value || "—"}>
+          <span className="cad-table-ellipsis">{value || "—"}</span>
+        </Tooltip>
+      ),
     },
     // {
     //   title: "Survey No",
@@ -330,11 +409,13 @@ const ViewCurrentOrders = () => {
     //   width: 220,
     // },
     {
-      title: cadBi.orders.dueDate,
+      title: <BilingualTableTitle label={cadBi.orders.dueDate} />,
       dataIndex: "dueDate",
       key: "dueDate",
-      width: 170,
-      render: (value) => (value ? new Date(value).toLocaleString("en-IN") : "—"),
+      width: 148,
+      render: (value) => (
+        <span className="cad-table-date">{value ? new Date(value).toLocaleString("en-IN") : "—"}</span>
+      ),
       sorter: (a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0),
     },
     // {
@@ -345,57 +426,74 @@ const ViewCurrentOrders = () => {
     //   width: 160,
     // },
     {
-      title: cadBi.orders.status,
+      title: <BilingualTableTitle label={cadBi.orders.status} />,
       key: "status",
-      width: 140,
+      width: 152,
       render: (_, record) => {
         const config = STATUS_TAG[record.status] || STATUS_TAG.ASSIGNED;
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return <BilingualStatusTag label={config.text} color={config.color} />;
       },
     },
     {
-      title: cadBi.orders.details,
+      title: <BilingualTableTitle label={cadBi.orders.details} />,
       key: "details",
-      width: 160,
-      render: (_, record) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewDetails(record)}
-          loading={!!actionLoadingById[record.assignmentId]}
-        >
-          {cadBi.orders.viewDetails}
-        </Button>
-      ),
+      width: 88,
+      align: "center",
+      render: (_, record) => {
+        if (!canViewOrderDetails(record)) {
+          return (
+            <Tooltip title={cadBi.orders.viewDetailsAcceptFirst}>
+              <Text type="secondary">—</Text>
+            </Tooltip>
+          );
+        }
+        return (
+          <Tooltip title={cadBi.orders.viewDetails}>
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              aria-label={cadBi.orders.viewDetails}
+              className="cad-details-btn"
+              onClick={() => handleViewDetails(record)}
+              loading={detailLoadingId === record.assignmentId}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
-      title: cadBi.orders.action,
+      title: <BilingualTableTitle label={cadBi.orders.action} />,
       key: "action",
-      width: 260,
+      width: 200,
+      fixed: "right",
       render: (_, record) => {
         const status = String(record?.status || "").toUpperCase();
         const expired = status === "ASSIGNED" && !isWithinAcceptWindow(record);
 
         return (
-          <Space>
-            {expired && <Tag color="default">{cadBi.orders.expired}</Tag>}
+          <Space size={[6, 6]} wrap className="cad-action-cell">
+            {expired && (
+              <BilingualStatusTag label={cadBi.orders.expired} color="default" />
+            )}
             {status === "ASSIGNED" && !expired && (
               <>
                 <Button
                   size="small"
                   type="primary"
+                  className="cad-action-btn"
                   onClick={() => handleAccept(record)}
                   loading={!!actionLoadingById[record.assignmentId]}
                 >
-                  {cadBi.orders.accept}
+                  <BilingualButtonLabel label={cadBi.orders.accept} />
                 </Button>
                 <Button
                   size="small"
                   danger
+                  className="cad-action-btn"
                   onClick={() => handleReject(record)}
                   loading={!!actionLoadingById[record.assignmentId]}
                 >
-                  {cadBi.orders.reject}
+                  <BilingualButtonLabel label={cadBi.orders.reject} />
                 </Button>
               </>
             )}
@@ -404,10 +502,11 @@ const ViewCurrentOrders = () => {
               <Button
                 size="small"
                 type="primary"
+                className="cad-action-btn cad-action-btn-wide"
                 onClick={() => handleViewDetails(record)}
-                loading={!!actionLoadingById[record.assignmentId]}
+                loading={detailLoadingId === record.assignmentId}
               >
-                {cadBi.orders.uploadDrawing}
+                <BilingualButtonLabel label={cadBi.orders.uploadDrawing} />
               </Button>
             )}
           </Space>
@@ -425,27 +524,35 @@ const ViewCurrentOrders = () => {
         {cadBi.orders.currentIntro}
       </Typography.Paragraph>
 
-      <Table
-        columns={columns}
-        dataSource={orders}
-        rowKey="id"
-        loading={tableLoading}
-        onChange={handleTableChange}
-        pagination={{
-          current: pagination.page,
-          pageSize: pagination.limit,
-          total: pagination.total,
-          showSizeChanger: true,
-          showTotal: (total) => cadBiFmt(cadBi.orders.totalOrders, { n: total }),
-        }}
-        scroll={{ x: 1200 }}
-      />
+      <div className="cad-current-orders-table-wrap">
+        <Table
+          className="cad-current-orders-table"
+          columns={columns}
+          dataSource={orders}
+          rowKey={(record) => record.assignmentId || record.id}
+          loading={tableLoading}
+          onChange={handleTableChange}
+          tableLayout="fixed"
+          size="middle"
+          pagination={{
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => cadBiFmt(cadBi.orders.totalOrders, { n: total }),
+          }}
+          scroll={{ x: 1100 }}
+        />
+      </div>
 
       <OrderDetailDrawer
         open={drawerOpen}
         onClose={handleDrawerClose}
         order={selectedOrder}
         onUploadCad={handleUploadCad}
+        uploadLoading={Boolean(
+          selectedOrder?.assignmentId && actionLoadingById[selectedOrder.assignmentId]
+        )}
         onSave
       />
     </div>

@@ -27,6 +27,8 @@ const PlusIcon = ({ className = "" }) => (
 );
 
 const STATUS_STYLES = {
+  "Payment Pending":
+    "border-line bg-[color-mix(in_srgb,var(--warning)_14%,var(--bg-secondary))] text-[var(--warning)]",
   Pending:
     "border-line bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-[var(--user-accent)]",
   Active:
@@ -52,6 +54,7 @@ const RequestsPage = () => {
   const [selectedUploadId, setSelectedUploadId] = useState(null);
 
   const mapStatus = (apiStatus) => {
+    if (apiStatus === "PAYMENT_PENDING") return "Payment Pending";
     if (apiStatus === "CAD_DELIVERED" || apiStatus === "APPROVED") return "Completed";
     if (apiStatus === "REJECTED") return "Cancelled";
     if (apiStatus === "PENDING") return "Pending";
@@ -78,7 +81,7 @@ const RequestsPage = () => {
           location: [getEntityName(row?.village), getEntityName(row?.hobli), getEntityName(row?.taluka), getEntityName(row?.district)]
             .filter(Boolean)
             .join(", "),
-          tags: [row?.surveyType, row?.surveyNo ? `Sy. ${row.surveyNo}` : ""].filter(Boolean),
+          tags: [row?.surveyType, row?.surveyNo ? `S No: ${row.surveyNo}` : ""].filter(Boolean),
           uploadId: row?._id,
         })));
         setCounts({

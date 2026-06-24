@@ -1,4 +1,5 @@
 import apiClient from "../apiClient.js";
+import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
 
 /**
  * End-user login (mobile + password)
@@ -9,38 +10,12 @@ export async function userLogin(payload) {
     const { data } = await apiClient.post("/api/auth/login", payload);
     return data;
   } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "User login failed";
-    throw new Error(message);
+    throw new Error(getApiErrorMessage(error, "User login failed"));
   }
 }
 
-/**
- * Surveyor forgot password - step 1 (send OTP to phone)
- * POST /api/auth/surveyor/forgot-password/start
- */
-export async function surveyorForgotPasswordStart(payload) {
-  try {
-    const { data } = await apiClient.post("/api/auth/surveyor/forgot-password/start", payload);
-    return data;
-  } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Failed to send OTP";
-    throw new Error(message);
-  }
-}
-
-/**
- * Surveyor forgot password - step 2 (verify OTP + set new password)
- * POST /api/auth/surveyor/forgot-password/reset
- */
-export async function surveyorForgotPasswordReset(payload) {
-  try {
-    const { data } = await apiClient.post("/api/auth/surveyor/forgot-password/reset", payload);
-    return data;
-  } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Failed to reset password";
-    throw new Error(message);
-  }
-}
+/** @deprecated Import from authService.js */
+export { surveyorForgotPasswordStart, surveyorForgotPasswordReset } from "../auth/authService.js";
 
 /**
  * Full profile (end users)

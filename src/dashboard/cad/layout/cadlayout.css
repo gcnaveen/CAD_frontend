@@ -86,3 +86,115 @@
 .cad-sider::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
+
+/* Current orders table — bilingual headers/cells without overlap */
+.cad-current-orders-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.cad-current-orders-table .ant-table-thead > tr > th {
+  white-space: normal !important;
+  vertical-align: bottom;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 10px 12px !important;
+}
+
+.cad-current-orders-table .ant-table-tbody > tr > td {
+  vertical-align: middle;
+  padding: 10px 12px !important;
+}
+
+.cad-bilingual-th {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cad-bilingual-th-en {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.cad-bilingual-th-kn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.cad-bilingual-tag {
+  margin-inline-end: 0 !important;
+  white-space: normal;
+  height: auto;
+  line-height: 1.25;
+  padding: 4px 8px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.cad-bilingual-tag-en {
+  display: block;
+  font-size: 12px;
+}
+
+.cad-bilingual-tag-kn {
+  display: block;
+  font-size: 10px;
+  opacity: 0.92;
+  margin-top: 1px;
+}
+
+.cad-table-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.cad-table-date {
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.cad-details-btn {
+  padding-inline: 4px !important;
+  font-size: 16px;
+}
+
+.cad-action-cell {
+  max-width: 100%;
+}
+
+.cad-action-btn {
+  height: auto !important;
+  min-height: 28px;
+  padding: 4px 10px !important;
+  line-height: 1.2 !important;
+}
+
+.cad-action-btn-wide {
+  max-width: 100%;
+}
+
+.cad-bilingual-btn-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  font-size: 12px;
+}
+
+.cad-bilingual-btn-label-kn {
+  font-size: 10px;
+  opacity: 0.95;
+}

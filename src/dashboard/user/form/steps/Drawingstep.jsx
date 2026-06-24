@@ -35,8 +35,12 @@ const FieldLabel = ({ kn, en, required, optional }) => (
   </span>
 );
 
+const audioPlayUrl = (audio) => audio?.fileUrl || audio?.url || null;
+
 const DrawingStep = ({ form, onAudioChange, audioData }) => {
   const audioField = Form.useWatch("audio", form);
+  /** Parent `audioData` survives step unmount; form field may clear when this step is not mounted. */
+  const savedAudio = audioPlayUrl(audioField) ? audioField : audioPlayUrl(audioData) ? audioData : null;
 
   const [isRecording, setIsRecording]   = useState(false);
   const [recordingTime, setRecTime]     = useState(0);
@@ -126,6 +130,12 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
     onAudioChange?.(null);
   };
 
+  useEffect(() => {
+    if (!audioPlayUrl(audioData)) return;
+    if (audioPlayUrl(audioField)) return;
+    form.setFieldsValue({ audio: audioData });
+  }, [audioData, audioField, form]);
+
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
@@ -198,7 +208,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
           <p className="text-sm font-extrabold text-fg mb-3">Voice Note <span className="text-fg-muted font-semibold text-xs">(optional)</span></p>
 
           {/* Idle state */}
-          {!isRecording && !audioBlob && !audioField && (
+          {!isRecording && !audioBlob && !savedAudio && (
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
@@ -243,7 +253,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
           )}
 
           {/* Preview */}
-          {audioBlob && audioUrl && !audioField && (
+          {audioBlob && audioUrl && !savedAudio && (
             <div className="space-y-3">
               <audio controls src={audioUrl} className="w-full rounded-xl" />
               <div className="flex gap-2">
@@ -269,12 +279,12 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
           )}
 
           {/* Uploaded */}
-          {audioField && (
+          {savedAudio && (
             <div className="rounded-xl bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--success)_35%,var(--border-color))] p-3">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="font-extrabold text-success text-sm">✓ Audio saved</p>
-                  <p className="text-xs text-success font-semibold truncate">{audioField.fileName}</p>
+                  <p className="text-xs text-success font-semibold truncate">{savedAudio.fileName || "Audio file"}</p>
                 </div>
                 <button
                   type="button"
@@ -284,7 +294,9 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
                   <Trash2 className="w-3 h-3" /> Remove
                 </button>
               </div>
-              {audioField.fileUrl && <audio controls src={audioField.fileUrl} className="w-full rounded-lg" />}
+              {audioPlayUrl(savedAudio) && (
+                <audio controls src={audioPlayUrl(savedAudio)} className="w-full rounded-lg" preload="metadata" />
+              )}
             </div>
           )}
         </div>
