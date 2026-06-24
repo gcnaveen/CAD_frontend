@@ -77,8 +77,7 @@ export default function TermsandCondition() {
 
       <h2 id="refund-policy">6. Refund policy (no refunds)</h2>
       <p>
-        <strong>All payments for North-cot services are final. We do not offer refunds, except where required by
-        applicable law.</strong>
+        <strong>All payments for North-cot services are final. We do not offer refunds.</strong>
       </p>
       <p>This no-refund policy applies because:</p>
       <ul>

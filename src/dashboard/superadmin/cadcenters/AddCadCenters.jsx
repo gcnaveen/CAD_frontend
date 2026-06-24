@@ -102,7 +102,7 @@ const AddCadCenters = ({ onCancel, onSubmit, loading = false }) => {
             },
           ]}
         >
-          <Input placeholder="e.g. +91-80-12345678" size="large" />
+          <Input placeholder="Enter 10 digit mobile number" size="large" />
         </Form.Item>
 
         <Form.Item style={{ marginTop: 32, marginBottom: 0 }}>

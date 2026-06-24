@@ -253,7 +253,14 @@ import {
   surveyorForgotPasswordStart,
   surveyorForgotPasswordReset,
 } from "../services/user/userService";
-import { Eye, EyeOff, ArrowRight, Phone, Mail, MapPin, Shield } from "lucide-react";
+import {
+  useOtpCountdown,
+  formatOtpCountdown,
+  defaultOtpExpiresAt,
+} from "../hooks/useOtpCountdown.js";
+import { formatOtpSendError } from "../utils/otpErrorMessage.js";
+import { getOtpDeliveryWindowNote } from "../utils/otpDeliveryWindow.js";
+import { Eye, EyeOff, ArrowRight, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
@@ -268,8 +275,6 @@ const getRedirectForRole = (role) => {
   return "/";
 };
 
-const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
 // Surveying crosshair marker SVG
 const Crosshair = ({ size = 20, opacity = 0.18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ opacity, color: "var(--brand-gold)" }}>
@@ -282,9 +287,7 @@ const Crosshair = ({ size = 20, opacity = 0.18 }) => (
 );
 
 export default function LoginPage() {
-  const [loginMode, setLoginMode] = useState("phone");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -295,8 +298,11 @@ export default function LoginPage() {
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotPhone, setForgotPhone] = useState("");
   const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotOtpExpiresAt, setForgotOtpExpiresAt] = useState(null);
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+  const forgotOtpSecondsLeft = useOtpCountdown(forgotOtpExpiresAt);
+  const forgotOtpDeliveryNote = getOtpDeliveryWindowNote();
   const [forgotMessage, setForgotMessage] = useState({ type: "", text: "" });
   const [forgotErrors, setForgotErrors] = useState({});
   const navigate = useNavigate();
@@ -310,17 +316,15 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage({ type: "", text: "" });
     setErrors({});
-    if (loginMode === "email") {
-      if (!email.trim()) { setErrors({ email: "Email is required" }); return; }
-      if (!validateEmail(email)) { setErrors({ email: "Please enter a valid email" }); return; }
+    if (!/^\d{10}$/.test(phone.replace(/\D/g, "").slice(0, 10))) {
+      setErrors({ phone: "Phone number must be exactly 10 digits" });
+      return;
     }
     if (!password) { setErrors({ password: "Password is required" }); return; }
     if (!/^\d{4}$/.test(password)) { setErrors({ password: "Password must be exactly 4 digits" }); return; }
     setIsLoading(true);
     try {
-      const payload = loginMode === "phone"
-        ? { phone: phone.replace(/\D/g, "").slice(0, 10), password }
-        : { email: email.trim(), password };
+      const payload = { phone: phone.replace(/\D/g, "").slice(0, 10), password };
       const response = await userLogin(payload);
       const body = response?.data ?? response;
       const data = body?.data ?? body;
@@ -338,23 +342,12 @@ export default function LoginPage() {
     }
   };
 
-  const switchMode = () => {
-    setLoginMode((m) => (m === "phone" ? "email" : "phone"));
-    setMessage({ type: "", text: "" });
-    setErrors({});
-    setShowForgotPassword(false);
-    setForgotStep(1);
-    setForgotOtp("");
-    setForgotNewPassword("");
-    setForgotMessage({ type: "", text: "" });
-    setForgotErrors({});
-  };
-
   const handleOpenForgotPassword = () => {
     setShowForgotPassword(true);
     setForgotStep(1);
     setForgotPhone(phone.replace(/\D/g, "").slice(0, 10));
     setForgotOtp("");
+    setForgotOtpExpiresAt(null);
     setForgotNewPassword("");
     setForgotMessage({ type: "", text: "" });
     setForgotErrors({});
@@ -372,21 +365,19 @@ export default function LoginPage() {
 
     setForgotLoading(true);
     try {
-      const response = await surveyorForgotPasswordStart({ phone: cleanedPhone });
-      const body = response?.data ?? response;
-      const expiresAt = body?.data?.expiresAt;
+      const result = await surveyorForgotPasswordStart({ phone: cleanedPhone });
       setForgotPhone(cleanedPhone);
+      setForgotOtp("");
+      setForgotOtpExpiresAt(result?.expiresAt ?? defaultOtpExpiresAt());
       setForgotStep(2);
       setForgotMessage({
         type: "success",
-        text: expiresAt
-          ? `OTP sent to phone. It expires at ${new Date(expiresAt).toLocaleTimeString()}. Use 123456 for testing.`
-          : "OTP sent to phone. Use 123456 for testing.",
+        text: result?.message ?? "OTP sent to your mobile.",
       });
     } catch (err) {
       setForgotMessage({
         type: "error",
-        text: err?.message ?? "Failed to send OTP. Please try again.",
+        text: formatOtpSendError(err, "Failed to send OTP. Please try again."),
       });
     } finally {
       setForgotLoading(false);
@@ -411,22 +402,30 @@ export default function LoginPage() {
     setForgotLoading(true);
     setForgotErrors({});
     try {
-      await surveyorForgotPasswordReset({
+      const result = await surveyorForgotPasswordReset({
         phone: cleanedPhone,
         otp: cleanedOtp,
         password: cleanedPassword,
       });
+      const token = result?.token;
+      const user = result?.user;
       setShowForgotPassword(false);
       setForgotStep(1);
       setForgotOtp("");
+      setForgotOtpExpiresAt(null);
       setForgotNewPassword("");
-      setPassword(cleanedPassword);
-      setPhone(cleanedPhone);
-      setLoginMode("phone");
-      setMessage({
-        type: "success",
-        text: "Password reset successful. Please login with your new password.",
-      });
+      if (token) {
+        dispatch(setCredentials({ token, user }));
+        setMessage({ type: "success", text: "Password reset successful. Redirecting…" });
+        navigate(getRedirectForRole(user?.role), { replace: true });
+      } else {
+        setPassword(cleanedPassword);
+        setPhone(cleanedPhone);
+        setMessage({
+          type: "success",
+          text: "Password reset successful. Please login with your new password.",
+        });
+      }
     } catch (err) {
       setForgotMessage({
         type: "error",
@@ -736,91 +735,44 @@ export default function LoginPage() {
               Welcome Back
             </h1>
             <p className="auth-subtitle" style={{ fontSize: "13px", color: "var(--homepage-body-text)", lineHeight: 1.5 }}>
-              {loginMode === "phone"
-                ? "Sign in with your phone number and password"
-                : "Sign in with your email and password"}
+              Sign in with your phone number and password
             </p>
-          </div>
-
-          {/* Mode tab toggle */}
-          <div className="auth-mode-bar" style={{
-            display: "flex",
-            background: "rgba(232,226,216,0.5)",
-            borderRadius: "11px",
-            padding: "3px",
-            marginBottom: "22px",
-            gap: "2px",
-          }}>
-            {[
-              { mode: "phone", label: "Phone", icon: <Phone size={13} /> },
-              { mode: "email", label: "Email", icon: <Mail size={13} /> },
-            ].map(({ mode, label, icon }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => { setLoginMode(mode); setMessage({ type: "", text: "" }); setErrors({}); }}
-                className={`auth-tab${loginMode === mode ? " auth-tab--active" : ""}`}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                  padding: "9px 12px", borderRadius: "8px", border: "none", cursor: "pointer",
-                  fontSize: "13px", fontWeight: 600, letterSpacing: "0.02em",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                {icon}{label}
-              </button>
-            ))}
           </div>
 
           <form onSubmit={handleLogin}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
-              {/* Phone or Email */}
-              {loginMode === "phone" ? (
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
-                    Phone Number
-                  </label>
-                  <div className="auth-phone-row" style={{ display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden", border: "1.5px solid rgba(213,200,178,0.8)", background: "rgba(255,255,255,0.6)", transition: "border-color 0.2s, box-shadow 0.2s" }}
-                    onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.7)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)"; }}
-                    onBlurCapture={e => { e.currentTarget.style.borderColor = "rgba(213,200,178,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
-                  >
-                    <span style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      padding: "0 14px", fontSize: "14px", fontWeight: 700,
-                      color: "var(--brand-gold-muted)", background: "rgba(201,168,76,0.08)",
-                      borderRight: "1.5px solid rgba(213,200,178,0.7)",
-                      minWidth: "54px", flexShrink: 0,
-                    }}>
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="Please enter your phone number"
-                      style={{
-                        flex: 1, background: "transparent", border: "none", outline: "none",
-                        padding: "13px 14px", fontSize: "14.5px", color: "var(--text-primary)",
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
-                    Email Address
-                  </label>
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
+                  Phone Number
+                </label>
+                <div className="auth-phone-row" style={{ display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden", border: "1.5px solid rgba(213,200,178,0.8)", background: "rgba(255,255,255,0.6)", transition: "border-color 0.2s, box-shadow 0.2s" }}
+                  onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.7)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)"; }}
+                  onBlurCapture={e => { e.currentTarget.style.borderColor = "rgba(213,200,178,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <span style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "0 14px", fontSize: "14px", fontWeight: 700,
+                    color: "var(--brand-gold-muted)", background: "rgba(201,168,76,0.08)",
+                    borderRight: "1.5px solid rgba(213,200,178,0.7)",
+                    minWidth: "54px", flexShrink: 0,
+                  }}>
+                    +91
+                  </span>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Please enter your email address"
-                    className={`lp-input${errors.email ? " error" : ""}`}
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="Please enter your phone number"
+                    inputMode="numeric"
+                    style={{
+                      flex: 1, background: "transparent", border: "none", outline: "none",
+                      padding: "13px 14px", fontSize: "14.5px", color: "var(--text-primary)",
+                    }}
                   />
-                  {errors.email && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.email}</p>}
                 </div>
-              )}
+                {errors.phone && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.phone}</p>}
+              </div>
 
               {/* Password */}
               <div>
@@ -859,20 +811,18 @@ export default function LoginPage() {
                 {errors.password && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.password}</p>}
               </div>
 
-              {loginMode === "phone" && (
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-6px" }}>
-                  <button
-                    type="button"
-                    onClick={handleOpenForgotPassword}
-                    className="mode-toggle-btn"
-                    style={{ fontSize: "12px" }}
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-              )}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-6px" }}>
+                <button
+                  type="button"
+                  onClick={handleOpenForgotPassword}
+                  className="mode-toggle-btn"
+                  style={{ fontSize: "12px" }}
+                >
+                  Forgot Password?
+                </button>
+              </div>
 
-              {loginMode === "phone" && showForgotPassword && (
+              {showForgotPassword && (
                 <div style={{
                   border: "1px solid rgba(213,200,178,0.75)",
                   borderRadius: "12px",
@@ -896,18 +846,34 @@ export default function LoginPage() {
                   />
                   {forgotErrors.phone && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.phone}</p>}
 
+                  {/* {forgotOtpDeliveryNote && (
+                    <p style={{ fontSize: "12px", color: "rgba(154,112,32,0.85)", margin: 0, lineHeight: 1.5, padding: "9px 11px", borderRadius: "8px", background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)" }}>
+                      {forgotOtpDeliveryNote}
+                    </p>
+                  )} */}
+
                   {forgotStep === 2 && (
                     <>
                       <input
                         type="text"
                         value={forgotOtp}
                         onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="Enter OTP (use 123456 for testing)"
+                        placeholder="Enter 6-digit OTP"
                         className={`lp-input${forgotErrors.otp ? " error" : ""}`}
                         inputMode="numeric"
                         maxLength={6}
                       />
                       {forgotErrors.otp && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.otp}</p>}
+                      {forgotOtpSecondsLeft > 0 && (
+                        <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", margin: 0 }}>
+                          OTP expires in <strong>{formatOtpCountdown(forgotOtpSecondsLeft)}</strong>
+                        </p>
+                      )}
+                      {forgotOtpSecondsLeft === 0 && (
+                        <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>
+                          OTP expired. Send a new OTP to continue.
+                        </p>
+                      )}
 
                       <input
                         type="password"
@@ -935,15 +901,32 @@ export default function LoginPage() {
                     </div>
                   )}
 
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {forgotStep === 1 ? (
                       <button type="button" className="submit-btn" disabled={forgotLoading} onClick={handleForgotPasswordStart} style={{ padding: "10px", fontSize: "13px" }}>
                         {forgotLoading ? "Sending OTP..." : "Send OTP"}
                       </button>
                     ) : (
-                      <button type="button" className="submit-btn" disabled={forgotLoading} onClick={handleForgotPasswordReset} style={{ padding: "10px", fontSize: "13px" }}>
-                        {forgotLoading ? "Resetting..." : "Verify OTP & Reset"}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="submit-btn"
+                          disabled={forgotLoading || forgotOtpSecondsLeft === 0}
+                          onClick={handleForgotPasswordReset}
+                          style={{ padding: "10px", fontSize: "13px", flex: 1 }}
+                        >
+                          {forgotLoading ? "Resetting..." : "Verify OTP & Reset"}
+                        </button>
+                        <button
+                          type="button"
+                          className="submit-btn"
+                          disabled={forgotLoading}
+                          onClick={handleForgotPasswordStart}
+                          style={{ padding: "10px", fontSize: "13px", flex: 1 }}
+                        >
+                          {forgotLoading ? "Sending..." : "Resend OTP"}
+                        </button>
+                      </>
                     )}
 
                     <button
@@ -952,6 +935,7 @@ export default function LoginPage() {
                         setShowForgotPassword(false);
                         setForgotStep(1);
                         setForgotOtp("");
+                        setForgotOtpExpiresAt(null);
                         setForgotNewPassword("");
                         setForgotMessage({ type: "", text: "" });
                         setForgotErrors({});
@@ -1005,24 +989,6 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
-
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
-                <span className="auth-divider-label" style={{ fontSize: "11px", color: "rgba(100,90,70,0.5)", fontWeight: 500 }}>or</span>
-                <div className="auth-divider-line" style={{ flex: 1, height: "1px", background: "rgba(213,200,178,0.6)" }} />
-              </div>
-
-              {/* Switch mode */}
-              <div style={{ textAlign: "center" }}>
-                <button type="button" onClick={switchMode} className="mode-toggle-btn">
-                  {loginMode === "phone" ? (
-                    <><Mail size={12} /> Sign in with email instead</>
-                  ) : (
-                    <><Phone size={12} /> Sign in with phone instead</>
-                  )}
-                </button>
-              </div>
 
               {/* Register */}
               <p className="auth-footer-line" style={{ textAlign: "center", fontSize: "13px", color: "var(--homepage-body-text)", margin: 0 }}>

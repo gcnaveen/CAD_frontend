@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   surveyorStart,
   surveyorVerifyOtp,
   surveyorComplete,
 } from "../services/auth/authService.js";
-import { getDistricts } from "../services/masters/districtService.js";
+import { setCredentials } from "../features/auth/authSlice";
+import { getActiveDistricts } from "../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../services/masters/talukaService.js";
+import {
+  useOtpCountdown,
+  formatOtpCountdown,
+  defaultOtpExpiresAt,
+} from "../hooks/useOtpCountdown.js";
+import { formatOtpSendError } from "../utils/otpErrorMessage.js";
+import { getOtpDeliveryWindowNote } from "../utils/otpDeliveryWindow.js";
 import {
   MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, Check,
   Phone, User, Lock, Shield,
@@ -28,6 +37,14 @@ const STEPS = [
   { key: 4, label: "Location",icon: <MapPin size={14} /> },
 ];
 
+const getRedirectForRole = (role) => {
+  const r = (role || "").toUpperCase();
+  if (r === "SUPER_ADMIN" || r === "ADMIN") return "/superadmin";
+  if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
+  if (r === "SURVEYOR" || r === "USER" || r === "CUSTOMER") return "/dashboard/user";
+  return "/";
+};
+
 const Crosshair = ({ size = 20, opacity = 0.18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
     stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ opacity, color: "var(--brand-gold)" }}>
@@ -41,6 +58,7 @@ const Crosshair = ({ size = 20, opacity = 0.18 }) => (
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [step, setStep] = useState(1);
   const [mounted, setMounted] = useState(false);
 
@@ -48,9 +66,12 @@ export default function RegisterPage() {
   const [phone, setPhone]                 = useState("");
   const [otp, setOtp]                     = useState("");
   const [otpSent, setOtpSent]             = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt]   = useState(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [sendingOtp, setSendingOtp]       = useState(false);
   const [verifyingOtp, setVerifyingOtp]   = useState(false);
+  const otpSecondsLeft = useOtpCountdown(otpExpiresAt);
+  const otpDeliveryNote = getOtpDeliveryWindowNote();
 
   const [accountType, setAccountType]   = useState("");
   const [surveyorType, setSurveyorType] = useState("");
@@ -75,7 +96,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     setDistrictsLoading(true);
-    getDistricts()
+    getActiveDistricts()
       .then((res) => setDistricts(normalizeList(res)))
       .catch(() => setDistricts([]))
       .finally(() => setDistrictsLoading(false));
@@ -101,26 +122,26 @@ export default function RegisterPage() {
     if (p.length < 10) { setErrors({ phone: "Enter a valid 10-digit mobile number" }); return; }
     setSendingOtp(true);
     try {
-      // Backend expects `firstName` and `lastName`.
-      // Requirement: keep only fullname; last name should not be mandatory.
-      await surveyorStart({ phone: p, firstName: f, lastName: "" });
+      const result = await surveyorStart({ phone: p, firstName: f, lastName: "" });
       setOtpSent(true);
-      setMessage({ type: "success", text: "OTP sent to your mobile." });
+      setOtp("");
+      setOtpExpiresAt(result?.expiresAt ?? defaultOtpExpiresAt());
+      setMessage({ type: "success", text: result?.message ?? "OTP sent to your mobile." });
     } catch (err) {
-      setMessage({ type: "error", text: err?.message ?? "Failed to send OTP." });
+      setMessage({ type: "error", text: formatOtpSendError(err, "Failed to send OTP.") });
     } finally { setSendingOtp(false); }
   };
 
   const handleVerifyOtp = async () => {
     const p = getMobile(), o = (otp || "").trim();
     if (p.length < 10) { setErrors({ phone: "Enter a valid 10-digit mobile number" }); return; }
-    if (o.length < 4)  { setErrors({ otp: "Enter the OTP sent to your mobile" }); return; }
+    if (!/^\d{6}$/.test(o)) { setErrors({ otp: "Enter the 6-digit OTP sent to your mobile" }); return; }
     setVerifyingOtp(true); setMessage({ type: "", text: "" });
     try {
       await surveyorVerifyOtp({ phone: p, otp: o });
       setIsOtpVerified(true);
-      setMessage({ type: "success", text: "OTP verified successfully." });
-      setStep(2);
+      setMessage({ type: "success", text: "OTP verified. Set your password to continue." });
+      setStep(3);
     } catch (err) {
       setMessage({ type: "error", text: err?.message ?? "OTP verification failed." });
     } finally { setVerifyingOtp(false); }
@@ -135,7 +156,7 @@ export default function RegisterPage() {
     if (s === 2) {
       if (!fullName?.trim()) e.fullName = "Full name is required";
       if (getMobile().length < 10) e.phone = "Valid 10-digit mobile required";
-      if (otpSent && !isOtpVerified && (otp || "").trim().length < 4) e.otp = "Enter OTP";
+      if (otpSent && !isOtpVerified && !/^\d{6}$/.test((otp || "").trim())) e.otp = "Enter the 6-digit OTP";
     }
     if (s === 3) {
       if (!/^\d{4}$/.test(password || "")) e.password = "Password must be exactly 4 digits";
@@ -171,13 +192,30 @@ export default function RegisterPage() {
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
     const category = accountType === "SURVEYOR" ? "SURVEYOR" : "public";
-    const payload = { phone: getMobile(), password, district, taluka: taluk, category };
+    const f = fullName?.trim() ?? "";
+    const payload = {
+      phone: getMobile(),
+      password,
+      district,
+      taluka: taluk,
+      category,
+      firstName: f,
+      lastName: "",
+    };
     if (category === "SURVEYOR" && surveyorType) payload.surveyType = surveyorType;
     setIsSubmitting(true); setMessage({ type: "", text: "" });
     try {
-      await surveyorComplete(payload);
-      setMessage({ type: "success", text: "Registration successful. Redirecting to login…" });
-      setTimeout(() => navigate("/login", { replace: true }), 1500);
+      const result = await surveyorComplete(payload);
+      const token = result?.token;
+      const user = result?.user;
+      if (token) {
+        dispatch(setCredentials({ token, user }));
+        setMessage({ type: "success", text: "Registration successful. Redirecting…" });
+        setTimeout(() => navigate(getRedirectForRole(user?.role), { replace: true }), 1200);
+      } else {
+        setMessage({ type: "success", text: "Registration successful. Redirecting to login…" });
+        setTimeout(() => navigate("/login", { replace: true }), 1500);
+      }
     } catch (err) {
       setMessage({ type: "error", text: err?.message ?? "Registration failed." });
     } finally { setIsSubmitting(false); }
@@ -507,10 +545,16 @@ export default function RegisterPage() {
                   onFocusCapture={e=>{ e.currentTarget.style.borderColor="rgba(201,168,76,.7)"; e.currentTarget.style.boxShadow="0 0 0 3px rgba(201,168,76,.12)"; }}
                   onBlurCapture={e=>{ e.currentTarget.style.borderColor="rgba(213,200,178,.8)"; e.currentTarget.style.boxShadow="none"; }}>
                   <span style={{ display:"flex", alignItems:"center", padding:"0 14px", fontSize:"14px", fontWeight:700, color:"var(--brand-gold-muted)", background:"rgba(201,168,76,.08)", borderRight:"1.5px solid rgba(213,200,178,.7)", minWidth:"54px", flexShrink:0 }}>+91</span>
-                  <input type="tel" value={phone} onChange={(e)=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="98765 43210" style={{ flex:1, background:"transparent", border:"none", outline:"none", padding:"12px 14px", fontSize:"14px", color:"var(--text-primary)" }} disabled={isOtpVerified} />
+                  <input type="tel" value={phone} onChange={(e)=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="Enter 10 digit mobile number" inputMode="numeric" style={{ flex:1, background:"transparent", border:"none", outline:"none", padding:"12px 14px", fontSize:"14px", color:"var(--text-primary)" }} disabled={isOtpVerified} />
                 </div>
                 {errors.phone && <p style={errStyle}>{errors.phone}</p>}
               </div>
+
+              {/* {otpDeliveryNote && !isOtpVerified && (
+                <p style={{ fontSize: "12px", color: "rgba(154,112,32,0.85)", margin: 0, lineHeight: 1.5, padding: "10px 12px", borderRadius: "10px", background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)" }}>
+                  {otpDeliveryNote}
+                </p>
+              )} */}
 
               {otpSent && (
                 <div>
@@ -518,18 +562,27 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     value={otp}
-                    onChange={(e)=>setOtp(e.target.value.replace(/\D/g,"").slice(0,8))}
-                    placeholder="Enter OTP sent to your mobile"
+                    onChange={(e)=>setOtp(e.target.value.replace(/\D/g,"").slice(0,6))}
+                    placeholder="Enter 6-digit OTP"
                     className={`rp-input${errors.otp?" err":""}`}
+                    inputMode="numeric"
+                    maxLength={6}
                     disabled={isOtpVerified}
                   />
                   {errors.otp && <p style={errStyle}>{errors.otp}</p>}
-                  <p className="auth-otp-hint" style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
-                    Default OTP: <span style={{ fontWeight: 700, color: "var(--brand-gold-muted)" }}>123456</span>
-                  </p>
+                  {otpSecondsLeft > 0 && (
+                    <p className="auth-otp-hint" style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", marginTop: 5 }}>
+                      OTP expires in <span style={{ fontWeight: 700, color: "var(--brand-gold-muted)" }}>{formatOtpCountdown(otpSecondsLeft)}</span>
+                    </p>
+                  )}
+                  {otpSent && otpSecondsLeft === 0 && !isOtpVerified && (
+                    <p className="auth-otp-hint" style={{ fontSize: "12px", color: "var(--danger)", marginTop: 5 }}>
+                      OTP expired. Tap Resend OTP to get a new code.
+                    </p>
+                  )}
                   {!isOtpVerified && (
                     <div style={{ display:"flex", gap:"10px", marginTop:"12px", flexWrap:"wrap" }}>
-                      <button type="button" className="rp-btn-primary" onClick={handleVerifyOtp} disabled={verifyingOtp}>
+                      <button type="button" className="rp-btn-primary" onClick={handleVerifyOtp} disabled={verifyingOtp || otpSecondsLeft === 0}>
                         {verifyingOtp ? "Verifying…" : "Verify OTP"}<ArrowRight size={16}/>
                       </button>
                       <button type="button" className="rp-btn-outline" onClick={handleSendOtp} disabled={sendingOtp}>

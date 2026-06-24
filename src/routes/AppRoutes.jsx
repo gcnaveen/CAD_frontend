@@ -5,6 +5,7 @@ import ProtectedRoute from "./ProtectedRoute";
 // Public
 import Homepage from "../pages/Homepage";
 import LoginPage from "../pages/LoginPage";
+import LoginPageEmail from "../pages/LoginPageEmail.jsx";
 import RegisterPage from "../pages/RegisterPage";
 import Cadregisterform from "../pages/form/Cadregisterform.jsx";
 import PaymentReturnPage from "../pages/PaymentReturnPage.jsx";
@@ -33,8 +34,10 @@ import ViewTalukas from "../dashboard/superadmin/talukas/ViewTalukas";
 import ViewHoblis from "../dashboard/superadmin/hoblis/ViewHoblis";
 import ViewVillages from "../dashboard/superadmin/villages/ViewVillages";
 import ViewCadInterests from "../dashboard/superadmin/cadinterest/ViewCadInterests";
+import ViewSurveyDraftReports from "../dashboard/superadmin/drafts/ViewSurveyDraftReports.jsx";
 import AdminAssignmentsPage from "../pages/AdminAssignmentsPage.jsx";
 import SketchPricing from "../pages/admin/SketchPricing.jsx";
+import PayCadUser from "../dashboard/superadmin/cadwallet/PayCadUser.jsx";
 
 // CAD
 import CADLayout from "../dashboard/cad/layout/CADLayout";
@@ -57,6 +60,8 @@ export default function AppRoutes() {
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-and-conditions" element={<TermsandCondition />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/login-email" element={<LoginPageEmail />} />
+      <Route path="/login/email" element={<Navigate to="/login-email" replace />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/register/cad-operator" element={<Cadregisterform />} />
       <Route
@@ -170,8 +175,10 @@ export default function AppRoutes() {
         <Route path="cad-centers" element={<ViewCadCenters />} />
         <Route path="cad-users" element={<ViewCadUsers />} />
         <Route path="cad-interest" element={<ViewCadInterests />} />
+        <Route path="survey-draft-reports" element={<ViewSurveyDraftReports />} />
         <Route path="assignments" element={<AdminAssignmentsPage />} />
         <Route path="sketch-pricing" element={<SketchPricing />} />
+        <Route path="pay-cad-user" element={<PayCadUser />} />
         <Route path="districts" element={<ViewDistricts />} />
         <Route path="talukas" element={<ViewTalukas />} />
         <Route path="hoblis" element={<ViewHoblis />} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Space, Typography, Select } from "antd";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../services/masters/talukaService.js";
 import { getHoblisByTaluka } from "../../../services/masters/hobliService.js";
 
@@ -26,7 +26,7 @@ const AddVillages = ({
   const [hoblis, setHoblis] = useState([]);
 
   useEffect(() => {
-    getDistricts()
+    getActiveDistricts()
       .then((res) => setDistricts(normalizeList(res)))
       .catch(() => setDistricts([]));
   }, []);

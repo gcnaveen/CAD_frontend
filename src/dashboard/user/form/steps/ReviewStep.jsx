@@ -1,7 +1,10 @@
 // src/dashboard/user/form/steps/ReviewStep.jsx
 import React from "react";
 import { Alert, Form, Skeleton, Typography } from "antd";
-import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingCompute.js";
+import {
+  GOOGLE_SUPERIMPOSE_CHARGE,
+  GST_PERCENT,
+} from "../../../../utils/sketchPricingCompute.js";
 
 const { Text } = Typography;
 
@@ -157,14 +160,18 @@ const ReviewStep = ({
                     </span>
                   </div>
                 ) : null}
+                <Row
+                  label={`GST (${sketchPricingBreakdown.gstPercent || GST_PERCENT}%)`}
+                  value={`+${formatRs(sketchPricingBreakdown.gstAmountRupees || 0)}`}
+                />
                 <div className="py-3">
                   <Text strong style={{ fontSize: 16 }}>
                     Total Payable:{" "}
                     {formatRs(
                       checkoutFinalRupees != null
                         ? checkoutFinalRupees
-                        : Number(sketchPricingBreakdown.afterDiscountRupees ?? 0) +
-                            (googleSuperimposeOn ? GOOGLE_SUPERIMPOSE_CHARGE : 0)
+                        : Number(sketchPricingBreakdown.baseAmountRupees ?? 0) +
+                            Number(sketchPricingBreakdown.gstAmountRupees ?? 0)
                     )}
                   </Text>
                 </div>

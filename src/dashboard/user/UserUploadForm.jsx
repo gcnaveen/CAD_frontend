@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox, Form, Modal, message } from "antd";
+import { useSelector } from "react-redux";
 import { createSketchUpload, getSurveyorSketchPricing } from "../../services/surveyor/sketchUploadService.js";
 import { createDraft, getDraftById, updateDraft } from "../../services/draftApi.js";
 import {
@@ -10,6 +11,7 @@ import {
   buildSketchCheckoutBreakdown,
   computeSketchSubmitAmountRupees,
 } from "../../utils/sketchPricingCompute.js";
+import { redirectToSketchCheckout } from "../../utils/sketchPaymentUtils.js";
 
 /** Same truthiness as Ant Design Checkbox (avoids missing +₹200 on superimpose). */
 function isGoogleSuperimposeSelected(form, values) {
@@ -34,6 +36,22 @@ const DOCUMENT_TYPE_KEYS   = ["is_originaltippani","is_hissatippani","is_atlas",
 
 function toUrl(doc) { if (!doc) return null; if (typeof doc === "string") return doc; return doc.url || doc.fileUrl || doc.fileURL || null; }
 function toMeta(doc) { if (!doc) return null; if (typeof doc === "string") return { fileUrl: doc, fileName: "file" }; const url = toUrl(doc); if (!url) return null; return { fileUrl: url, fileName: doc.fileName || doc.name || "file", mimeType: doc.mimeType || doc.type, size: doc.size }; }
+function audioFromDraft(raw) {
+  if (!raw) return null;
+  const item = Array.isArray(raw) ? raw[0] : raw;
+  if (!item) return null;
+  if (typeof item === "string") return { fileUrl: item, url: item, fileName: "audio" };
+  const url = item.url || item.fileUrl || item.fileURL;
+  if (!url) return null;
+  return {
+    fileUrl: url,
+    url,
+    key: item.key,
+    fileName: item.fileName || item.name || "audio",
+    mimeType: item.mimeType || item.type || "audio/mpeg",
+    size: item.size || 0,
+  };
+}
 function toFileListItem(meta, uid = "draft-file") {
   if (!meta?.fileUrl) return null;
   const isImage = typeof meta.mimeType === "string" && meta.mimeType.startsWith("image/");
@@ -72,7 +90,7 @@ const ArrowRight = () => (
 
 /* ── Step field validators ── */
 const STEP_FIELDS = [
-  ["surveyType", "district", "taluka", "hobli", "surveyNo"], // step 0 (village is optional)
+  ["surveyType", "district", "taluka", "surveyNo"], // step 0 (hobli & village are optional)
   [],                                                                     // step 1 - no required
   [],                                                                     // step 2 - optional
   [],                                                                     // step 3 - review
@@ -87,40 +105,20 @@ const UserUploadForm = ({
   const navigate       = useNavigate();
   const [searchParams] = useSearchParams();
   const [form]         = Form.useForm();
+  const authUser = useSelector((state) => state.auth?.user);
 
   const redirectToPayment = (result) => {
     const payment = result?.meta?.payment;
     const requiresPayment = Boolean(payment?.requiresPayment);
-    const redirectUrl =
-      typeof payment?.redirectUrl === "string" ? payment.redirectUrl.trim() : "";
 
     if (!requiresPayment) return false;
-    if (!redirectUrl) {
-      message.error("Payment is required but redirect URL is missing. Please try again.");
+
+    const uploadId = result?.data?._id ?? result?.data?.id ?? null;
+    if (!redirectToSketchCheckout(payment, uploadId)) {
+      message.error("Payment is required but checkout URL is missing. Please try again.");
       navigate("/dashboard/user/requests");
       return true;
     }
-
-    try {
-      const uploadId = result?.data?._id ?? result?.data?.id ?? null;
-      const merchantOrderId = payment?.merchantOrderId ?? result?.data?.sketchPayment?.merchantOrderId ?? null;
-      const amountPaise = payment?.amountPaise ?? result?.data?.sketchPayment?.amountPaise ?? null;
-      localStorage.setItem(
-        "cad:lastPayment",
-        JSON.stringify({
-          uploadId,
-          merchantOrderId,
-          amountPaise,
-          startedAt: new Date().toISOString(),
-          redirectUrl,
-        })
-      );
-    } catch {
-      // localStorage can fail (private mode / quota). Redirect should still work.
-    }
-
-    // Important: redirect in same tab (PhonePe flow)
-    window.location.assign(redirectUrl);
     return true;
   };
 
@@ -146,6 +144,11 @@ const UserUploadForm = ({
     const r = searchParams.get("revision");
     return r === "1" || r === "true";
   }, [searchParams]);
+  const isPublicSurveyorCategory = useMemo(() => {
+    const role = String(authUser?.role || "").toUpperCase();
+    const category = String(authUser?.surveyorProfile?.category || "").toUpperCase();
+    return role === "SURVEYOR" && category === "PUBLIC";
+  }, [authUser]);
 
   const googleSuperimpose = Form.useWatch("googleSuperimpose", form) ?? false;
 
@@ -318,13 +321,11 @@ const UserUploadForm = ({
         return;
       }
 
-      if (!values.village) {
-        message.error("Please select village first");
-        return;
-      }
-
       // Use explicit form mode only. Never infer mode from uploaded files.
       const uploadMode = form.getFieldValue("uploadMode") ?? "normal";
+      const publicHasDocuments = isPublicSurveyorCategory
+        ? values.hasDocuments === true
+        : true;
       const hasAnyMainNormal = MAIN_DOCUMENT_FIELDS.some((fieldName) => {
         const fileList = form.getFieldValue(fieldName) || values[fieldName];
         const first = Array.isArray(fileList) ? fileList[0] : null;
@@ -332,14 +333,14 @@ const UserUploadForm = ({
         return Boolean(meta?.fileUrl?.startsWith("http"));
       });
 
-      if (uploadMode === "single") {
+      if (!isPublicSurveyorCategory && uploadMode === "single") {
         const singleMeta =
           uploadedDocs.singleUpload?.fileUrl ? uploadedDocs.singleUpload : toMeta(values.singleUpload?.[0]);
         const hasSingleUpload = Boolean(singleMeta?.fileUrl?.startsWith("http"));
         if (!hasSingleUpload) { message.error("Single mode: please upload exactly one document"); return; }
         const docTypes = Array.isArray(values.documentTypes) ? values.documentTypes : [];
         if (docTypes.length === 0) { message.error("Single mode: select at least one document type"); return; }
-      } else {
+      } else if (!isPublicSurveyorCategory) {
         if (!hasAnyMainNormal) { message.error("Normal mode: upload at least one main document (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
       }
       const googleOn = isGoogleSuperimposeSelected(form, values);
@@ -349,38 +350,87 @@ const UserUploadForm = ({
         surveyType: values.surveyType,
         district: values.district,
         taluka: values.taluka,
-        hobli: values.hobli,
         uploadMode,
         surveyNo: values.surveyNo,
       };
+      if (values.hobli) payload.hobli = values.hobli;
       if (values.village) payload.village = values.village;
       if (values.others)               payload.others = values.others;
       payload.isSuperimpose = googleOn;
-      if (audioData?.fileUrl)          payload.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
+      if (isPublicSurveyorCategory) payload.hasDocuments = Boolean(publicHasDocuments);
+      if (audioData?.fileUrl || audioData?.url) {
+        const audioUrl = audioData.fileUrl || audioData.url;
+        payload.audio = {
+          url: audioUrl,
+          fileUrl: audioUrl,
+          fileName: audioData.fileName || "audio",
+          mimeType: audioData.mimeType || "audio/mpeg",
+          size: audioData.size || 0,
+        };
+      }
 
+      if (!isPublicSurveyorCategory || publicHasDocuments) {
+        if (uploadMode === "single") {
+          const singleDoc = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
+          if (singleDoc?.fileUrl?.startsWith("http")) {
+            payload.singleUpload = {
+              url: singleDoc.fileUrl,
+              fileName: singleDoc.fileName || "file",
+              mimeType: singleDoc.mimeType || "application/octet-stream",
+              size: singleDoc.size || 0,
+            };
+          }
+          const docTypes = values.documentTypes ?? [];
+          if (docTypes.length > 0) DOCUMENT_TYPE_KEYS.forEach((k) => { payload[k] = docTypes.includes(k); });
+        } else {
+          for (const fieldName of DOCUMENT_FIELDS) {
+            const fileList = form.getFieldValue(fieldName) || values[fieldName];
+            const hasFile  = Array.isArray(fileList) && fileList.length > 0;
+            if (!hasFile) continue;
+            const doc = uploadedDocs[fieldName] || toMeta((fileList || [])[0]);
+            if (!doc?.fileUrl?.startsWith("http")) { message.error(`"${fieldName}" is still uploading, please wait`); return; }
+            payload[fieldName] = { url: doc.fileUrl, fileName: doc.fileName || "file", mimeType: doc.mimeType || "application/octet-stream", size: doc.size || 0 };
+          }
+          const hasMain = MAIN_DOCUMENT_FIELDS.some((f) => payload[f]);
+          if (!isPublicSurveyorCategory && !hasMain) {
+            message.error("At least one main document required (Moola Tippani, Atlas, or RR Pakkabook)");
+            return;
+          }
+        }
+        try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
+      }
       if (uploadMode === "single") {
         const singleDoc = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
-        if (!singleDoc?.fileUrl?.startsWith("http")) { message.error("Please upload a document first"); return; }
-        const docTypes = values.documentTypes ?? [];
-        if (!docTypes.length) { message.error("Select at least one document type"); return; }
-        payload.singleUpload = { url: singleDoc.fileUrl, fileName: singleDoc.fileName || "file", mimeType: singleDoc.mimeType || "application/octet-stream", size: singleDoc.size || 0 };
-        DOCUMENT_TYPE_KEYS.forEach((k) => { payload[k] = docTypes.includes(k); });
-      } else {
-        for (const fieldName of DOCUMENT_FIELDS) {
-          const fileList = form.getFieldValue(fieldName) || values[fieldName];
-          const hasFile  = Array.isArray(fileList) && fileList.length > 0;
-          if (!hasFile) continue;
-          const doc = uploadedDocs[fieldName] || toMeta((fileList || [])[0]);
-          if (!doc?.fileUrl?.startsWith("http")) { message.error(`"${fieldName}" is still uploading, please wait`); return; }
-          payload[fieldName] = { url: doc.fileUrl, fileName: doc.fileName || "file", mimeType: doc.mimeType || "application/octet-stream", size: doc.size || 0 };
+        if (!isPublicSurveyorCategory && !singleDoc?.fileUrl?.startsWith("http")) { message.error("Please upload a document first"); return; }
+        if (!isPublicSurveyorCategory) {
+          const docTypes = values.documentTypes ?? [];
+          if (!docTypes.length) { message.error("Select at least one document type"); return; }
+          payload.singleUpload = { url: singleDoc.fileUrl, fileName: singleDoc.fileName || "file", mimeType: singleDoc.mimeType || "application/octet-stream", size: singleDoc.size || 0 };
+          DOCUMENT_TYPE_KEYS.forEach((k) => { payload[k] = docTypes.includes(k); });
         }
-        const hasMain = MAIN_DOCUMENT_FIELDS.some((f) => payload[f]);
-        if (!hasMain) { message.error("At least one main document required (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
+      } else {
+        if (!isPublicSurveyorCategory) {
+          for (const fieldName of DOCUMENT_FIELDS) {
+            const fileList = form.getFieldValue(fieldName) || values[fieldName];
+            const hasFile  = Array.isArray(fileList) && fileList.length > 0;
+            if (!hasFile) continue;
+            const doc = uploadedDocs[fieldName] || toMeta((fileList || [])[0]);
+            if (!doc?.fileUrl?.startsWith("http")) { message.error(`"${fieldName}" is still uploading, please wait`); return; }
+            payload[fieldName] = { url: doc.fileUrl, fileName: doc.fileName || "file", mimeType: doc.mimeType || "application/octet-stream", size: doc.size || 0 };
+          }
+          const hasMain = MAIN_DOCUMENT_FIELDS.some((f) => payload[f]);
+          if (!hasMain) { message.error("At least one main document required (Moola Tippani, Atlas, or RR Pakkabook)"); return; }
+        }
       }
-      try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
 
       // Defensive payload cleanup (no mixed-mode payloads, ever).
-      if (uploadMode === "single") {
+      if (isPublicSurveyorCategory && !publicHasDocuments) {
+        DOCUMENT_FIELDS.forEach((k) => { delete payload[k]; });
+        delete payload.singleUpload;
+        delete payload.documentTypes;
+        DOCUMENT_TYPE_KEYS.forEach((k) => { delete payload[k]; });
+        delete payload.other_documents;
+      } else if (uploadMode === "single") {
         DOCUMENT_FIELDS.forEach((k) => { delete payload[k]; });
       } else {
         delete payload.singleUpload;
@@ -398,13 +448,43 @@ const UserUploadForm = ({
         isGoogleSuperimpose: googleOn,
       });
       const totalPayableRupees = Number(Number(checkout.finalPayableRupees).toFixed(2));
+      const baseAmountRupees = Number(Number(checkout.baseAmountRupees || 0).toFixed(2));
+      const gstPercent = Number(checkout.gstPercent || 18);
+      const gstAmountRupees = Number(Number(checkout.gstAmountRupees || 0).toFixed(2));
       const amountPaise = Math.round(totalPayableRupees * 100);
+      const baseAmountPaise = Math.round(baseAmountRupees * 100);
+      const gstAmountPaise = Math.round(gstAmountRupees * 100);
+      payload.baseAmountRupees = baseAmountRupees;
+      payload.baseAmountPaise = baseAmountPaise;
+      payload.gstPercent = gstPercent;
+      payload.gstRate = gstPercent;
+      payload.gstAmountRupees = gstAmountRupees;
+      payload.gstAmountPaise = gstAmountPaise;
       payload.amountRupees = totalPayableRupees;
+      payload.payableAmountRupees = totalPayableRupees;
+      payload.finalAmountRupees = totalPayableRupees;
+      payload.totalAmountRupees = totalPayableRupees;
       payload.totalPayableRupees = totalPayableRupees;
       // Many PSPs (e.g. PhonePe) expect smallest currency unit; send explicitly so server does not guess.
       payload.amountPaise = amountPaise;
+      payload.payableAmountPaise = amountPaise;
+      payload.finalAmountPaise = amountPaise;
+      payload.totalAmountPaise = amountPaise;
+      payload.pricingSummary = {
+        isRevision: Boolean(isRevision),
+        isSuperimpose: Boolean(googleOn),
+        baseAmountRupees,
+        gstPercent,
+        gstAmountRupees,
+        finalAmountRupees: totalPayableRupees,
+      };
 
       console.log("[SketchUpload] payment totals", {
+        baseAmountRupees,
+        baseAmountPaise,
+        gstPercent,
+        gstAmountRupees,
+        gstAmountPaise,
         totalPayableRupees,
         amountPaise,
         isSuperimpose: googleOn,
@@ -427,7 +507,7 @@ const UserUploadForm = ({
         ) {
           const serverRs = Number(serverPaise) / 100;
           message.warning(
-            `Payment gateway amount is ₹${serverRs.toFixed(2)}, but your order total is ₹${totalPayableRupees.toFixed(2)}. Do not complete payment if that is wrong — contact support. The backend must use amountRupees / amountPaise from this request when creating the checkout.`
+            `Payment gateway amount mismatch: expected ₹${totalPayableRupees.toFixed(2)} but gateway is charging ₹${serverRs.toFixed(2)}. Proceeding with backend amount.`
           );
         }
         // If backend says payment is required, send user to checkout.
@@ -449,23 +529,34 @@ const UserUploadForm = ({
     si("hobli", values.hobli); si("village", values.village); si("surveyNo", values.surveyNo);
     // Use explicit form mode only. Never infer mode from uploaded files.
     const resolvedMode = form.getFieldValue("uploadMode") ?? "normal";
+    const publicHasDocuments = isPublicSurveyorCategory ? values.hasDocuments === true : true;
     si("others", values.others); si("uploadMode", resolvedMode);
+    if (isPublicSurveyorCategory) si("hasDocuments", publicHasDocuments);
     si("isSuperimpose", Boolean(values.googleSuperimpose));
-    if (audioData?.fileUrl) p.audio = { url: audioData.fileUrl, fileUrl: audioData.fileUrl, fileName: audioData.fileName || "audio", mimeType: audioData.mimeType || "audio/mpeg", size: audioData.size || 0 };
+    if (audioData?.fileUrl || audioData?.url) {
+      const audioUrl = audioData.fileUrl || audioData.url;
+      p.audio = {
+        url: audioUrl,
+        fileUrl: audioUrl,
+        fileName: audioData.fileName || "audio",
+        mimeType: audioData.mimeType || "audio/mpeg",
+        size: audioData.size || 0,
+      };
+    }
     const mode = resolvedMode;
-    if (mode === "single") {
+    if ((!isPublicSurveyorCategory || publicHasDocuments) && mode === "single") {
       const m = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
       if (m?.fileUrl) p.singleUpload = { url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 };
       const types = Array.isArray(values.documentTypes) ? values.documentTypes : [];
       if (types.length > 0) DOCUMENT_TYPE_KEYS.forEach((k) => { p[k] = types.includes(k); });
-    } else {
+    } else if (!isPublicSurveyorCategory || publicHasDocuments) {
       for (const f of DOCUMENT_FIELDS) {
         const m = uploadedDocs[f] || toMeta((values[f] || [])[0]);
         if (m?.fileUrl) p[f] = { url: m.fileUrl, fileName: m.fileName || "file", mimeType: m.mimeType || "application/octet-stream", size: m.size || 0 };
       }
     }
     const otherList = values.other_documents;
-    if (Array.isArray(otherList) && otherList.length > 0) {
+    if ((!isPublicSurveyorCategory || publicHasDocuments) && Array.isArray(otherList) && otherList.length > 0) {
       const processed = [];
       for (const file of otherList) {
         const m = (file?.uid && uploadedOther[file.uid]) || toMeta(file);
@@ -475,7 +566,13 @@ const UserUploadForm = ({
     }
 
     // Defensive payload cleanup (drafts must be mutually exclusive too).
-    if (mode === "single") {
+    if (isPublicSurveyorCategory && !publicHasDocuments) {
+      DOCUMENT_FIELDS.forEach((k) => { delete p[k]; });
+      delete p.singleUpload;
+      delete p.documentTypes;
+      DOCUMENT_TYPE_KEYS.forEach((k) => { delete p[k]; });
+      delete p.other_documents;
+    } else if (mode === "single") {
       DOCUMENT_FIELDS.forEach((k) => { delete p[k]; });
     } else {
       delete p.singleUpload;
@@ -558,7 +655,13 @@ const UserUploadForm = ({
           for (const f of DOCUMENT_FIELDS) { const src = draft?.documents?.[f] ?? draft?.[f]; const m = toMeta(src); const item = toFileListItem(m, `draft-${f}`); if (item) { nv[f] = [item]; next[f] = m; } }
           if (Object.keys(next).length) setUploadedDocs(next);
         }
-        if (draft.audio) { const m = toMeta(draft.audio); if (m?.fileUrl) { const av = { fileUrl: m.fileUrl, key: draft.audio?.key, fileName: m.fileName, mimeType: m.mimeType, size: m.size }; setAudioData(av); nv.audio = av; } }
+        if (draft.audio) {
+          const av = audioFromDraft(draft.audio);
+          if (av) {
+            setAudioData(av);
+            nv.audio = av;
+          }
+        }
         const otherDocs = Array.isArray(draft.other_documents) ? draft.other_documents : [];
         if (otherDocs.length) { const list = []; const om = {}; otherDocs.forEach((d, i) => { const m = toMeta(d); const uid = `draft-other-${i}`; const item = toFileListItem(m, uid); if (item) { list.push(item); om[uid] = m; } }); if (list.length) { nv.other_documents = list; setUploadedOther((p) => ({ ...p, ...om })); } }
         form.setFieldsValue(nv);
@@ -572,12 +675,21 @@ const UserUploadForm = ({
     })();
   }, [draftIdFromUrl, form]);
 
+  /** Re-sync draft audio into the form when returning to the drawing step. */
+  useEffect(() => {
+    if (step !== 1 || !audioData?.fileUrl) return;
+    const current = form.getFieldValue("audio");
+    if (current?.fileUrl || current?.url) return;
+    form.setFieldsValue({ audio: audioData });
+  }, [step, audioData, form]);
+
   const STEP_CONTENT = [
     <LocationStep  key={0} form={form} prefillEntities={prefillEntities} onLocationLabelsChange={setLocationLabels} />,
     <DrawingStep   key={1} form={form} onAudioChange={setAudioData} audioData={audioData} />,
     <DocumentsStep
       key={2}
       form={form}
+      isPublicSurveyorCategory={isPublicSurveyorCategory}
       onDocumentUpload={handleDocumentUpload}
       onDocumentRemove={handleDocumentRemove}
       onOtherDocumentUpload={handleOtherUpload}
@@ -655,10 +767,13 @@ const UserUploadForm = ({
             form={form}
             layout="vertical"
             requiredMark={false}
-            initialValues={{ uploadMode: "normal", googleSuperimpose: false }}
+            initialValues={{ uploadMode: "normal", googleSuperimpose: false, hasDocuments: null }}
             className="space-y-0"
           >
             <Form.Item name="uploadMode" noStyle>
+              <input type="hidden" />
+            </Form.Item>
+            <Form.Item name="hasDocuments" noStyle hidden>
               <input type="hidden" />
             </Form.Item>
             {/* Keeps googleSuperimpose in the store when Drawing step unmounts (required for pricing + submit). */}

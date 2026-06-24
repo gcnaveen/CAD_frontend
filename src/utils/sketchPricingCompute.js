@@ -59,6 +59,8 @@ export const FALLBACK_SURVEYOR_SKETCH_PRICING = {
 
 /** Added once to the sketch tier total when Google Superimpose is selected. */
 export const GOOGLE_SUPERIMPOSE_CHARGE = 200;
+export const GST_PERCENT = 18;
+export const GST_RATE = GST_PERCENT / 100;
 
 /**
  * Final payable for checkout (upload wizard): tier amount + optional Google superimpose add-on.
@@ -74,9 +76,10 @@ export function computeSketchSubmitAmountRupees({
 }) {
   const uploadAmount = computeSketchTierPayable(uploadTier);
   const revisionAmount = computeSketchTierPayable(revisionTier);
-  let total = isRevision ? revisionAmount : uploadAmount;
-  if (isGoogleSuperimpose) total += GOOGLE_SUPERIMPOSE_CHARGE;
-  return total;
+  let baseAmountRupees = isRevision ? revisionAmount : uploadAmount;
+  if (isGoogleSuperimpose) baseAmountRupees += GOOGLE_SUPERIMPOSE_CHARGE;
+  const gstAmountRupees = baseAmountRupees * GST_RATE;
+  return baseAmountRupees + gstAmountRupees;
 }
 
 export function buildSketchCheckoutBreakdown({
@@ -91,12 +94,18 @@ export function buildSketchCheckoutBreakdown({
   const parts = sketchTierBreakdownParts(tier);
   const googleFeeRupees = isGoogleSuperimpose ? GOOGLE_SUPERIMPOSE_CHARGE : 0;
   const afterTier = isRevision ? revisionAmount : uploadAmount;
-  const finalPayableRupees = afterTier + googleFeeRupees;
+  const baseAmountRupees = afterTier + googleFeeRupees;
+  const gstPercent = GST_PERCENT;
+  const gstAmountRupees = baseAmountRupees * GST_RATE;
+  const finalPayableRupees = baseAmountRupees + gstAmountRupees;
   return {
     ...parts,
     uploadAmount,
     revisionAmount,
     googleFeeRupees,
+    baseAmountRupees,
+    gstPercent,
+    gstAmountRupees,
     isGoogleSuperimpose: Boolean(isGoogleSuperimpose),
     isRevision: Boolean(isRevision),
     finalPayableRupees,

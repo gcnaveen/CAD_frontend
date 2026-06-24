@@ -12,7 +12,7 @@ import {
 import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import AddHoblis from "./AddHoblis";
 import EditHoblis from "./EditHoblis";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../services/masters/talukaService.js";
 import {
   getHoblisByTaluka,
@@ -43,7 +43,7 @@ const ViewHoblis = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    getDistricts()
+    getActiveDistricts()
       .then((res) => {
         const items = normalizeList(res);
         setDistricts(items.map((r) => ({ ...r, id: r.id ?? r._id })));

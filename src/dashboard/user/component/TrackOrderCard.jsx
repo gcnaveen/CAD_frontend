@@ -1,7 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, Button, Drawer, Spin, message, Descriptions, Tag, Typography, Space } from "antd";
-import { Eye, FileText, ExternalLink, Music } from "lucide-react";
+import { Eye, FileText, Music } from "lucide-react";
 import { getSketchUploadById } from "../../../services/surveyor/sketchUploadService.js";
+import FileViewDownloadButtons from "../../../components/files/FileViewDownloadButtons.jsx";
+import {
+  hasUploadedFiles,
+  normalizeFileList,
+  normalizeSingleFile,
+} from "../../../utils/sketchFileUtils.js";
 
 const { Text, Paragraph } = Typography;
 
@@ -35,6 +41,7 @@ const SINGLE_MODE_DOCUMENT_LABELS = {
 const STATUS_DISPLAY = {
   PENDING: "Pending Review",
   UNDER_REVIEW: "Under Review",
+  UNDER_REVISION: "Under Revision",
   APPROVED: "Approved",
   REJECTED: "Rejected",
 };
@@ -46,6 +53,7 @@ const getStatusColor = (status) => {
   const colorMap = {
     PENDING: "warning",
     UNDER_REVIEW: "processing",
+    UNDER_REVISION: "processing",
     APPROVED: "success",
     REJECTED: "error",
   };
@@ -100,6 +108,7 @@ const TrackOrderCard = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
+  const [downloadingByKey, setDownloadingByKey] = useState({});
 
   const fetchOrderDetails = useCallback(async () => {
     if (!uploadId) return;
@@ -137,7 +146,16 @@ const TrackOrderCard = ({
   const handleDrawerClose = () => {
     setDrawerOpen(false);
     setOrderDetails(null);
+    setDownloadingByKey({});
   };
+
+  const singleUploadFiles = useMemo(
+    () => normalizeFileList(orderDetails?.singleUpload),
+    [orderDetails?.singleUpload]
+  );
+  const audioFile = useMemo(() => normalizeSingleFile(orderDetails?.audio), [orderDetails?.audio]);
+  const isSingleUploadMode =
+    orderDetails?.uploadMode === "single" || hasUploadedFiles(orderDetails?.singleUpload);
 
   // Get surveyor name
   const getSurveyorName = () => {
@@ -312,65 +330,50 @@ const TrackOrderCard = ({
               <h3 className="mb-4 text-base font-semibold text-fg">
                 Documents
               </h3>
-              {(orderDetails.uploadMode === "single" || orderDetails.singleUpload) ? (
+              {isSingleUploadMode ? (
                 /* Single Upload Mode */
                 <div className="space-y-4">
                   <Card size="small" className="border-line">
                     <div className="mb-2">
                       <Tag color="blue">Single Upload</Tag>
                     </div>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Text strong className="text-sm">
-                          Uploaded Document / ಅಪ್ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆ
-                        </Text>
-                        {orderDetails.singleUpload?.url ? (
-                          <div className="mt-2 space-y-1">
-                            <div>
-                              <Text type="secondary" className="text-xs">
-                                File: {orderDetails.singleUpload.fileName || "Unknown"}
+                    <div className="space-y-3">
+                      <Text type="secondary" className="text-xs block">
+                        Document types:{" "}
+                        {Object.keys(SINGLE_MODE_DOCUMENT_LABELS)
+                          .filter((key) => orderDetails[key] === true)
+                          .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key].en)
+                          .join(", ") || "-"}
+                      </Text>
+                      {singleUploadFiles.length > 0 ? (
+                        singleUploadFiles.map((file, index) => (
+                          <div key={file.url || index} className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <Text strong className="text-sm block">
+                                {file.fileName || `Document ${index + 1}`}
                               </Text>
-                            </div>
-                            <div>
-                              <Text type="secondary" className="text-xs">
-                                Type: {orderDetails.singleUpload.mimeType || "Unknown"} • Size:{" "}
-                                {formatFileSize(orderDetails.singleUpload.size)}
-                              </Text>
-                            </div>
-                            {orderDetails.singleUpload.uploadedAt && (
-                              <div>
-                                <Text type="secondary" className="text-xs">
-                                  Uploaded: {formatDate(orderDetails.singleUpload.uploadedAt)}
-                                </Text>
-                              </div>
-                            )}
-                            <div className="mt-2">
                               <Text type="secondary" className="text-xs block">
-                                Document types:{" "}
-                                {Object.keys(SINGLE_MODE_DOCUMENT_LABELS)
-                                  .filter((key) => orderDetails[key] === true)
-                                  .map((key) => SINGLE_MODE_DOCUMENT_LABELS[key].en)
-                                  .join(", ") || "-"}
+                                Type: {file.mimeType || "Unknown"} • Size: {formatFileSize(file.size)}
                               </Text>
+                              {file.uploadedAt && (
+                                <Text type="secondary" className="text-xs block">
+                                  Uploaded: {formatDate(file.uploadedAt)}
+                                </Text>
+                              )}
                             </div>
+                            <FileViewDownloadButtons
+                              url={file.url}
+                              fileName={file.fileName || `document-${index + 1}`}
+                              downloadKey={file.url}
+                              downloadingByKey={downloadingByKey}
+                              setDownloadingByKey={setDownloadingByKey}
+                            />
                           </div>
-                        ) : (
-                          <div className="mt-2">
-                            <Text type="secondary" className="text-xs">
-                              No document
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                      {orderDetails.singleUpload?.url && (
-                        <Button
-                          type="link"
-                          icon={<ExternalLink className="h-4 w-4" />}
-                          onClick={() => window.open(orderDetails.singleUpload.url, "_blank")}
-                          size="small"
-                        >
-                          View
-                        </Button>
+                        ))
+                      ) : (
+                        <Text type="secondary" className="text-xs">
+                          No document
+                        </Text>
                       )}
                     </div>
                   </Card>
@@ -379,7 +382,7 @@ const TrackOrderCard = ({
                 /* Normal Upload Mode */
                 <div className="space-y-4">
                   {Object.keys(DOCUMENT_LABELS).map((fieldName) => {
-                    const doc = orderDetails.documents?.[fieldName];
+                    const files = normalizeFileList(orderDetails.documents?.[fieldName]);
                     const label = DOCUMENT_LABELS[fieldName];
 
                     return (
@@ -388,51 +391,41 @@ const TrackOrderCard = ({
                         size="small"
                         className="border-line"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <Text strong className="text-sm">
-                              {label.en} / {label.kn}
-                            </Text>
-                            {doc && doc.url ? (
-                              <div className="mt-2 space-y-1">
-                                <div>
-                                  <Text type="secondary" className="text-xs">
-                                    File: {doc.fileName || "Unknown"}
+                        <Text strong className="text-sm block mb-2">
+                          {label.en} / {label.kn}
+                        </Text>
+                        {files.length > 0 ? (
+                          <div className="space-y-3">
+                            {files.map((doc, index) => (
+                              <div key={doc.url || index} className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <Text type="secondary" className="text-xs block">
+                                    File: {doc.fileName || `Document ${index + 1}`}
                                   </Text>
-                                </div>
-                                <div>
-                                  <Text type="secondary" className="text-xs">
-                                    Type: {doc.mimeType || "Unknown"} • Size:{" "}
-                                    {formatFileSize(doc.size)}
+                                  <Text type="secondary" className="text-xs block">
+                                    Type: {doc.mimeType || "Unknown"} • Size: {formatFileSize(doc.size)}
                                   </Text>
-                                </div>
-                                {doc.uploadedAt && (
-                                  <div>
-                                    <Text type="secondary" className="text-xs">
+                                  {doc.uploadedAt && (
+                                    <Text type="secondary" className="text-xs block">
                                       Uploaded: {formatDate(doc.uploadedAt)}
                                     </Text>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                                <FileViewDownloadButtons
+                                  url={doc.url}
+                                  fileName={doc.fileName || `${fieldName}-${index + 1}`}
+                                  downloadKey={doc.url}
+                                  downloadingByKey={downloadingByKey}
+                                  setDownloadingByKey={setDownloadingByKey}
+                                />
                               </div>
-                            ) : (
-                              <div className="mt-2">
-                                <Text type="secondary" className="text-xs">
-                                  Not uploaded
-                                </Text>
-                              </div>
-                            )}
+                            ))}
                           </div>
-                          {doc && doc.url && (
-                            <Button
-                              type="link"
-                              icon={<ExternalLink className="h-4 w-4" />}
-                              onClick={() => window.open(doc.url, "_blank")}
-                              size="small"
-                            >
-                              View
-                            </Button>
-                          )}
-                        </div>
+                        ) : (
+                          <Text type="secondary" className="text-xs">
+                            Not uploaded
+                          </Text>
+                        )}
                       </Card>
                     );
                   })}
@@ -460,14 +453,13 @@ const TrackOrderCard = ({
                             </div>
                           </div>
                           {doc.url && (
-                            <Button
-                              type="link"
-                              icon={<ExternalLink className="h-4 w-4" />}
-                              onClick={() => window.open(doc.url, "_blank")}
-                              size="small"
-                            >
-                              View
-                            </Button>
+                            <FileViewDownloadButtons
+                              url={doc.url}
+                              fileName={doc.fileName || `other-document-${index + 1}`}
+                              downloadKey={doc.url}
+                              downloadingByKey={downloadingByKey}
+                              setDownloadingByKey={setDownloadingByKey}
+                            />
                           )}
                         </div>
                       </Card>
@@ -482,31 +474,31 @@ const TrackOrderCard = ({
               <h3 className="mb-4 text-base font-semibold text-fg">
                 Audio / ಆಡಿಯೋ
               </h3>
-              {orderDetails.audio?.url ? (
+              {audioFile ? (
                 <Card size="small" className="border-line">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <Music className="h-4 w-4 text-fg-muted shrink-0" />
                         <Text strong className="text-sm">
-                          {orderDetails.audio.fileName || "Audio file"}
+                          {audioFile.fileName || "Audio file"}
                         </Text>
                       </div>
                       <div className="space-y-1">
                         <Text type="secondary" className="text-xs block">
-                          Type: {orderDetails.audio.mimeType || "–"} • Size:{" "}
-                          {formatFileSize(orderDetails.audio.size)}
+                          Type: {audioFile.mimeType || "–"} • Size:{" "}
+                          {formatFileSize(audioFile.size)}
                         </Text>
-                        {orderDetails.audio.uploadedAt && (
+                        {audioFile.uploadedAt && (
                           <Text type="secondary" className="text-xs block">
-                            Uploaded: {formatDate(orderDetails.audio.uploadedAt)}
+                            Uploaded: {formatDate(audioFile.uploadedAt)}
                           </Text>
                         )}
                       </div>
                       <div className="mt-3">
                         <audio
                           controls
-                          src={orderDetails.audio.url}
+                          src={audioFile.url}
                           className="w-full max-w-md h-9"
                           preload="metadata"
                         >
@@ -514,17 +506,14 @@ const TrackOrderCard = ({
                         </audio>
                       </div>
                     </div>
-                    <Button
-                      type="link"
-                      icon={<ExternalLink className="h-4 w-4" />}
-                      onClick={() =>
-                        window.open(orderDetails.audio.url, "_blank")
-                      }
-                      size="small"
-                      className="shrink-0"
-                    >
-                      Open
-                    </Button>
+                    <FileViewDownloadButtons
+                      url={audioFile.url}
+                      fileName={audioFile.fileName || "audio"}
+                      viewLabel="Open"
+                      downloadKey={audioFile.url}
+                      downloadingByKey={downloadingByKey}
+                      setDownloadingByKey={setDownloadingByKey}
+                    />
                   </div>
                 </Card>
               ) : (

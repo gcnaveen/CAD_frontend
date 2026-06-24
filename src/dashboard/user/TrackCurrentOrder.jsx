@@ -56,8 +56,10 @@ const TrackCurrentOrder = () => {
   // Map API status to display format
   const getStatusDisplay = (status) => {
     const statusMap = {
+      PAYMENT_PENDING: "Payment Pending",
       PENDING: "Pending Review",
       UNDER_REVIEW: "Under Review",
+      UNDER_REVISION: "Under Revision",
       APPROVED: "Approved",
       REJECTED: "Rejected",
     };

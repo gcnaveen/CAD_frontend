@@ -1,40 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Result, Spin, Typography, message } from "antd";
+import SketchPaymentRetryButton from "../components/payments/SketchPaymentRetryButton.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService";
+import {
+  clearSketchPaymentContext,
+  isSketchPaymentCompleted,
+  normalizeSketchPaymentPageState,
+  readSketchPaymentContext,
+} from "../utils/sketchPaymentUtils";
 
 const { Paragraph, Text } = Typography;
 
-function safeJsonParse(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function normalizePaymentState(upload) {
-  const sketchPaymentStatus =
-    upload?.sketchPayment?.status ||
-    upload?.sketchPayment?.paymentStatus ||
-    upload?.payment?.status ||
-    null;
-
-  const orderStatus = upload?.status || null;
-
-  const combined = String(sketchPaymentStatus || orderStatus || "").toUpperCase();
-
-  if (combined.includes("SUCCESS") || combined.includes("PAID") || combined.includes("COMPLETED")) {
-    return "success";
-  }
-  if (combined.includes("FAIL") || combined.includes("DECLINED") || combined.includes("CANCEL")) {
-    return "failed";
-  }
-  if (combined.includes("PENDING") || combined.includes("INIT") || combined.includes("PROCESS")) {
-    return "pending";
-  }
-  return "unknown";
-}
+const POLL_INTERVAL_MS = 3000;
+const MAX_POLL_ATTEMPTS = 12;
 
 export default function PaymentReturnPage() {
   const navigate = useNavigate();
@@ -43,14 +22,18 @@ export default function PaymentReturnPage() {
   const [loading, setLoading] = useState(true);
   const [upload, setUpload] = useState(null);
   const [state, setState] = useState("pending"); // success | pending | failed | unknown
+  const pollAttemptsRef = useRef(0);
+  const pollTimerRef = useRef(null);
 
-  const lastPayment = useMemo(() => {
-    const raw = localStorage.getItem("cad:lastPayment");
-    return raw ? safeJsonParse(raw) : null;
-  }, []);
+  const lastPayment = useMemo(() => readSketchPaymentContext(), []);
+
+  const uploadId = useMemo(() => {
+    const fromQuery = searchParams.get("uploadId");
+    if (fromQuery && String(fromQuery).trim()) return String(fromQuery).trim();
+    return lastPayment?.uploadId || null;
+  }, [searchParams, lastPayment?.uploadId]);
 
   const querySummary = useMemo(() => {
-    // PhonePe / PSPs can send different keys; keep it generic and useful for debugging.
     const keys = ["code", "status", "success", "merchantOrderId", "transactionId", "providerReferenceId"];
     const obj = {};
     keys.forEach((k) => {
@@ -60,55 +43,107 @@ export default function PaymentReturnPage() {
     return obj;
   }, [searchParams]);
 
-  const refresh = async () => {
-    const uploadId = lastPayment?.uploadId;
+  const applyUploadState = useCallback((data) => {
+    setUpload(data);
+    const nextState = normalizeSketchPaymentPageState(data);
+    setState(nextState);
+    if (nextState === "success") {
+      clearSketchPaymentContext();
+    }
+    return nextState;
+  }, []);
+
+  const refresh = useCallback(async () => {
     if (!uploadId) {
       setUpload(null);
       setState("unknown");
       setLoading(false);
-      return;
+      return "unknown";
     }
 
     setLoading(true);
     try {
       const res = await getSketchUploadById(uploadId);
       if (!res?.success) throw new Error(res?.message || "Failed to fetch order status");
-      setUpload(res.data);
-      const nextState = normalizePaymentState(res.data);
-      setState(nextState);
-
-      if (nextState === "success") {
-        try {
-          localStorage.removeItem("cad:lastPayment");
-        } catch {
-          // ignore
-        }
-      }
+      return applyUploadState(res.data);
     } catch (e) {
       message.error(e?.message || "Failed to refresh payment status");
       setState("unknown");
+      return "unknown";
     } finally {
       setLoading(false);
     }
-  };
+  }, [uploadId, applyUploadState]);
 
   useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cancelled = false;
+
+    const startPolling = async () => {
+      const initialState = await refresh();
+      if (cancelled || initialState === "success" || initialState === "failed" || !uploadId) {
+        return;
+      }
+
+      pollAttemptsRef.current = 0;
+      pollTimerRef.current = setInterval(async () => {
+        if (cancelled) return;
+        pollAttemptsRef.current += 1;
+
+        try {
+          const res = await getSketchUploadById(uploadId);
+          if (!res?.success || !res?.data) return;
+
+          if (isSketchPaymentCompleted(res.data)) {
+            applyUploadState(res.data);
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+            return;
+          }
+
+          if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+            applyUploadState(res.data);
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          }
+        } catch {
+          if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS && pollTimerRef.current) {
+            clearInterval(pollTimerRef.current);
+          }
+        }
+      }, POLL_INTERVAL_MS);
+    };
+
+    startPolling();
+
+    return () => {
+      cancelled = true;
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [uploadId, refresh, applyUploadState]);
+
+  const retrySection =
+    uploadId && upload ? (
+      <SketchPaymentRetryButton
+        uploadId={uploadId}
+        upload={upload}
+        block
+        className="mt-4 max-w-xs mx-auto"
+      />
+    ) : null;
 
   const primaryActions = (
-    <div className="flex flex-wrap gap-2 justify-center">
-      <Button type="primary" onClick={() => navigate("/dashboard/user/requests")}>
-        Go to Requests
-      </Button>
-      <Button onClick={refresh} disabled={loading}>
-        Refresh Status
-      </Button>
+    <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-wrap gap-2 justify-center">
+        <Button type="primary" onClick={() => navigate("/dashboard/user/requests")}>
+          Go to Requests
+        </Button>
+        <Button onClick={refresh} disabled={loading}>
+          Refresh Status
+        </Button>
+      </div>
+      {retrySection}
     </div>
   );
 
-  if (loading) {
+  if (loading && !upload) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Spin tip="Checking payment status..." />
@@ -144,7 +179,8 @@ export default function PaymentReturnPage() {
         subTitle={
           <div>
             <Paragraph className="mb-0">
-              Your order is created, but payment is not completed. You can retry from the Requests page.
+              Your order is saved as <Text strong>{upload?.applicationId || "—"}</Text>, but payment
+              is not completed.
             </Paragraph>
             {Object.keys(querySummary).length > 0 && (
               <Paragraph className="mb-0">
@@ -163,7 +199,19 @@ export default function PaymentReturnPage() {
       <Result
         status="info"
         title="Payment pending"
-        subTitle="If you just paid, the status can take a few seconds to update. Please refresh."
+        subTitle={
+          <div>
+            <Paragraph className="mb-0">
+              If you just paid, the status can take a few seconds to update. We are checking
+              automatically.
+            </Paragraph>
+            {upload?.applicationId && (
+              <Paragraph className="mb-0">
+                <Text strong>Application ID:</Text> {upload.applicationId}
+              </Paragraph>
+            )}
+          </div>
+        }
         extra={primaryActions}
       />
     );
@@ -173,9 +221,8 @@ export default function PaymentReturnPage() {
     <Result
       status="warning"
       title="Unable to confirm payment status"
-      subTitle="If payment was completed, it may still update shortly. Otherwise, you can retry from Requests."
+      subTitle="If payment was completed, it may still update shortly. Otherwise, retry payment below or open Requests."
       extra={primaryActions}
     />
   );
 }
-

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Form, Select, Input, message } from "antd";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../services/masters/talukaService.js";
 import { getHoblisByTaluka } from "../../../services/masters/hobliService.js";
 import { getVillages } from "../../../services/masters/villageService.js";
@@ -52,7 +52,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
   // Load districts on mount
   useEffect(() => {
     setLoading((prev) => ({ ...prev, districts: true }));
-    getDistricts()
+    getActiveDistricts()
       .then((res) => {
         const items = normalizeList(res);
         setDistricts(items.map((r) => ({ ...r, id: r.id ?? r._id })));

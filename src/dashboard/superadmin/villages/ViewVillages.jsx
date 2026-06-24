@@ -12,7 +12,7 @@ import {
 import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import AddVillages from "./AddVillages";
 import EditVillages from "./EditVillages";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../services/masters/talukaService.js";
 import { getHoblisByTaluka } from "../../../services/masters/hobliService.js";
 import {
@@ -46,7 +46,7 @@ const ViewVillages = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    getDistricts()
+    getActiveDistricts()
       .then((res) => {
         const items = normalizeList(res);
         setDistricts(items.map((r) => ({ ...r, id: r.id ?? r._id })));

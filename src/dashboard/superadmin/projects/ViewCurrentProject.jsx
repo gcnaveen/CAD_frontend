@@ -4,11 +4,12 @@ import { EyeOutlined, EditOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ProjectOrderDetailDrawer from "./ProjectOrderDetailDrawer";
-import { getSketchUploadById } from "../../../services/surveyor/sketchUploadService.js";
 import apiClient from "../../../services/apiClient.js";
 import {
   getAssignmentFlow,
   getCadUsers,
+  loadSketchUploadWithAssignment,
+  resolveAssignmentIdFromEntity,
   updateAssignmentFlow,
   formatUserDisplayLabel,
 } from "../../../services/assignmentApi.js";
@@ -135,11 +136,7 @@ const ViewCurrentProject = () => {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    fetchAssignments(1, pagination.limit);
-  }, [statusFilter, cadUserFilter]);
-
-  const fetchAssignments = async (page = 1, limit = 10) => {
+  const fetchAssignments = useCallback(async (page = 1, limit = 10) => {
     setLoading(true);
     try {
       const params = { page, limit };
@@ -165,7 +162,23 @@ const ViewCurrentProject = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, cadUserFilter]);
+
+  useEffect(() => {
+    fetchAssignments(1, 10);
+  }, [statusFilter, cadUserFilter, fetchAssignments]);
+
+  const refreshOrderDetails = useCallback(async () => {
+    const id = orderDetails?._id;
+    if (!id) return;
+    try {
+      const detail = await loadSketchUploadWithAssignment(id, orderDetails);
+      setOrderDetails(detail);
+      await fetchAssignments(pagination.page, pagination.limit);
+    } catch (error) {
+      message.error(error?.message || "Failed to refresh order");
+    }
+  }, [orderDetails, fetchAssignments, pagination.page, pagination.limit]);
 
   const handleViewDetails = async (record) => {
     setDrawerOpen(true);
@@ -182,12 +195,8 @@ const ViewCurrentProject = () => {
       return;
     }
     try {
-      const response = await getSketchUploadById(uploadId);
-      if (response?.success && response?.data) {
-        setOrderDetails(response.data);
-      } else {
-        message.error("Failed to load order details");
-      }
+      const detail = await loadSketchUploadWithAssignment(uploadId, record);
+      setOrderDetails(detail);
     } catch (error) {
       console.error("Failed to fetch order details:", error);
       message.error(error?.message || "Failed to load order details");
@@ -202,24 +211,31 @@ const ViewCurrentProject = () => {
     setOrderDetails(null);
   };
 
-  const handleSaveOrder = () => {
+  const handleSaveOrder = (savedOrder) => {
     setSelectedAssignment(null);
+    if (savedOrder?._id && savedOrder?.assignmentId) {
+      setAssignments((prev) =>
+        prev.map((row) =>
+          String(row._id) === String(savedOrder._id)
+            ? {
+                ...row,
+                assignmentId: savedOrder.assignmentId,
+                assignment: savedOrder.assignment ?? row.assignment,
+              }
+            : row
+        )
+      );
+    }
     fetchAssignments(pagination.page, pagination.limit);
   };
 
-  const refreshOrderDetails = useCallback(async () => {
-    const id = orderDetails?._id;
-    if (!id) return;
-    try {
-      const response = await getSketchUploadById(id);
-      if (response?.success && response?.data) setOrderDetails(response.data);
-    } catch (error) {
-      message.error(error?.message || "Failed to refresh order");
-    }
-  }, [orderDetails?._id]);
-
   const handleEdit = (record) => {
-    setEditingAssignmentId(record._id);
+    const assignmentId = resolveAssignmentIdFromEntity(record);
+    if (!assignmentId) {
+      message.warning("Assignment id not found. Open View Details and save assignment first.");
+      return;
+    }
+    setEditingAssignmentId(assignmentId);
     setEditDrawerOpen(true);
     editForm.resetFields();
   };
@@ -426,7 +442,7 @@ const ViewCurrentProject = () => {
     {
       title: "Action",
       key: "action",
-      width: 180,
+      width: 260,
       fixed: "right",
       render: (_, record) => (
         <Space>
@@ -544,6 +560,7 @@ const ViewCurrentProject = () => {
         order={orderDetails}
         onSave={handleSaveOrder}
         onOrderRefresh={refreshOrderDetails}
+        allowPullback
         readOnly={false}
         loading={loadingDetails}
       />

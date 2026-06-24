@@ -12,7 +12,7 @@ import {
 import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import AddTalukas from "./AddTalukas";
 import EditTalukas from "./EditTalukas";
-import { getDistricts } from "../../../services/masters/districtService.js";
+import { getActiveDistricts } from "../../../services/masters/districtService.js";
 import {
   getTalukasByDistrict,
   createTaluka,
@@ -40,7 +40,7 @@ const ViewTalukas = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    getDistricts()
+    getActiveDistricts()
       .then((res) => {
         const items = normalizeList(res);
         setDistricts(items.map((r) => ({ ...r, id: r.id ?? r._id })));

@@ -159,7 +159,7 @@ const Home = () => {
           location: [getOrderEntityName(row?.village), getOrderEntityName(row?.hobli), getOrderEntityName(row?.taluka), getOrderEntityName(row?.district)]
             .filter(Boolean)
             .join(", "),
-          tags: [row?.surveyType, row?.surveyNo ? `Sy. ${row.surveyNo}` : ""].filter(Boolean),
+          tags: [row?.surveyType, row?.surveyNo ? `S No : ${row.surveyNo}` : ""].filter(Boolean),
           uploadId: row?._id,
         };
       }),

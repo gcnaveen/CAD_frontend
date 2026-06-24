@@ -197,10 +197,10 @@ export default function Footer() {
                 }}>
                   <Phone size={13} color="var(--brand-gold)" />
                 </div>
-                <a href="tel:+919876543210" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
+                <a href="tel:+918045099227" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
-                  +91 98765 43210
+                  +91 80450 99227
                 </a>
               </div>
               <div className="contact-item">
@@ -211,13 +211,13 @@ export default function Footer() {
                 }}>
                   <Mail size={13} color="var(--brand-gold)" />
                 </div>
-                <a href="mailto:support@northcot.in" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
+                <a href="mailto:northcot.we4@gmail.com" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
-                  support@northcot.in
+                  northcot.we4@gmail.com
                 </a>
               </div>
-              <div className="contact-item">
+              {/* <div className="contact-item">
                 <div style={{
                   width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
                   background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
@@ -228,6 +228,29 @@ export default function Footer() {
                 <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", paddingTop: "6px" }}>
                   {tr?.contactLocationLabel || "Karnataka, India"}
                 </span>
+              </div> */}
+              <div className="contact-item">
+                <div style={{
+                  width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
+                  background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <MapPin size={13} color="var(--brand-gold)" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingTop: "4px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "rgba(201,168,76,0.8)", letterSpacing: "0.04em" }}>
+                    {tr?.ownershipName || "SSMB ASSOCIATES"}
+                  </span>
+                  <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.42)", lineHeight: 1.65 }}>
+                    {/* {tr?.contactLocationLabel || */}
+                      <>
+                        No 11, 1st Floor, Magadi Road B Block,
+                        Govindaraj Nagar Ward, Vijayanagara,
+                        Bengaluru – 560040
+                      </>
+                    {/* } */}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -242,6 +265,12 @@ export default function Footer() {
           padding: "20px 0",
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <p style={{ fontSize: "12px", color: "rgba(201,168,76,0.6)", margin: 0, fontWeight: 600, letterSpacing: "0.05em" }}>
+              {tr?.ownershipLabel || "OWNERSHIP :"}{" "}
+              <span style={{ color: "rgba(201,168,76,0.85)" }}>
+                {tr?.ownershipName || "SSMB ASSOCIATES"}
+              </span>
+            </p>
             <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.22)", margin: 0 }}>
               {tr?.copyrightText || "© 2026 North-cot. All rights reserved."}
             </p>

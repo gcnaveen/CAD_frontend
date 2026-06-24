@@ -89,6 +89,7 @@ export default function CompleteProfile() {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState({});
   const [isDraftDirty, setIsDraftDirty] = useState(false);
+  const [formVersion, setFormVersion] = useState(0);
 
   const userId = user?._id;
   const draftKey = `cad_complete_profile_draft_${userId || "unknown"}`;
@@ -152,7 +153,7 @@ export default function CompleteProfile() {
     const ifscOk = IFSC_REGEX.test(String(values?.ifscCode || "").trim());
     const accountOk = ACCOUNT_NUMBER_REGEX.test(String(values?.accountNumber || "").trim());
     return requiredOk && ifscOk && accountOk;
-  }, [form, currentStep, uploading, submitting]);
+  }, [form, formVersion, currentStep, uploading, submitting]);
 
   const isCurrentStepValid = () => {
     const values = form.getFieldsValue(true);
@@ -210,6 +211,7 @@ export default function CompleteProfile() {
 
   const onValuesChange = () => {
     const values = form.getFieldsValue(true);
+    setFormVersion((prev) => prev + 1);
     try {
       localStorage.setItem(draftKey, JSON.stringify(values));
       setIsDraftDirty(true);
@@ -468,7 +470,13 @@ export default function CompleteProfile() {
                     },
                   ]}
                 >
-                  <Input placeholder={cadBi.profile.placeholders.accountNumber} />
+                  <Input
+                    placeholder={cadBi.profile.placeholders.accountNumber}
+                    onChange={(event) => {
+                      const digitsOnly = String(event?.target?.value || "").replace(/\D/g, "");
+                      form.setFieldValue("accountNumber", digitsOnly);
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
@@ -499,7 +507,15 @@ export default function CompleteProfile() {
                     { pattern: IFSC_REGEX, message: cadBi.profile.rules.ifscInvalid },
                   ]}
                 >
-                  <Input placeholder={cadBi.profile.placeholders.ifsc} />
+                  <Input
+                    placeholder={cadBi.profile.placeholders.ifsc}
+                    onChange={(event) => {
+                      const sanitized = String(event?.target?.value || "")
+                        .replace(/\s+/g, "")
+                        .toUpperCase();
+                      form.setFieldValue("ifscCode", sanitized);
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>

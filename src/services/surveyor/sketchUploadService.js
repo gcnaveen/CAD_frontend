@@ -87,6 +87,21 @@ export async function getSurveyorOrders(params = {}) {
 }
 
 /**
+ * Retry initial sketch upload payment (PhonePe) when payment failed or was abandoned.
+ * POST /api/surveyor/sketch-uploads/{uploadId}/retry-payment
+ * @param {string} uploadId
+ * @returns {Promise<{ success: boolean, data: any, meta?: { payment?: object } }>}
+ */
+export async function retrySketchUploadPayment(uploadId) {
+  try {
+    const { data } = await apiClient.post(`${BASE}/${uploadId}/retry-payment`);
+    return data;
+  } catch (error) {
+    handleError(error, "Failed to retry payment");
+  }
+}
+
+/**
  * Request CAD revision for a sketch upload
  * POST /api/surveyor/sketch-uploads/{uploadId}/revision-request
  * @param {string} uploadId

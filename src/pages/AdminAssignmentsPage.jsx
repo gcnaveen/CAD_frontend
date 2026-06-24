@@ -1,5 +1,5 @@
 import React from "react";
-import { message } from "antd";
+import { message, Drawer } from "antd";
 import { useSelector } from "react-redux";
 import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../constants/roles.js";
 import {
@@ -10,10 +10,12 @@ import {
   getAssignmentFlow,
   updateAssignment,
   updateAssignmentFlow,
+  resolveAssignmentIdFromEntity,
 } from "../services/assignmentApi.js";
 
 import AssignmentFlowToggle from "../components/assignments/AssignmentFlowToggle.jsx";
 import SketchTable from "../components/assignments/SketchTable.jsx";
+import AssignmentFeedbackViewer from "../components/assignments/AssignmentFeedbackViewer.jsx";
 import AssignmentModal from "../components/assignments/AssignmentModal.jsx";
 import AssignmentCadPayoutDrawer from "../components/assignments/AssignmentCadPayoutDrawer.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
@@ -61,14 +63,7 @@ function extractUploadsResponse(payload) {
 }
 
 function getAssignmentIdFromSketch(sketch) {
-  return (
-    sketch?.assignmentId ??
-    sketch?.assignment?._id ??
-    sketch?.assignment?.id ??
-    sketch?.assignment?._id ??
-    sketch?.assignment?._id ??
-    null
-  );
+  return resolveAssignmentIdFromEntity(sketch);
 }
 
 export default function AdminAssignmentsPage() {
@@ -103,6 +98,9 @@ export default function AdminAssignmentsPage() {
   const [cadDrawerOpen, setCadDrawerOpen] = React.useState(false);
   const [cadDrawerSketch, setCadDrawerSketch] = React.useState(null);
   const [cadDrawerLoading, setCadDrawerLoading] = React.useState(false);
+
+  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
+  const [feedbackSketch, setFeedbackSketch] = React.useState(null);
 
   const [pageError, setPageError] = React.useState("");
 
@@ -218,6 +216,16 @@ export default function AdminAssignmentsPage() {
     setCadDrawerOpen(false);
     setCadDrawerSketch(null);
     setCadDrawerLoading(false);
+  };
+
+  const openFeedback = (row) => {
+    setFeedbackSketch(row);
+    setFeedbackOpen(true);
+  };
+
+  const closeFeedback = () => {
+    setFeedbackOpen(false);
+    setFeedbackSketch(null);
   };
 
   const openCadDrawer = async (row) => {
@@ -401,7 +409,25 @@ export default function AdminAssignmentsPage() {
         onAssignClick={openAssign}
         onEditClick={openEdit}
         onCadPayoutClick={isSuperAdmin ? openCadDrawer : undefined}
+        onFeedbackClick={openFeedback}
       />
+
+      <Drawer
+        title="Surveyor feedback"
+        placement="right"
+        width={Math.min(480, typeof window !== "undefined" ? window.innerWidth - 24 : 480)}
+        open={feedbackOpen}
+        onClose={closeFeedback}
+        destroyOnClose
+      >
+        <p className="mb-3 text-xs text-fg-muted">
+          Sketch{" "}
+          <span className="font-mono font-semibold text-fg">
+            {String(feedbackSketch?._id ?? feedbackSketch?.id ?? "—")}
+          </span>
+        </p>
+        <AssignmentFeedbackViewer assignmentId={resolveAssignmentIdFromEntity(feedbackSketch)} />
+      </Drawer>
 
       <AssignmentCadPayoutDrawer
         open={cadDrawerOpen}
@@ -424,6 +450,7 @@ export default function AdminAssignmentsPage() {
         onClose={closeModal}
         onSubmit={submitModal}
       />
+
     </div>
   );
 }
