@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button, Result, Spin, Typography, message } from "antd";
 import SketchPaymentRetryButton from "../components/payments/SketchPaymentRetryButton.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService";
@@ -7,7 +7,7 @@ import {
   clearSketchPaymentContext,
   isSketchPaymentCompleted,
   normalizeSketchPaymentPageState,
-  readSketchPaymentContext,
+  resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils";
 
 const { Paragraph, Text } = Typography;
@@ -18,6 +18,7 @@ const MAX_POLL_ATTEMPTS = 12;
 export default function PaymentReturnPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [upload, setUpload] = useState(null);
@@ -25,13 +26,10 @@ export default function PaymentReturnPage() {
   const pollAttemptsRef = useRef(0);
   const pollTimerRef = useRef(null);
 
-  const lastPayment = useMemo(() => readSketchPaymentContext(), []);
-
-  const uploadId = useMemo(() => {
-    const fromQuery = searchParams.get("uploadId");
-    if (fromQuery && String(fromQuery).trim()) return String(fromQuery).trim();
-    return lastPayment?.uploadId || null;
-  }, [searchParams, lastPayment?.uploadId]);
+  const uploadId = useMemo(
+    () => resolveSketchPaymentUploadId(searchParams, location.state),
+    [searchParams, location.state]
+  );
 
   const querySummary = useMemo(() => {
     const keys = ["code", "status", "success", "merchantOrderId", "transactionId", "providerReferenceId"];

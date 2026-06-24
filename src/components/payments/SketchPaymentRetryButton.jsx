@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button, Typography, message } from "antd";
 import { retrySketchUploadPayment } from "../../services/surveyor/sketchUploadService.js";
+import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
 import {
   canRetrySketchPayment,
   formatSketchPayableRupees,
@@ -37,9 +38,11 @@ export default function SketchPaymentRetryButton({
       const id = result?.data?._id ?? result?.data?.id ?? uploadId;
       if (!redirectToSketchCheckout(payment, id)) {
         message.error("Payment is required but checkout URL is missing. Please try again.");
+        return;
       }
+      message.success(payment?.message || "Redirecting to payment…");
     } catch (error) {
-      message.error(error?.message || "Failed to retry payment");
+      message.error(getApiErrorMessage(error, "Failed to retry payment"));
     } finally {
       setLoading(false);
     }

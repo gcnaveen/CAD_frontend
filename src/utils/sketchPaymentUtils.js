@@ -18,8 +18,24 @@ export function isSketchPaymentCompleted(upload) {
   if (paymentStatus === "COMPLETED" || paymentStatus === "SUCCESS" || paymentStatus === "PAID") {
     return true;
   }
-  const orderStatus = String(upload?.status || "").toUpperCase();
-  return orderStatus !== "PAYMENT_PENDING" && paymentStatus !== "FAILED" && paymentStatus !== "PENDING";
+  if (upload?.sketchPayment?.paidAt) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Resolve upload id after PhonePe redirect from query, router state, or last payment context.
+ */
+export function resolveSketchPaymentUploadId(searchParams, locationState) {
+  const fromQuery = searchParams?.get?.("uploadId");
+  if (fromQuery && String(fromQuery).trim()) return String(fromQuery).trim();
+
+  const fromState =
+    locationState?.uploadId ?? locationState?.openOrderId ?? locationState?.orderId ?? null;
+  if (fromState && String(fromState).trim()) return String(fromState).trim();
+
+  return readSketchPaymentContext()?.uploadId || null;
 }
 
 export function getPaymentCheckoutUrl(paymentMeta) {

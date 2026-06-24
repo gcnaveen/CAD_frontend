@@ -144,7 +144,9 @@ const Home = () => {
     () =>
       orderRows.map((row, idx) => {
         const status =
-          row?.status === "CAD_DELIVERED" || row?.status === "APPROVED"
+          row?.status === "PAYMENT_PENDING"
+            ? "Payment Pending"
+            : row?.status === "CAD_DELIVERED" || row?.status === "APPROVED"
             ? "Completed"
             : row?.status === "REJECTED"
             ? "Cancelled"
@@ -168,6 +170,8 @@ const Home = () => {
 
   const statusPill = (status) => {
     const map = {
+      "Payment Pending":
+        "border-[color-mix(in_srgb,var(--warning)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--bg-secondary))] text-[var(--warning)]",
       Pending:
         "border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)]",
       Active:

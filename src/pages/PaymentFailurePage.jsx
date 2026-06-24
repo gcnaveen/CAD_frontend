@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button, Result, Spin, Typography, message } from "antd";
 import SketchPaymentRetryButton from "../components/payments/SketchPaymentRetryButton.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
 import {
   normalizeSketchPaymentPageState,
-  readSketchPaymentContext,
+  resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils.js";
 
 const { Paragraph, Text } = Typography;
@@ -13,17 +13,15 @@ const { Paragraph, Text } = Typography;
 export default function PaymentFailurePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [upload, setUpload] = useState(null);
 
-  const lastPayment = useMemo(() => readSketchPaymentContext(), []);
-
-  const uploadId = useMemo(() => {
-    const fromQuery = searchParams.get("uploadId");
-    if (fromQuery && String(fromQuery).trim()) return String(fromQuery).trim();
-    return lastPayment?.uploadId || null;
-  }, [searchParams, lastPayment?.uploadId]);
+  const uploadId = useMemo(
+    () => resolveSketchPaymentUploadId(searchParams, location.state),
+    [searchParams, location.state]
+  );
 
   const refresh = useCallback(async () => {
     if (!uploadId) {
