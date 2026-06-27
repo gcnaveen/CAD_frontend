@@ -484,9 +484,11 @@ export default function Cadregisterform() {
                     className={inputClass("mobile")}
                     placeholder="10-digit Indian mobile"
                     inputMode="numeric"
-                    maxLength={14}
+                    maxLength={10}
                     value={form.mobile}
-                    onChange={(e) => setField("mobile", e.target.value)}
+                    onChange={(e) =>
+                      setField("mobile", digitsOnly(e.target.value).slice(0, 10))
+                    }
                     autoComplete="tel"
                   />
                 }

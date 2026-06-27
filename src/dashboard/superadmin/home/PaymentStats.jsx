@@ -8,6 +8,7 @@ import {
   Progress,
   Space,
   Divider,
+  Skeleton,
 } from "antd";
 import {
   WalletOutlined,
@@ -15,16 +16,9 @@ import {
   ExclamationCircleOutlined,
   DollarOutlined,
 } from "@ant-design/icons";
+import { formatRupees } from "../../../utils/formatRupees.js";
 
 const { Text } = Typography;
-
-/** Static placeholder data until API wiring */
-export const STATIC_PAYMENT_STATS = {
-  total: 284500,
-  pending: 42500,
-  failed: 8500,
-  currency: "₹",
-};
 
 const BarChart = ({ data, colors, height = 12 }) => {
   const total = data.reduce((sum, d) => sum + d.value, 0);
@@ -55,20 +49,29 @@ const BarChart = ({ data, colors, height = 12 }) => {
   );
 };
 
-const PaymentStats = () => {
-  const p = STATIC_PAYMENT_STATS;
-  const attempted = p.total + p.pending + p.failed;
+const PaymentStats = ({ payments, loading }) => {
+  if (loading && !payments) {
+    return <Skeleton active paragraph={{ rows: 6 }} />;
+  }
+
+  const received = payments?.totalReceived ?? {};
+  const pending = payments?.pending ?? {};
+  const failed = payments?.failed ?? {};
+
+  const receivedAmount = received.amountRupees ?? 0;
+  const pendingAmount = pending.amountRupees ?? 0;
+  const pendingCount = pending.count ?? 0;
+  const failedCount = failed.count ?? 0;
+
+  const attempted = receivedAmount + pendingAmount;
   const successRate =
-    attempted > 0
-      ? Math.round(((p.total + p.pending) / attempted) * 100)
-      : 0;
+    attempted > 0 ? Math.round((receivedAmount / attempted) * 100) : 0;
 
   const paymentChartData = [
-    { label: "Settled / captured", value: p.total },
-    { label: "Pending", value: p.pending },
-    { label: "Failed", value: p.failed },
-  ];
-  const paymentColors = ["var(--success)", "var(--warning)", "var(--danger)"];
+    { label: "Received", value: receivedAmount },
+    { label: "Pending", value: pendingAmount },
+  ].filter((item) => item.value > 0);
+  const paymentColors = ["var(--success)", "var(--warning)"];
 
   return (
     <div>
@@ -77,35 +80,47 @@ const PaymentStats = () => {
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
               title="Total received"
-              value={p.total}
+              value={receivedAmount}
               prefix={<WalletOutlined style={{ color: "var(--success)" }} />}
-              precision={2}
-              formatter={(val) => `${p.currency} ${val?.toLocaleString("en-IN")}`}
+              formatter={() => formatRupees(receivedAmount)}
             />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {received.sketchUploadPayments ?? 0} sketch ·{" "}
+              {received.revisionPayments ?? 0} revision
+            </Text>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="Pending"
-              value={p.pending}
+              title="Pending payments"
+              value={pendingCount}
               prefix={<ClockCircleOutlined style={{ color: "var(--warning)" }} />}
-              precision={2}
-              formatter={(val) => `${p.currency} ${val?.toLocaleString("en-IN")}`}
+              suffix={
+                <Text type="secondary" style={{ fontSize: 14 }}>
+                  ({formatRupees(pendingAmount)})
+                </Text>
+              }
             />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {pending.sketchUploadPending ?? 0} sketch ·{" "}
+              {pending.revisionPaymentPending ?? 0} revision
+            </Text>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card size="small" style={{ height: "100%" }}>
             <Statistic
-              title="Failed"
-              value={p.failed}
+              title="Failed payments"
+              value={failedCount}
               prefix={
                 <ExclamationCircleOutlined style={{ color: "var(--danger)" }} />
               }
-              precision={2}
-              formatter={(val) => `${p.currency} ${val?.toLocaleString("en-IN")}`}
             />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {failed.sketchUploadFailed ?? 0} sketch ·{" "}
+              {failed.revisionPaymentFailed ?? 0} revision
+            </Text>
           </Card>
         </Col>
       </Row>
@@ -125,19 +140,19 @@ const PaymentStats = () => {
             <Space split={<Divider type="vertical" />} style={{ marginTop: 12 }} wrap>
               <Text>
                 <span style={{ color: paymentColors[0], fontWeight: 600 }}>
-                  {p.currency} {p.total.toLocaleString("en-IN")}
+                  {formatRupees(receivedAmount)}
                 </span>{" "}
-                Settled
+                Received
               </Text>
               <Text>
                 <span style={{ color: paymentColors[1], fontWeight: 600 }}>
-                  {p.currency} {p.pending.toLocaleString("en-IN")}
+                  {pendingCount} ({formatRupees(pendingAmount)})
                 </span>{" "}
                 Pending
               </Text>
               <Text>
-                <span style={{ color: paymentColors[2], fontWeight: 600 }}>
-                  {p.currency} {p.failed.toLocaleString("en-IN")}
+                <span style={{ color: "var(--danger)", fontWeight: 600 }}>
+                  {failedCount}
                 </span>{" "}
                 Failed
               </Text>
@@ -145,7 +160,7 @@ const PaymentStats = () => {
           </Card>
         </Col>
         <Col xs={24} lg={10}>
-          <Card size="small" title="Payment success rate (static)">
+          <Card size="small" title="Collection rate">
             <Progress
               type="circle"
               percent={successRate}
@@ -153,7 +168,7 @@ const PaymentStats = () => {
               format={(pct) => `${pct}%`}
             />
             <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-              Based on sample totals above
+              Received vs received + pending amount
             </Text>
           </Card>
         </Col>

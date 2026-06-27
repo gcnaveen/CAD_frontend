@@ -147,7 +147,7 @@ const ProfilePage = () => {
   const [showModal, setShowModal] = useState(false);
 
   const WHATSAPP_URL =
-    "https://api.whatsapp.com/send/?phone=919876543210&text=Hi+North-cot+Support&type=phone_number&app_absent=0";
+    "https://api.whatsapp.com/send/?phone=919945831469&text=Hi+North-cot+Support&type=phone_number&app_absent=0";
 
   const authSlice = useSelector((s) => s.auth);
   const storedUser = useMemo(() => {
