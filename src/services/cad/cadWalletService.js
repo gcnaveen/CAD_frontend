@@ -13,10 +13,51 @@ export function mapWalletSummary(raw) {
   return {
     totalEarningsRupees: Number(r.totalEarningsRupees ?? r.totalEarnings ?? 0) || 0,
     receivedPaymentRupees:
-      Number(r.receivedPaymentRupees ?? r.receivedPayment ?? r.received ?? 0) || 0,
+      Number(
+        r.receivedPaymentRupees ??
+          r.receivedPayments ??
+          r.receivedPayment ??
+          r.received ??
+          0
+      ) || 0,
     pendingPaymentRupees:
-      Number(r.pendingPaymentRupees ?? r.pendingPayment ?? r.pending ?? 0) || 0,
+      Number(
+        r.pendingPaymentRupees ?? r.pendingPayments ?? r.pendingPayment ?? r.pending ?? 0
+      ) || 0,
   };
+}
+
+/**
+ * @param {any} raw
+ */
+export function mapOrderStats(raw) {
+  const r = raw?.orders ?? raw?.data?.orders ?? raw ?? {};
+  return {
+    totalOrders: Number(r.totalOrders ?? 0) || 0,
+    acceptedOrders: Number(r.acceptedOrders ?? 0) || 0,
+    rejectedOrders: Number(r.rejectedOrders ?? 0) || 0,
+    inProgressOrders: Number(r.inProgressOrders ?? 0) || 0,
+  };
+}
+
+/**
+ * @param {any} raw — API envelope `{ success, data: { wallet, orders } }` or inner `data`
+ */
+export function mapDashboardOverview(raw) {
+  const envelope = raw?.data?.wallet != null || raw?.data?.orders != null ? raw.data : raw;
+  return {
+    wallet: mapWalletSummary(envelope?.wallet ?? {}),
+    orders: mapOrderStats(envelope?.orders ?? {}),
+  };
+}
+
+export async function getCadDashboardOverview() {
+  try {
+    const { data } = await apiClient.get("/api/cad/dashboard/overview");
+    return mapDashboardOverview(data);
+  } catch (e) {
+    handleError(e, "Failed to load dashboard");
+  }
 }
 
 /**
@@ -24,7 +65,8 @@ export function mapWalletSummary(raw) {
  * @returns {{ list: any[], total: number, page: number, limit: number }}
  */
 export function mapWalletTransactionsResponse(raw) {
-  const root = raw?.data ?? raw;
+  const envelope = raw?.data != null && Array.isArray(raw.data) ? raw : null;
+  const root = envelope ? envelope.data : raw?.data ?? raw;
   const list =
     Array.isArray(root) ? root :
     Array.isArray(root?.transactions) ? root.transactions :
@@ -32,10 +74,13 @@ export function mapWalletTransactionsResponse(raw) {
     Array.isArray(root?.data) ? root.data :
     Array.isArray(root?.results) ? root.results :
     [];
-  const meta = root?.meta ?? root?.pagination ?? root;
-  const page = Number(meta?.page ?? meta?.currentPage ?? 1) || 1;
-  const limit = Number(meta?.limit ?? meta?.perPage ?? 20) || 20;
-  const total = Number(meta?.total ?? meta?.totalItems ?? meta?.count ?? list.length) || list.length;
+  const meta = envelope?.meta ?? root?.meta ?? raw?.meta ?? root?.pagination ?? raw?.pagination ?? root;
+  const pagination = meta?.pagination ?? meta;
+  const page = Number(pagination?.page ?? meta?.page ?? meta?.currentPage ?? 1) || 1;
+  const limit = Number(pagination?.limit ?? meta?.limit ?? meta?.perPage ?? 20) || 20;
+  const total =
+    Number(pagination?.total ?? meta?.total ?? meta?.totalItems ?? meta?.count ?? list.length) ||
+    list.length;
   return { list, total, page, limit };
 }
 

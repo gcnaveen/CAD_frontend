@@ -46,7 +46,8 @@ function statusTag(status) {
 }
 
 function mapTxRow(t, idx) {
-  const total = Number(t?.totalAmountRupees ?? t?.totalRupees ?? 0) || 0;
+  const total =
+    Number(t?.totalAmountRupees ?? t?.totalRupees ?? t?.amountRupees ?? 0) || 0;
   const paid = Number(t?.paidAmountRupees ?? t?.paidRupees ?? 0) || 0;
   const remaining =
     t?.remainingRupees != null
@@ -63,10 +64,12 @@ function mapTxRow(t, idx) {
     totalRupees: total,
     paidRupees: paid,
     remainingRupees: remaining,
-    status: String(t?.status ?? "PENDING").toUpperCase(),
+    status: String(t?.balanceStatus ?? t?.status ?? "PENDING").toUpperCase(),
     paidPercent: Math.min(100, Math.max(0, pct)),
     date: t?.createdAt ?? t?.updatedAt ?? t?.date,
     paymentLog: Array.isArray(t?.paymentLog) ? t.paymentLog : [],
+    applicationId: t?.surveyorSketchUpload?.applicationId,
+    surveyNo: t?.surveyorSketchUpload?.surveyNo,
   };
 }
 
