@@ -1,13 +1,14 @@
 // Layout wrapper — uses <Outlet /> for nested routes
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Menu, X } from "lucide-react";
 import { logout } from "../../../features/auth/authSlice";
 import { useTheme } from "../../../theme/useTheme.js";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
+import { useUserDisplayName } from "../../../hooks/useUserDisplayName.js";
 
 const FALLBACK_LOGO = "/assets/logo.png";
 
@@ -107,11 +108,7 @@ const DashboardLayout = () => {
   const dispatch = useDispatch();
   const { resolvedTheme } = useTheme();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-
-  const userName =
-    useSelector((s) => s.auth?.userName) ||
-    localStorage.getItem("userName") ||
-    "User";
+  const { userName, userInitial, displayName } = useUserDisplayName();
 
   const logoSrc =
     resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.png";
@@ -172,10 +169,10 @@ const DashboardLayout = () => {
 
             <button
               className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-(--user-accent) text-white font-extrabold border-2 border-line shadow-sm cursor-pointer"
-              title={userName}
+              title={displayName || userName}
               onClick={() => goTo("/dashboard/user/profile")}
             >
-              {userName?.charAt(0)?.toUpperCase?.() || "U"}
+              {userInitial}
             </button>
           </div>
 
@@ -304,7 +301,7 @@ const DashboardLayout = () => {
                   onClick={() => goTo("/dashboard/user/profile")}
                 >
                   <ProfileIcon active={false} />
-                  Profile ({userName?.charAt(0)?.toUpperCase?.() || "U"})
+                  Profile ({userInitial})
                 </button>
                 <button
                   type="button"

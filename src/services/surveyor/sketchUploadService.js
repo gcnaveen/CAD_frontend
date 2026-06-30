@@ -75,6 +75,10 @@ export async function getSketchUploads(params = {}) {
  *  page?: number,
  *  limit?: number
  * }} params
+ * Bucket rules:
+ * - active: PAYMENT_PENDING, PENDING, ASSIGNED, CAD_DELIVERED, UNDER_REVISION
+ * - completed: APPROVED
+ * - cancelled: REJECTED
  * @returns {Promise<{ success: boolean, data: any[], meta: any }>}
  */
 export async function getSurveyorOrders(params = {}) {

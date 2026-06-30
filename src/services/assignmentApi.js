@@ -236,7 +236,7 @@ async function probeAssignmentIdFromPost(uploadId, assignedCadUserId) {
   return null;
 }
 
-function mergeAssignmentOntoSketchRow(row, assignmentRecord) {
+export function mergeAssignmentOntoSketchRow(row, assignmentRecord) {
   const assignmentId = assignmentRecord?._id ?? assignmentRecord?.id;
   const uploadId = row?._id ?? row?.id;
   if (uploadId && assignmentId) {
@@ -425,8 +425,17 @@ export async function loadSketchUploadWithAssignment(uploadId, seedRecord = {}) 
     assignmentId = embedded?._id ?? embedded?.id ?? null;
   }
 
+  const sketchStatus = String(sketch?.status || seedRecord?.status || "").toUpperCase();
+  const SKETCH_STATUSES_IMPLYING_ASSIGNMENT = new Set([
+    "ASSIGNED",
+    "CAD_DELIVERED",
+    "UNDER_REVIEW",
+    "UNDER_REVISION",
+    "APPROVED",
+    "REJECTED",
+  ]);
   const isLikelyAssigned =
-    String(sketch?.status || seedRecord?.status || "").toUpperCase() === "ASSIGNED" ||
+    SKETCH_STATUSES_IMPLYING_ASSIGNMENT.has(sketchStatus) ||
     sketch?.assignedAt != null ||
     seedRecord?.assignedAt != null;
 

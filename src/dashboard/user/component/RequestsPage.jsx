@@ -2,6 +2,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
+import {
+  getSurveyorOrderStatusLabel,
+  SURVEYOR_ORDER_STATUS_STYLES,
+} from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
 const PinIcon = ({ className = "" }) => (
@@ -26,19 +30,6 @@ const PlusIcon = ({ className = "" }) => (
   </svg>
 );
 
-const STATUS_STYLES = {
-  "Payment Pending":
-    "border-line bg-[color-mix(in_srgb,var(--warning)_14%,var(--bg-secondary))] text-[var(--warning)]",
-  Pending:
-    "border-line bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-[var(--user-accent)]",
-  Active:
-    "border-line bg-[color-mix(in_srgb,var(--accent-color)_12%,var(--bg-secondary))] text-accent",
-  Completed:
-    "border-line bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] text-success",
-  Cancelled:
-    "border-line bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] text-danger",
-};
-
 const TABS = ["all", "active", "completed", "cancelled"];
 
 const RequestsPage = () => {
@@ -52,14 +43,6 @@ const RequestsPage = () => {
   const [tab,     setTab]     = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUploadId, setSelectedUploadId] = useState(null);
-
-  const mapStatus = (apiStatus) => {
-    if (apiStatus === "PAYMENT_PENDING") return "Payment Pending";
-    if (apiStatus === "CAD_DELIVERED" || apiStatus === "APPROVED") return "Completed";
-    if (apiStatus === "REJECTED") return "Cancelled";
-    if (apiStatus === "PENDING") return "Pending";
-    return "Active";
-  };
 
   const getEntityName = (value) => {
     if (!value) return "";
@@ -77,7 +60,8 @@ const RequestsPage = () => {
           serial: index + 1,
           id: row?.applicationId || row?._id,
           date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
-          status: mapStatus(row?.status),
+          apiStatus: row?.status,
+          status: getSurveyorOrderStatusLabel(row?.status),
           location: [getEntityName(row?.village), getEntityName(row?.hobli), getEntityName(row?.taluka), getEntityName(row?.district)]
             .filter(Boolean)
             .join(", "),
@@ -110,9 +94,13 @@ const RequestsPage = () => {
   const countFor = (t) => counts[t] || 0;
 
   const filtered = useMemo(() => orders.filter((o) => {
-    const q           = search.toLowerCase();
-    const matchSearch = !q || o.id?.toLowerCase().includes(q) || o.location?.toLowerCase().includes(q);
-    return matchSearch;
+    const q = search.toLowerCase().trim();
+    return (
+      !q ||
+      o.id?.toLowerCase().includes(q) ||
+      o.location?.toLowerCase().includes(q) ||
+      o.tags?.some((tag) => tag?.toLowerCase().includes(q))
+    );
   }), [orders, search]);
 
   return (
@@ -208,7 +196,7 @@ const RequestsPage = () => {
                         <p className="text-xs font-bold text-fg-muted mt-0.5">{order.date}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap ${STATUS_STYLES[order.status] || STATUS_STYLES.Pending}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap ${SURVEYOR_ORDER_STATUS_STYLES[order.status] || SURVEYOR_ORDER_STATUS_STYLES.Pending}`}>
                           {order.status}
                         </span>
                         <ChevronRight className="w-4 h-4 text-fg-muted group-hover:text-[var(--user-accent)] transition-colors" />

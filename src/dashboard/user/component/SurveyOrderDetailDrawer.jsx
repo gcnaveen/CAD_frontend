@@ -22,6 +22,8 @@ import {
 import {
   getAssignmentFeedback,
   submitAssignmentFeedback,
+  lookupAssignmentIdForSketch,
+  resolveAssignedCadUserIdFromEntity,
   resolveAssignmentIdFromEntity,
 } from "../../../services/assignmentApi.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
@@ -132,7 +134,31 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   const fbTimerRef = useRef(null);
   const fbStreamRef = useRef(null);
 
-  const assignmentId = useMemo(() => resolveAssignmentIdFromEntity(details), [details]);
+  const [assignmentId, setAssignmentId] = useState(null);
+
+  useEffect(() => {
+    if (!details) {
+      setAssignmentId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const uploadKey = String(uploadId || details._id || details.id || "");
+      let id = resolveAssignmentIdFromEntity(details);
+      if ((!id || id === uploadKey) && uploadKey) {
+        id = await lookupAssignmentIdForSketch(
+          uploadKey,
+          resolveAssignedCadUserIdFromEntity(details)
+        );
+      }
+      if (!cancelled) {
+        setAssignmentId(id && id !== uploadKey ? id : null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [details, uploadId]);
 
   const canGiveCadFeedback = useMemo(() => {
     const st = String(details?.status || "");

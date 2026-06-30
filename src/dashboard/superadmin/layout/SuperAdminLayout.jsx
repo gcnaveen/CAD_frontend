@@ -39,6 +39,11 @@ const allMenuItems = [
     roles: ["SUPER_ADMIN"],
   },
   {
+    key: "/superadmin/projects",
+    icon: <ProjectOutlined />,
+    label: "View Projects",
+  },
+  {
     key: "/superadmin/sketch-pricing",
     icon: <MoneyCollectOutlined />,
     label: "Sketch pricing",
@@ -48,7 +53,7 @@ const allMenuItems = [
     key: "/superadmin/pay-cad-user",
     icon: <PayCircleOutlined />,
     label: "Pay CAD User",
-    roles: ["SUPER_ADMIN"],
+    roles: ["ADMIN", "SUPER_ADMIN"],
   },
   {
     key: "/superadmin/cad-users",
@@ -83,11 +88,7 @@ const allMenuItems = [
     label: "Sketch Assignments",
     roles: ["ADMIN", "SUPER_ADMIN"],
   },
-  {
-    key: "/superadmin/projects",
-    icon: <ProjectOutlined />,
-    label: "View Projects",
-  },
+  
   {
     key: "/superadmin/user-surveyor-details",
     icon: <SearchOutlined />,
