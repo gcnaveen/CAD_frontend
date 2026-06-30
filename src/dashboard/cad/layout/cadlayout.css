@@ -55,6 +55,92 @@
   color: var(--accent-color) !important;
 }
 
+.cad-profile-wrap {
+  position: relative;
+}
+
+.cad-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 0;
+}
+
+.cad-profile-btn:hover .ant-avatar {
+  opacity: 0.88;
+}
+
+.cad-profile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.cad-profile-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  min-width: 220px;
+  max-width: min(260px, calc(100vw - 2rem));
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.cad-profile-panel-name {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.cad-profile-panel-loading {
+  padding: 8px 0;
+  text-align: center;
+}
+
+.cad-profile-panel-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cad-profile-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.cad-profile-row .anticon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cad-profile-row span {
+  word-break: break-word;
+}
+
+.cad-profile-edit {
+  padding: 0 !important;
+  height: auto !important;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
 @media (max-width: 768px) {
   .cad-content {
     margin: 16px !important;

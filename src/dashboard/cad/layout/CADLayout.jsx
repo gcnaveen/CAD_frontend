@@ -15,6 +15,7 @@ import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
+import CadProfileMenu from "./CadProfileMenu.jsx";
 import { cadBi } from "../cadBilingual";
 import "./cadlayout.css";
 
@@ -35,11 +36,11 @@ const CADLayout = () => {
         icon: <ProjectOutlined />,
         label: cadBi.layout.menuCurrent,
       },
-      {
-        key: "/dashboard/cad/order-history",
-        icon: <HistoryOutlined />,
-        label: cadBi.layout.menuHistory,
-      },
+      // {
+      //   key: "/dashboard/cad/order-history",
+      //   icon: <HistoryOutlined />,
+      //   label: cadBi.layout.menuHistory,
+      // },
       {
         key: "/dashboard/cad/wallet",
         icon: <WalletOutlined />,
@@ -233,6 +234,7 @@ const CADLayout = () => {
             >
               {cadBi.layout.logout}
             </Button>
+            <CadProfileMenu />
           </div>
         </Header>
 
