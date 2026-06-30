@@ -16,16 +16,34 @@ function formatDate(value) {
 
 /**
  * Read-only CAD feedback for an assignment (GET surveyor feedback API; Admin/Super Admin allowed).
+ * @param {string|null} assignmentId
+ * @param {object|null} initialFeedback - optional embedded feedback from sketch/list API
  */
-export default function AssignmentFeedbackViewer({ assignmentId }) {
-  const [loading, setLoading] = React.useState(Boolean(assignmentId));
-  const [feedback, setFeedback] = React.useState(null);
+export default function AssignmentFeedbackViewer({ assignmentId, initialFeedback = null }) {
+  const embeddedFeedback = React.useMemo(() => {
+    if (!initialFeedback || typeof initialFeedback !== "object") return null;
+    if (
+      initialFeedback.rating == null &&
+      !String(initialFeedback.remarks || "").trim() &&
+      !initialFeedback.audio?.url
+    ) {
+      return null;
+    }
+    return initialFeedback;
+  }, [initialFeedback]);
+
+  const [loading, setLoading] = React.useState(Boolean(assignmentId && !embeddedFeedback));
+  const [feedback, setFeedback] = React.useState(embeddedFeedback);
   const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    setFeedback(embeddedFeedback);
+  }, [embeddedFeedback]);
 
   React.useEffect(() => {
     if (!assignmentId) {
       setLoading(false);
-      setFeedback(null);
+      if (!embeddedFeedback) setFeedback(null);
       setError("");
       return;
     }
@@ -35,9 +53,16 @@ export default function AssignmentFeedbackViewer({ assignmentId }) {
       setError("");
       try {
         const data = await getAssignmentFeedback(assignmentId);
-        if (!cancelled) setFeedback(data || null);
+        if (!cancelled) setFeedback(data || embeddedFeedback || null);
       } catch (e) {
-        if (!cancelled) setError(e?.message || "Failed to load feedback");
+        if (!cancelled) {
+          if (embeddedFeedback) {
+            setFeedback(embeddedFeedback);
+            setError("");
+          } else {
+            setError(e?.message || "Failed to load feedback");
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -45,10 +70,15 @@ export default function AssignmentFeedbackViewer({ assignmentId }) {
     return () => {
       cancelled = true;
     };
-  }, [assignmentId]);
+  }, [assignmentId, embeddedFeedback]);
 
-  if (!assignmentId) {
-    return <p className="text-sm text-fg-muted">No assignment linked to this sketch.</p>;
+  if (!assignmentId && !feedback) {
+    return (
+      <p className="text-sm text-fg-muted">
+        Assignment id not found for this sketch. Feedback can still be loaded once the backend links
+        the assignment to the upload.
+      </p>
+    );
   }
 
   if (loading) {

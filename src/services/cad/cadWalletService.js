@@ -12,8 +12,10 @@ export function mapWalletSummary(raw) {
   const r = raw?.data ?? raw ?? {};
   return {
     totalEarningsRupees: Number(r.totalEarningsRupees ?? r.totalEarnings ?? 0) || 0,
-    receivedPaymentRupees: Number(r.receivedPaymentRupees ?? r.received ?? 0) || 0,
-    pendingPaymentRupees: Number(r.pendingPaymentRupees ?? r.pending ?? 0) || 0,
+    receivedPaymentRupees:
+      Number(r.receivedPaymentRupees ?? r.receivedPayment ?? r.received ?? 0) || 0,
+    pendingPaymentRupees:
+      Number(r.pendingPaymentRupees ?? r.pendingPayment ?? r.pending ?? 0) || 0,
   };
 }
 

@@ -564,7 +564,7 @@ const ProjectOrderDetailDrawer = ({
               {order.surveyNo || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Application ID">
-              <Text strong>{order.applicationId || order._id || "-"}</Text>
+              <Text strong>{order.applicationId || "-"}</Text>
             </Descriptions.Item>
           </Descriptions>
 
@@ -879,7 +879,7 @@ const ProjectOrderDetailDrawer = ({
                   loading={cadUsersLoading}
                   options={cadUsers.map((u) => ({
                     value: u.id || u._id,
-                    label: formatUserDisplayLabel(u) || String(u.id || u._id),
+                    label: formatUserDisplayLabel(u) || "CAD user",
                   }))}
                   suffixIcon={<UserOutlined />}
                 />

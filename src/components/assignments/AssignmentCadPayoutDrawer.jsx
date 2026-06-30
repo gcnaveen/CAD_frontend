@@ -4,7 +4,7 @@ import CadWalletPayoutSection from "../cadWallet/CadWalletPayoutSection.jsx";
 import { formatUserDisplayLabel, resolveAssignmentIdFromEntity } from "../../services/assignmentApi.js";
 import AssignmentFeedbackViewer from "./AssignmentFeedbackViewer.jsx";
 
-const { Text, Title } = Typography;
+const { Title } = Typography;
 
 /**
  * Admin assignments: survey sketch detail + CAD wallet payout (entries from upload payload).
@@ -17,9 +17,14 @@ export default function AssignmentCadPayoutDrawer({
   canManage = true,
   onRefresh,
 }) {
-  const id = sketch?._id ?? sketch?.id ?? "—";
   const status = String(sketch?.status ?? "—");
   const assignmentIdForFeedback = resolveAssignmentIdFromEntity(sketch);
+  const applicationId = sketch?.applicationId || "—";
+  const uploadedBy =
+    formatUserDisplayLabel(sketch?.uploadedBy) ||
+    formatUserDisplayLabel(sketch?.surveyor) ||
+    formatUserDisplayLabel(sketch?.user) ||
+    "—";
 
   return (
     <Drawer
@@ -41,18 +46,11 @@ export default function AssignmentCadPayoutDrawer({
               Sketch summary
             </Title>
             <Descriptions size="small" bordered column={1}>
-              <Descriptions.Item label="Sketch ID">
-                <Text code>{String(id)}</Text>
-              </Descriptions.Item>
+              <Descriptions.Item label="Application ID">{applicationId}</Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Tag>{status}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Uploaded by">
-                {formatUserDisplayLabel(sketch?.uploadedBy) ||
-                  formatUserDisplayLabel(sketch?.surveyor) ||
-                  formatUserDisplayLabel(sketch?.user) ||
-                  "—"}
-              </Descriptions.Item>
+              <Descriptions.Item label="Uploaded by">{uploadedBy}</Descriptions.Item>
               <Descriptions.Item label="Assigned CAD">
                 {formatUserDisplayLabel(sketch?.assignedCadUser) ||
                   formatUserDisplayLabel(sketch?.assignment?.cadUser) ||

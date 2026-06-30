@@ -5,7 +5,6 @@ import {
   Space,
   Tag,
   message,
-  Input,
   Button,
   Drawer,
   Descriptions,
@@ -31,18 +30,26 @@ const formatRef = (v) => {
     const code = v.code;
     if (name && code) return `${name} (${code})`;
     if (name) return String(name);
-    const id = v._id ?? v.id;
-    if (id) return String(id);
   }
-  return String(v);
+  return "—";
 };
 
-const surveyorIdFromRow = (row) => {
+const surveyorFromRow = (row) => {
   const s = row?.surveyor;
-  if (s == null) return "—";
-  if (typeof s === "string") return s;
-  if (typeof s === "object") return s._id ?? s.id ?? "—";
-  return String(s);
+  return s != null && typeof s === "object" ? s : null;
+};
+
+const surveyorPhoneFromRow = (row) => {
+  const s = surveyorFromRow(row);
+  if (!s) return "—";
+  const phone = s.auth?.phone ?? s.phone;
+  if (phone == null || phone === "") return "—";
+  return String(phone);
+};
+
+const surveyorRoleFromRow = (row) => {
+  const role = surveyorFromRow(row)?.role;
+  return role ? String(role) : "—";
 };
 
 /** Display name for list/table (API returns surveyor as populated user with name.first / name.last). */
@@ -73,8 +80,6 @@ const ViewSurveyDraftReports = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
-  const [surveyorFilter, setSurveyorFilter] = useState("");
-  const [surveyorApplied, setSurveyorApplied] = useState("");
   const [detailRow, setDetailRow] = useState(null);
 
   const fetchList = useCallback(async () => {
@@ -83,7 +88,6 @@ const ViewSurveyDraftReports = () => {
       const res = await getSurveyDraftReports({
         page: pagination.page,
         limit: pagination.limit,
-        ...(surveyorApplied.trim() ? { surveyorId: surveyorApplied.trim() } : {}),
       });
       const { items: list, total, page, limit } = parsePagedListResponse(res, {
         page: pagination.page,
@@ -97,7 +101,7 @@ const ViewSurveyDraftReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, surveyorApplied]);
+  }, [pagination.page, pagination.limit]);
 
   useEffect(() => {
     fetchList();
@@ -109,11 +113,6 @@ const ViewSurveyDraftReports = () => {
       page: pag.current ?? 1,
       limit: pag.pageSize ?? prev.limit,
     }));
-  };
-
-  const applySurveyorFilter = () => {
-    setSurveyorApplied(surveyorFilter.trim());
-    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const copyText = async (text) => {
@@ -199,33 +198,12 @@ const ViewSurveyDraftReports = () => {
             Survey draft reports
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 8 }}>
-            Drafts saved during sketch upload (before payment / submit). Names come from the surveyor
-            profile; open Details for full context. Optional filter below uses surveyor user id (MongoDB)
-            only if you need to narrow the list.
+            Drafts saved during sketch upload (before payment / submit). Open Details for full
+            surveyor and location context.
           </Paragraph>
         </div>
 
         <Space wrap align="start">
-          <Input
-            allowClear
-            placeholder="Optional: filter by surveyor user id (Mongo _id)"
-            value={surveyorFilter}
-            onChange={(e) => setSurveyorFilter(e.target.value)}
-            onPressEnter={applySurveyorFilter}
-            style={{ width: 320 }}
-          />
-          <Button type="primary" onClick={applySurveyorFilter}>
-            Apply filter
-          </Button>
-          <Button
-            onClick={() => {
-              setSurveyorFilter("");
-              setSurveyorApplied("");
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-          >
-            Clear
-          </Button>
           <Button icon={<ReloadOutlined />} onClick={() => fetchList()}>
             Refresh
           </Button>
@@ -261,25 +239,38 @@ const ViewSurveyDraftReports = () => {
         onClose={() => setDetailRow(null)}
         destroyOnClose
       >
-        {detailRow ? (
+        {detailRow ? (() => {
+          const detailPhone = surveyorPhoneFromRow(detailRow);
+          return (
           <>
-            <Descriptions bordered size="small" column={1}>
-              <Descriptions.Item label="Draft ID">
-                <Text code>{detailRow._id ?? detailRow.id ?? "—"}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Surveyor name">
+            <Descriptions bordered size="small" column={1} title="Surveyor details">
+              <Descriptions.Item label="Name">
                 {surveyorDisplayName(detailRow)}
               </Descriptions.Item>
-              <Descriptions.Item label="Surveyor user id (support)">
+              <Descriptions.Item label="Role">
+                {surveyorRoleFromRow(detailRow)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phone">
                 <Space>
-                  <Text code>{surveyorIdFromRow(detailRow)}</Text>
-                  <Button
-                    size="small"
-                    icon={<CopyOutlined />}
-                    onClick={() => copyText(surveyorIdFromRow(detailRow))}
-                  />
+                  {detailPhone !== "—" ? (
+                    <a href={`tel:${detailPhone}`}>{detailPhone}</a>
+                  ) : (
+                    <Text>—</Text>
+                  )}
+                  {detailPhone !== "—" ? (
+                    <Button
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={() => copyText(detailPhone)}
+                    />
+                  ) : null}
                 </Space>
               </Descriptions.Item>
+            </Descriptions>
+
+            <Divider style={{ margin: "12px 0" }} />
+
+            <Descriptions bordered size="small" column={1} title="Draft details">
               <Descriptions.Item label="Survey type">
                 {detailRow.surveyType ?? "—"}
               </Descriptions.Item>
@@ -367,7 +358,8 @@ const ViewSurveyDraftReports = () => {
               );
             })()}
           </>
-        ) : null}
+          );
+        })() : null}
       </Drawer>
     </div>
   );

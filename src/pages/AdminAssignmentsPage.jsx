@@ -1,5 +1,5 @@
 import React from "react";
-import { message, Drawer } from "antd";
+import { message, Drawer, Spin, Descriptions, Tag } from "antd";
 import { useSelector } from "react-redux";
 import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../constants/roles.js";
 import {
@@ -11,14 +11,18 @@ import {
   updateAssignment,
   updateAssignmentFlow,
   resolveAssignmentIdFromEntity,
+  loadSketchUploadWithAssignment,
+  formatUserDisplayLabel,
 } from "../services/assignmentApi.js";
-
+import {
+  enrichAdminAssignmentTableRows,
+  extractUploadsListResponse,
+} from "../services/admin/adminAssignmentsTableService.js";
 import AssignmentFlowToggle from "../components/assignments/AssignmentFlowToggle.jsx";
 import SketchTable from "../components/assignments/SketchTable.jsx";
 import AssignmentFeedbackViewer from "../components/assignments/AssignmentFeedbackViewer.jsx";
 import AssignmentModal from "../components/assignments/AssignmentModal.jsx";
-import AssignmentCadPayoutDrawer from "../components/assignments/AssignmentCadPayoutDrawer.jsx";
-import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
+import { extractFeedbackFromEntity } from "../utils/assignmentFeedbackUtils.js";
 
 function normalizeStatuses(payload) {
   if (!payload) return [];
@@ -26,40 +30,6 @@ function normalizeStatuses(payload) {
   if (Array.isArray(payload?.statuses)) return payload.statuses;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
-}
-
-function extractUploadsResponse(payload) {
-  // Expected backend could be:
-  // - { success, data: { uploads: [], total, page, limit } }
-  // - { success, data: [], meta: { ... } }
-  // - { uploads: [], total, ... }
-  // - [] (direct)
-  const root = payload?.data ?? payload;
-  const uploads =
-    Array.isArray(root) ? root :
-    Array.isArray(root?.uploads) ? root.uploads :
-    Array.isArray(root?.results) ? root.results :
-    Array.isArray(root?.items) ? root.items :
-    Array.isArray(root?.data) ? root.data :
-    [];
-
-  const metaRoot = root?.meta ?? root?.pagination ?? root;
-  const pager =
-    metaRoot?.pagination && typeof metaRoot.pagination === "object"
-      ? metaRoot.pagination
-      : metaRoot;
-  const page = Number(pager?.page ?? metaRoot?.page ?? pager?.currentPage ?? 1) || 1;
-  const limit = Number(pager?.limit ?? metaRoot?.limit ?? pager?.perPage ?? 10) || 10;
-  const total =
-    Number(
-      pager?.total ?? metaRoot?.total ?? pager?.totalItems ?? pager?.count ?? uploads.length
-    ) || uploads.length;
-  const totalPages =
-    Number(
-      pager?.totalPages ?? metaRoot?.totalPages ?? pager?.pages ?? (limit ? Math.ceil(total / limit) : 1)
-    ) || 1;
-
-  return { uploads, meta: { page, limit, total, totalPages } };
 }
 
 function getAssignmentIdFromSketch(sketch) {
@@ -71,45 +41,37 @@ export default function AdminAssignmentsPage() {
   const userRoleFromStore = useSelector((s) => s.auth?.user?.role);
   const roleKey = normalizeRoleKey(resolveStoredUserRole(roleFromStore, userRoleFromStore));
   const allowed = roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN;
-  const isSuperAdmin = roleKey === ROLES.SUPER_ADMIN;
 
   const [autoAssignEnabled, setAutoAssignEnabled] = React.useState(false);
   const [flowLoading, setFlowLoading] = React.useState(false);
-
   const [statuses, setStatuses] = React.useState([]);
   const [statusFilter, setStatusFilter] = React.useState("");
-
   const [rows, setRows] = React.useState([]);
   const [tableLoading, setTableLoading] = React.useState(false);
-
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
   const [meta, setMeta] = React.useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
-
   const [cadUsers, setCadUsers] = React.useState([]);
-
   const [modalOpen, setModalOpen] = React.useState(false);
-  const [modalMode, setModalMode] = React.useState("assign"); // "assign" | "edit"
+  const [modalMode, setModalMode] = React.useState("assign");
   const [modalSketch, setModalSketch] = React.useState(null);
   const [modalInitial, setModalInitial] = React.useState({});
   const [modalError, setModalError] = React.useState("");
   const [modalLoading, setModalLoading] = React.useState(false);
-
-  const [cadDrawerOpen, setCadDrawerOpen] = React.useState(false);
-  const [cadDrawerSketch, setCadDrawerSketch] = React.useState(null);
-  const [cadDrawerLoading, setCadDrawerLoading] = React.useState(false);
-
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackSketch, setFeedbackSketch] = React.useState(null);
-
+  const [feedbackLoading, setFeedbackLoading] = React.useState(false);
   const [pageError, setPageError] = React.useState("");
 
   const loadTop = React.useCallback(async () => {
     if (!allowed) return;
     setPageError("");
-
     try {
-      const [flow, st] = await Promise.all([getAssignmentFlow(), getSurveySketchStatuses()]);
+      const [flow, st, users] = await Promise.all([
+        getAssignmentFlow(),
+        getSurveySketchStatuses(),
+        cadUsers.length ? Promise.resolve(cadUsers) : getCadUsers(),
+      ]);
       const enabled =
         flow?.autoAssignEnabled ??
         flow?.enabled ??
@@ -119,14 +81,12 @@ export default function AdminAssignmentsPage() {
         false;
       setAutoAssignEnabled(Boolean(enabled));
       setStatuses(normalizeStatuses(st));
+      if (!cadUsers.length && users?.length) setCadUsers(users);
     } catch (err) {
-      if (err?.status === 403) {
-        setPageError("No permission");
-      } else {
-        setPageError(err?.message || "Failed to load assignment module");
-      }
+      if (err?.status === 403) setPageError("No permission");
+      else setPageError(err?.message || "Failed to load assignment module");
     }
-  }, [allowed]);
+  }, [allowed, cadUsers.length]);
 
   const loadTable = React.useCallback(async () => {
     if (!allowed) return;
@@ -134,19 +94,25 @@ export default function AdminAssignmentsPage() {
     setPageError("");
     try {
       const resp = await getSurveySketchUploads(statusFilter, page, limit);
-      const { uploads, meta: m } = extractUploadsResponse(resp);
-      setRows(uploads);
-      setMeta(m);
-    } catch (err) {
-      if (err?.status === 403) {
-        setPageError("No permission");
-      } else {
-        setPageError(err?.message || "Failed to load sketches");
+      const { uploads, meta: serverMeta } = extractUploadsListResponse(resp);
+      setMeta(serverMeta);
+
+      let users = cadUsers;
+      if (!users.length) {
+        users = await getCadUsers();
+        setCadUsers(users);
       }
+
+      const enriched = await enrichAdminAssignmentTableRows(uploads, users);
+      setRows(enriched);
+    } catch (err) {
+      if (err?.status === 403) setPageError("No permission");
+      else setPageError(err?.message || "Failed to load sketches");
+      setRows([]);
     } finally {
       setTableLoading(false);
     }
-  }, [allowed, statusFilter, page, limit]);
+  }, [allowed, statusFilter, page, limit, cadUsers]);
 
   React.useEffect(() => {
     loadTop();
@@ -163,11 +129,8 @@ export default function AdminAssignmentsPage() {
       await updateAssignmentFlow({ autoAssignEnabled: Boolean(nextAutoEnabled) });
       setAutoAssignEnabled(Boolean(nextAutoEnabled));
     } catch (err) {
-      if (err?.status === 403) {
-        setPageError("No permission");
-      } else {
-        setPageError(err?.message || "Failed to update assignment flow");
-      }
+      if (err?.status === 403) setPageError("No permission");
+      else setPageError(err?.message || "Failed to update assignment flow");
     } finally {
       setFlowLoading(false);
     }
@@ -179,7 +142,6 @@ export default function AdminAssignmentsPage() {
     setModalMode("assign");
     setModalInitial({});
     setModalOpen(true);
-
     try {
       if (!cadUsers?.length) {
         const users = await getCadUsers();
@@ -212,52 +174,30 @@ export default function AdminAssignmentsPage() {
     setModalLoading(false);
   };
 
-  const closeCadDrawer = () => {
-    setCadDrawerOpen(false);
-    setCadDrawerSketch(null);
-    setCadDrawerLoading(false);
-  };
-
-  const openFeedback = (row) => {
-    setFeedbackSketch(row);
-    setFeedbackOpen(true);
-  };
-
-  const closeFeedback = () => {
-    setFeedbackOpen(false);
-    setFeedbackSketch(null);
-  };
-
-  const openCadDrawer = async (row) => {
+  const openFeedback = async (row) => {
     const uploadId = row?._id ?? row?.id;
     if (!uploadId) {
       message.error("Missing sketch id");
       return;
     }
-    setCadDrawerOpen(true);
-    setCadDrawerSketch(row);
-    setCadDrawerLoading(true);
+    setFeedbackSketch(row);
+    setFeedbackOpen(true);
+    setFeedbackLoading(true);
     try {
-      const res = await getSketchUploadById(uploadId);
-      if (res?.success && res?.data) setCadDrawerSketch(res.data);
+      const detail = await loadSketchUploadWithAssignment(uploadId, row);
+      setFeedbackSketch(detail);
     } catch (err) {
-      message.error(err?.message || "Failed to load sketch");
+      message.error(err?.message || "Failed to load sketch for feedback");
     } finally {
-      setCadDrawerLoading(false);
+      setFeedbackLoading(false);
     }
   };
 
-  const refreshCadDrawerAndTable = async () => {
-    const id = cadDrawerSketch?._id ?? cadDrawerSketch?.id;
-    if (id) {
-      try {
-        const res = await getSketchUploadById(id);
-        if (res?.success && res?.data) setCadDrawerSketch(res.data);
-      } catch (err) {
-        message.error(err?.message || "Failed to refresh sketch");
-      }
-    }
-    await loadTable();
+  const closeFeedback = () => {
+    setFeedbackOpen(false);
+    setFeedbackSketch(null);
+    setFeedbackLoading(false);
+    loadTable();
   };
 
   const submitModal = async (payload) => {
@@ -268,25 +208,38 @@ export default function AdminAssignmentsPage() {
         await createAssignment(payload);
       } else {
         const assignmentId = getAssignmentIdFromSketch(modalSketch);
-        if (!assignmentId) {
-          throw new Error("Missing assignment id for this sketch");
-        }
+        if (!assignmentId) throw new Error("Missing assignment id for this sketch");
         await updateAssignment(assignmentId, payload);
       }
       closeModal();
       await loadTable();
     } catch (err) {
-      if (err?.status === 409) {
-        setModalError("Sketch already assigned");
-      } else if (err?.status === 403) {
-        setModalError("No permission");
-      } else {
-        setModalError(err?.message || "Failed to save assignment");
-      }
+      if (err?.status === 409) setModalError("Sketch already assigned");
+      else if (err?.status === 403) setModalError("No permission");
+      else setModalError(err?.message || "Failed to save assignment");
     } finally {
       setModalLoading(false);
     }
   };
+
+  const feedbackAssignmentId = resolveAssignmentIdFromEntity(feedbackSketch);
+  const feedbackEmbedded = extractFeedbackFromEntity(feedbackSketch);
+  const feedbackSurveyor =
+    formatUserDisplayLabel(feedbackSketch?.surveyor) ||
+    formatUserDisplayLabel(feedbackSketch?.uploadedBy) ||
+    formatUserDisplayLabel(feedbackSketch?.user) ||
+    "—";
+  const feedbackCadUser =
+    feedbackSketch?.assignedCadUserLabel ||
+    formatUserDisplayLabel(feedbackSketch?.assignedCadUser) ||
+    formatUserDisplayLabel(feedbackSketch?.assignment?.cadUser) ||
+    formatUserDisplayLabel(feedbackSketch?.assignment?.cadCenterId) ||
+    "—";
+
+  const rangeStart = meta.total === 0 ? 0 : (page - 1) * limit + 1;
+  const rangeEnd = Math.min(page * limit, meta.total);
+  const canGoPrev = page > 1;
+  const canGoNext = page < meta.totalPages;
 
   if (!allowed) {
     return (
@@ -303,23 +256,19 @@ export default function AdminAssignmentsPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-lg font-semibold text-fg">
-            Survey Sketch Assignments
-          </div>
+          <div className="text-lg font-semibold text-fg">Survey Sketch Assignments</div>
           <div className="mt-1 text-sm text-fg-muted">
-            Manage assignments created from survey sketch uploads.
+            Assign CAD users and view surveyor feedback after delivery.
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => loadTable()}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2"
-          >
-            Refresh
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => loadTable()}
+          disabled={tableLoading}
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
+        >
+          Refresh
+        </button>
       </div>
 
       {pageError ? (
@@ -331,8 +280,8 @@ export default function AdminAssignmentsPage() {
       <AssignmentFlowToggle value={autoAssignEnabled} loading={flowLoading} onChange={onToggleFlow} />
 
       <div className="rounded-xl border border-line bg-surface p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="sm:col-span-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
             <label className="block text-sm font-medium text-fg">Status</label>
             <select
               className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
@@ -342,7 +291,7 @@ export default function AdminAssignmentsPage() {
                 setPage(1);
               }}
             >
-              <option value="">All</option>
+              <option value="">All statuses</option>
               {statuses.map((s) => (
                 <option key={String(s?.value ?? s)} value={String(s?.value ?? s)}>
                   {String(s?.label ?? s?.value ?? s)}
@@ -351,8 +300,8 @@ export default function AdminAssignmentsPage() {
             </select>
           </div>
 
-          <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-fg">Rows</label>
+          <div>
+            <label className="block text-sm font-medium text-fg">Rows per page</label>
             <select
               className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
               value={String(limit)}
@@ -363,36 +312,42 @@ export default function AdminAssignmentsPage() {
             >
               {[10, 20, 50].map((n) => (
                 <option key={n} value={String(n)}>
-                  {n} / page
+                  {n}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-fg">Pagination</label>
-            <div className="mt-1 flex items-center gap-2">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-fg">Results</label>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-fg-muted">
+                {meta.total > 0 ? (
+                  <>
+                    Showing <span className="font-semibold text-fg">{rangeStart}</span>–
+                    <span className="font-semibold text-fg">{rangeEnd}</span> of{" "}
+                    <span className="font-semibold text-fg">{meta.total}</span>
+                  </>
+                ) : (
+                  "No results"
+                )}
+              </span>
               <button
                 type="button"
                 className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
-                disabled={page <= 1}
+                disabled={!canGoPrev || tableLoading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                Prev
+                Previous
               </button>
-              <div className="text-sm text-fg-muted">
-                Page <span className="font-semibold text-fg">{meta.page}</span>
-                {meta.totalPages ? (
-                  <>
-                    {" "}
-                    / <span className="font-semibold text-fg">{meta.totalPages}</span>
-                  </>
-                ) : null}
-              </div>
+              <span className="text-sm text-fg-muted">
+                Page <span className="font-semibold text-fg">{page}</span> of{" "}
+                <span className="font-semibold text-fg">{meta.totalPages || 1}</span>
+              </span>
               <button
                 type="button"
                 className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
-                disabled={meta.totalPages ? page >= meta.totalPages : rows.length < limit}
+                disabled={!canGoNext || tableLoading}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Next
@@ -408,35 +363,40 @@ export default function AdminAssignmentsPage() {
         autoAssignEnabled={autoAssignEnabled}
         onAssignClick={openAssign}
         onEditClick={openEdit}
-        onCadPayoutClick={isSuperAdmin ? openCadDrawer : undefined}
         onFeedbackClick={openFeedback}
       />
 
       <Drawer
         title="Surveyor feedback"
         placement="right"
-        width={Math.min(480, typeof window !== "undefined" ? window.innerWidth - 24 : 480)}
+        width={Math.min(520, typeof window !== "undefined" ? window.innerWidth - 24 : 520)}
         open={feedbackOpen}
         onClose={closeFeedback}
         destroyOnClose
       >
-        <p className="mb-3 text-xs text-fg-muted">
-          Sketch{" "}
-          <span className="font-mono font-semibold text-fg">
-            {String(feedbackSketch?._id ?? feedbackSketch?.id ?? "—")}
-          </span>
-        </p>
-        <AssignmentFeedbackViewer assignmentId={resolveAssignmentIdFromEntity(feedbackSketch)} />
+        {feedbackLoading ? (
+          <div className="flex justify-center py-12">
+            <Spin tip="Loading…" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Descriptions size="small" bordered column={1}>
+              <Descriptions.Item label="Application ID">
+                {feedbackSketch?.applicationId || "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag>{String(feedbackSketch?.status || "—")}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Surveyor">{feedbackSurveyor}</Descriptions.Item>
+              <Descriptions.Item label="CAD user">{feedbackCadUser}</Descriptions.Item>
+            </Descriptions>
+            <AssignmentFeedbackViewer
+              assignmentId={feedbackAssignmentId}
+              initialFeedback={feedbackEmbedded}
+            />
+          </div>
+        )}
       </Drawer>
-
-      <AssignmentCadPayoutDrawer
-        open={cadDrawerOpen}
-        onClose={closeCadDrawer}
-        sketch={cadDrawerSketch}
-        loading={cadDrawerLoading}
-        canManage={isSuperAdmin}
-        onRefresh={refreshCadDrawerAndTable}
-      />
 
       <AssignmentModal
         open={modalOpen}
@@ -450,8 +410,6 @@ export default function AdminAssignmentsPage() {
         onClose={closeModal}
         onSubmit={submitModal}
       />
-
     </div>
   );
 }
-

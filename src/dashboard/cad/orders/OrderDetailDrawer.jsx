@@ -95,7 +95,7 @@ const formatLocationDisplay = (location) => {
   const name = location.name || "";
   const code = location.code ? ` (${location.code})` : "";
   const line = `${name}${code}`.trim();
-  return line || location._id || "—";
+  return line || "—";
 };
 
 const formatSurveyType = (type) => {

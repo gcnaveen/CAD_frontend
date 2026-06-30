@@ -252,7 +252,7 @@ export default function CadWalletPage() {
                       render: (_, log) => {
                         const rb = log?.recordedBy;
                         if (rb && typeof rb === "object") {
-                          return rb.email || rb.name?.first || rb._id || "—";
+                          return rb.email || [rb.name?.first, rb.name?.last].filter(Boolean).join(" ") || "—";
                         }
                         return rb != null ? String(rb) : "—";
                       },

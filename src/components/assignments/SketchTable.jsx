@@ -1,8 +1,12 @@
 import React from "react";
+import { Rate } from "antd";
 import {
   formatUserDisplayLabel,
-  resolveAssignmentIdFromEntity,
 } from "../../services/assignmentApi.js";
+import {
+  canViewAssignmentFeedback,
+  extractFeedbackFromEntity,
+} from "../../utils/assignmentFeedbackUtils.js";
 
 function getStatusBadgeClasses(status) {
   const s = String(status || "").toUpperCase();
@@ -11,6 +15,8 @@ function getStatusBadgeClasses(status) {
       return "bg-surface-2 text-fg ring-line";
     case "ASSIGNED":
       return "bg-[color-mix(in_srgb,var(--cyan-accent)_14%,var(--bg-secondary))] text-[var(--cyan-accent)] ring-[color-mix(in_srgb,var(--cyan-accent)_40%,var(--border-color))]";
+    case "CAD_DELIVERED":
+      return "bg-[color-mix(in_srgb,var(--cyan-accent)_10%,var(--bg-secondary))] text-[var(--cyan-accent)] ring-[color-mix(in_srgb,var(--cyan-accent)_30%,var(--border-color))]";
     case "UNDER_REVIEW":
       return "bg-[color-mix(in_srgb,var(--warning)_18%,var(--bg-secondary))] text-[color-mix(in_srgb,var(--warning)_85%,var(--text-primary))] ring-[color-mix(in_srgb,var(--warning)_35%,var(--border-color))]";
     case "UNDER_REVISION":
@@ -31,9 +37,6 @@ function fmtDate(value) {
   return d.toLocaleString();
 }
 
-function getAssignmentIdFromRow(row) {
-  return resolveAssignmentIdFromEntity(row);
-}
 
 export default function SketchTable({
   rows,
@@ -41,7 +44,6 @@ export default function SketchTable({
   autoAssignEnabled,
   onAssignClick,
   onEditClick,
-  onCadPayoutClick,
   onFeedbackClick,
 }) {
   return (
@@ -50,14 +52,13 @@ export default function SketchTable({
         <table className="min-w-full text-left text-sm">
           <thead className="bg-surface-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
             <tr>
-              <th className="px-4 py-3">Sketch ID</th>
+              <th className="px-4 py-3">Application ID</th>
               <th className="px-4 py-3">Uploaded By</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Assigned CAD User</th>
               <th className="px-4 py-3">Created Date</th>
               <th className="px-4 py-3 text-right">Actions</th>
               {onFeedbackClick ? <th className="px-4 py-3 text-right">Feedback</th> : null}
-              {onCadPayoutClick ? <th className="px-4 py-3 text-right">CAD</th> : null}
             </tr>
           </thead>
 
@@ -66,35 +67,31 @@ export default function SketchTable({
               <tr>
                 <td
                   className="px-4 py-6 text-fg-muted"
-                  colSpan={6 + (onFeedbackClick ? 1 : 0) + (onCadPayoutClick ? 1 : 0)}
+                  colSpan={6 + (onFeedbackClick ? 1 : 0)}
                 >
                   Loading…
                 </td>
               </tr>
             ) : rows?.length ? (
-              rows.map((row) => {
+              rows.map((row, index) => {
                 const status = row?.status;
                 const isPending = String(status || "").toUpperCase() === "PENDING";
                 const canAssign = isPending && autoAssignEnabled === false;
                 const stUp = String(status || "").toUpperCase();
                 const canEdit = ["ASSIGNED", "UNDER_REVIEW", "UNDER_REVISION"].includes(stUp);
-                const assignmentId = getAssignmentIdFromRow(row);
-                const canFeedback = Boolean(onFeedbackClick) && Boolean(assignmentId);
-                const rowSketchId = row?._id ?? row?.id;
-                const hasSketchId =
-                  rowSketchId != null &&
-                  String(rowSketchId).trim() !== "" &&
-                  String(rowSketchId) !== "-";
-                const canCadPayout = Boolean(onCadPayoutClick && hasSketchId);
+                const rowFeedback = extractFeedbackFromEntity(row);
+                const canFeedback = Boolean(onFeedbackClick) && canViewAssignmentFeedback(row);
 
                 const assignedUserName =
+                  row?.assignedCadUserLabel ||
                   formatUserDisplayLabel(row?.assignedCadUser) ||
                   formatUserDisplayLabel(row?.assignment?.cadUser) ||
+                  formatUserDisplayLabel(row?.assignment?.assignedTo) ||
                   formatUserDisplayLabel(row?.assignment?.cadCenterId) ||
                   formatUserDisplayLabel(row?.cadCenterId) ||
                   formatUserDisplayLabel(row?.cadCenter) ||
                   formatUserDisplayLabel(row?.assignment?.cadCenter) ||
-                  "-";
+                  "—";
 
                 const uploadedBy =
                   formatUserDisplayLabel(row?.uploadedBy) ||
@@ -103,13 +100,12 @@ export default function SketchTable({
                   (typeof row?.uploadedBy === "string" ? row.uploadedBy : "") ||
                   "-";
 
-                const id = row?._id ?? row?.id ?? "-";
+                const id = row?._id ?? row?.id ?? `row-${index}`;
+                const applicationId = row?.applicationId || "—";
 
                 return (
                   <tr key={String(id)} className="hover:bg-surface-2/60">
-                    <td className="px-4 py-3 font-mono text-xs text-fg">
-                      {String(id)}
-                    </td>
+                    <td className="px-4 py-3 text-fg">{applicationId}</td>
                     <td className="px-4 py-3 text-fg">{uploadedBy}</td>
                     <td className="px-4 py-3">
                       <span
@@ -152,28 +148,31 @@ export default function SketchTable({
                     {onFeedbackClick ? (
                       <td className="px-4 py-3 text-right">
                         {canFeedback ? (
-                          <button
-                            type="button"
-                            onClick={() => onFeedbackClick(row)}
-                            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2"
-                          >
-                            View
-                          </button>
-                        ) : (
-                          <span className="text-xs text-fg-muted">—</span>
-                        )}
-                      </td>
-                    ) : null}
-                    {onCadPayoutClick ? (
-                      <td className="px-4 py-3 text-right">
-                        {canCadPayout ? (
-                          <button
-                            type="button"
-                            onClick={() => onCadPayoutClick(row)}
-                            className="rounded-lg border border-[color-mix(in_srgb,var(--success)_40%,var(--border-color))] bg-[color-mix(in_srgb,var(--success)_10%,var(--bg-secondary))] px-3 py-1.5 text-xs font-semibold text-success hover:opacity-90"
-                          >
-                            CAD payout
-                          </button>
+                          <div className="flex flex-col items-end gap-1">
+                            {rowFeedback?.rating != null ? (
+                              <div className="flex items-center gap-1">
+                                <Rate
+                                  disabled
+                                  allowHalf
+                                  value={Number(rowFeedback.rating) || 0}
+                                  className="text-xs"
+                                  style={{ fontSize: 12 }}
+                                />
+                                <span className="text-xs font-semibold text-fg">
+                                  {rowFeedback.rating}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-fg-muted">Not submitted</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => onFeedbackClick(row)}
+                              className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2"
+                            >
+                              View
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-xs text-fg-muted">—</span>
                         )}
@@ -186,7 +185,7 @@ export default function SketchTable({
               <tr>
                 <td
                   className="px-4 py-6 text-fg-muted"
-                  colSpan={6 + (onFeedbackClick ? 1 : 0) + (onCadPayoutClick ? 1 : 0)}
+                  colSpan={6 + (onFeedbackClick ? 1 : 0)}
                 >
                   No sketches found.
                 </td>

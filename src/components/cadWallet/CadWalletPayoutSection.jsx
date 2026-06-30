@@ -216,7 +216,7 @@ export default function CadWalletPayoutSection({
                           if (typeof rb === "object" && rb) {
                             return rb.name?.first
                               ? `${rb.name.first} ${rb.name.last || ""}`.trim()
-                              : rb.email || rb._id || "—";
+                              : rb.email || "—";
                           }
                           return rb != null ? String(rb) : "—";
                         },

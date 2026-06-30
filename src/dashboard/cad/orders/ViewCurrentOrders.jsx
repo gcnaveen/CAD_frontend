@@ -122,7 +122,7 @@ const ViewCurrentOrders = () => {
         if (loc == null) return null;
         if (typeof loc === "string") return loc;
         if (typeof loc === "object") {
-          return loc.name || loc.code || loc._id || loc.id || null;
+          return loc.name || loc.code || null;
         }
         return null;
       })
@@ -157,7 +157,7 @@ const ViewCurrentOrders = () => {
         typeof assignment.surveyorSketchUpload === "string"
           ? assignment.surveyorSketchUpload
           : upload._id,
-      orderId: sketchData.applicationId || upload.applicationId || assignment._id || "-",
+      orderId: sketchData.applicationId || upload.applicationId || "—",
       applicationId: sketchData.applicationId || upload.applicationId || "—",
       surveyNo: sketchData.surveyNo || upload.surveyNo || "—",
       locationSummary: locationLine || "—",

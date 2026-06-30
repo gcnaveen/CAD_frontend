@@ -6,6 +6,123 @@ function handleError(error, fallbackMessage) {
   throw new Error(msg);
 }
 
+function numRupees(raw, rupeesKey, paiseKey, altKey) {
+  const r = raw ?? {};
+  if (r[rupeesKey] != null) return Number(r[rupeesKey]) || 0;
+  if (r[altKey] != null) return Number(r[altKey]) || 0;
+  if (r[paiseKey] != null) return (Number(r[paiseKey]) || 0) / 100;
+  return 0;
+}
+
+/**
+ * @param {any} raw
+ */
+export function mapCadPayoutStatistics(raw) {
+  const s = raw ?? {};
+  return {
+    payoutPercent: Number(s.payoutPercent ?? 0) || 0,
+    cadUserCount: Number(s.cadUserCount ?? 0) || 0,
+    assignmentCount: Number(s.assignmentCount ?? 0) || 0,
+    completedDeliveryCount: Number(s.completedDeliveryCount ?? 0) || 0,
+    totalSourcePaidRupees: numRupees(
+      s,
+      "totalSourcePaidRupees",
+      "totalSourcePaidPaise",
+      "totalSourcePaid"
+    ),
+    totalEarningsRupees: numRupees(
+      s,
+      "totalEarningsRupees",
+      "totalEarningsPaise",
+      "totalEarnings"
+    ),
+    receivedPaymentRupees: numRupees(
+      s,
+      "receivedPaymentRupees",
+      "receivedPaymentPaise",
+      "receivedPayment"
+    ),
+    pendingPaymentRupees: numRupees(
+      s,
+      "pendingPaymentRupees",
+      "pendingPaymentPaise",
+      "pendingPayment"
+    ),
+  };
+}
+
+/**
+ * @param {any} raw
+ */
+export function mapCadPayoutEntry(raw) {
+  const e = raw ?? {};
+  return {
+    ledgerId: e.ledgerId ?? e._id ?? e.id ?? "",
+    kind: e.kind ?? "—",
+    revisionNo: e.revisionNo ?? 0,
+    sourcePaidRupees: numRupees(e, "sourcePaidRupees", "sourcePaidAmountPaise", "sourcePaid"),
+    payoutPercent: Number(e.payoutPercent ?? 0) || 0,
+    amountRupees: numRupees(e, "amountRupees", "amountPaise", "amount"),
+    paidAmountRupees: numRupees(e, "paidAmountRupees", "paidAmountPaise", "paidAmount"),
+    remainingRupees: numRupees(e, "remainingRupees", "remainingPaise", "remaining"),
+    paidPercent: Number(e.paidPercent ?? 0) || 0,
+    balanceStatus: String(e.balanceStatus ?? "PENDING").toUpperCase(),
+  };
+}
+
+/**
+ * @param {any} raw
+ * @param {any} [summaryFallback]
+ */
+export function mapCadPayoutPayment(raw, summaryFallback) {
+  const p = raw ?? {};
+  const summaryPending = numRupees(
+    summaryFallback ?? {},
+    "pendingPaymentRupees",
+    "pendingPaymentPaise",
+    "pendingPayment"
+  );
+  const maxPayable =
+    numRupees(p, "maxPayableRupees", "maxPayablePaise", "maxPayable") || summaryPending;
+  return {
+    maxPayable,
+    canPayFull: p.canPayFull === true || (p.canPayFull == null && maxPayable > 0),
+  };
+}
+
+/**
+ * @param {any} raw
+ */
+export function mapCadPayoutAssignment(raw) {
+  const a = raw ?? {};
+  return {
+    assignmentId: a.assignmentId ?? "",
+    applicationId: a.applicationId ?? "—",
+    surveyNo: a.surveyNo ?? "—",
+    status: a.status ?? "—",
+    completedAt: a.completedAt ?? null,
+    assignmentEarnedRupees: numRupees(
+      a,
+      "assignmentEarnedRupees",
+      "assignmentEarnedPaise",
+      "assignmentEarned"
+    ),
+    assignmentPaidRupees: numRupees(
+      a,
+      "assignmentPaidRupees",
+      "assignmentPaidPaise",
+      "assignmentPaid"
+    ),
+    assignmentRemainingRupees: numRupees(
+      a,
+      "assignmentRemainingRupees",
+      "assignmentRemainingPaise",
+      "assignmentRemaining"
+    ),
+    entries: (Array.isArray(a.entries) ? a.entries : []).map(mapCadPayoutEntry),
+  };
+}
+
 /**
  * POST /api/admin/cad-wallet-entries/{entryId}/mark-paid
  */
@@ -48,12 +165,127 @@ export function mapPayCadUserResponse(raw) {
 }
 
 /**
+ * @param {any} raw
+ */
+export function mapCadUserPendingItem(raw) {
+  const r = raw ?? {};
+  const cadUser = r.cadUser ?? r.user ?? {};
+  const summary = mapWalletSummary(r.summary ?? {});
+  return {
+    cadUser,
+    cadUserId: cadUser._id ?? cadUser.id ?? r.cadUserId ?? "",
+    summary,
+    statistics: mapCadPayoutStatistics(r.statistics ?? {}),
+    payment: mapCadPayoutPayment(r.payment, r.summary ?? summary),
+    pendingEntryCount: Number(r.pendingEntryCount ?? 0) || 0,
+    assignments: (Array.isArray(r.assignments) ? r.assignments : []).map(mapCadPayoutAssignment),
+  };
+}
+
+/**
+ * @param {any} raw — API envelope or inner `data`
+ * @param {{ cadUserId?: string }} [options]
+ */
+export function mapCadWalletPendingSummaryResponse(raw, options = {}) {
+  const { cadUserId } = options;
+  const envelope = raw?.data ?? raw ?? {};
+  const root =
+    envelope?.data != null &&
+    envelope?.cadUser == null &&
+    !Array.isArray(envelope?.cadUsers) &&
+    envelope?.summary == null
+      ? envelope.data
+      : envelope;
+
+  const normalizeSingle = (singleRoot, payoutPercentSource = singleRoot) => ({
+    type: "single",
+    payoutPercent:
+      Number(
+        singleRoot?.statistics?.payoutPercent ??
+          payoutPercentSource?.statistics?.payoutPercent ??
+          payoutPercentSource?.payoutPercent ??
+          0
+      ) || 0,
+    ...mapCadUserPendingItem(singleRoot),
+  });
+
+  if (root.cadUser && !Array.isArray(root.cadUsers)) {
+    return normalizeSingle(root);
+  }
+
+  if (cadUserId && Array.isArray(root.cadUsers)) {
+    const match = root.cadUsers.find((item) => {
+      const id =
+        item?.cadUserId ??
+        item?.cadUser?._id ??
+        item?.cadUser?.id ??
+        item?._id ??
+        item?.id;
+      return id != null && String(id) === String(cadUserId);
+    });
+    if (match) {
+      return normalizeSingle(
+        {
+          ...match,
+          assignments: match.assignments ?? root.assignments,
+          payment: match.payment ?? root.payment,
+        },
+        root
+      );
+    }
+  }
+
+  if (cadUserId && (root.summary || root.statistics || root.payment)) {
+    return normalizeSingle(root);
+  }
+
+  const statistics = mapCadPayoutStatistics(root.statistics ?? {});
+  return {
+    type: "list",
+    payoutPercent:
+      Number(root.payoutPercent ?? statistics.payoutPercent ?? 0) || 0,
+    totalPending: Number(root.totalPending ?? root.totalPendingRupees ?? 0) || 0,
+    statistics,
+    cadUsers: (Array.isArray(root.cadUsers) ? root.cadUsers : []).map(mapCadUserPendingItem),
+  };
+}
+
+/**
+ * GET /api/admin/cad-wallet/pending-summary
+ * @param {string} [cadUserId] — omit to list all CAD users with open balance
+ */
+export async function getCadWalletPendingSummary(cadUserId) {
+  try {
+    const params = cadUserId ? { cadUserId } : undefined;
+    const { data } = await apiClient.get("/api/admin/cad-wallet/pending-summary", { params });
+    return mapCadWalletPendingSummaryResponse(data, { cadUserId });
+  } catch (e) {
+    handleError(e, "Failed to load pending payout summary");
+  }
+}
+
+/**
  * POST /api/admin/cad-wallet/pay-user
- * @param {{ cadUserId: string, amountPaise: number }} body
+ * @param {{ cadUserId: string, amount?: number, amountRupees?: number, amountPaise?: number, payFull?: boolean }} body
  */
 export async function payCadUser(body) {
+  const { cadUserId, amount, amountRupees, amountPaise, payFull } = body ?? {};
+  const payload = { cadUserId };
+
+  if (payFull) {
+    payload.payFull = true;
+  } else {
+    const rupees =
+      amountRupees != null ? Number(amountRupees) : amount != null ? Number(amount) : null;
+    if (rupees != null && Number.isFinite(rupees)) {
+      payload.amountRupees = rupees;
+    } else if (amountPaise != null) {
+      payload.amountPaise = Number(amountPaise);
+    }
+  }
+
   try {
-    const { data } = await apiClient.post("/api/admin/cad-wallet/pay-user", body);
+    const { data } = await apiClient.post("/api/admin/cad-wallet/pay-user", payload);
     return mapPayCadUserResponse(data);
   } catch (e) {
     handleError(e, "Failed to pay CAD user");

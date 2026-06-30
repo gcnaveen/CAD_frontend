@@ -90,7 +90,7 @@ const TrackCurrentOrder = () => {
           return (
             <TrackOrderCard
               key={order._id}
-              projectNo={order.applicationId || order._id}
+              projectNo={order.applicationId || "—"}
               status={getStatusDisplay(order.status)}
               statusType={order.status}
               uploadId={order._id}

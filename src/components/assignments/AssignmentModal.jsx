@@ -33,6 +33,12 @@ export default function AssignmentModal({
 
   const isEdit = mode === "edit";
   const sketchId = sketch?._id ?? sketch?.id ?? "";
+  const uploadedBy =
+    formatUserDisplayLabel(sketch?.uploadedBy) ||
+    formatUserDisplayLabel(sketch?.surveyor) ||
+    formatUserDisplayLabel(sketch?.user) ||
+    "—";
+  const applicationId = sketch?.applicationId;
 
   const submit = (e) => {
     e.preventDefault();
@@ -65,7 +71,13 @@ export default function AssignmentModal({
           <div>
             <div className="text-base font-semibold text-fg">{getModalTitle(mode)}</div>
             <div className="mt-1 text-xs text-fg-muted">
-              Sketch: <span className="font-mono">{String(sketchId || "-")}</span>
+              {applicationId ? (
+                <>
+                  Application ID: <span className="font-semibold text-fg">{applicationId}</span>
+                </>
+              ) : (
+                <>Uploaded by: <span className="font-semibold text-fg">{uploadedBy}</span></>
+              )}
             </div>
           </div>
 
@@ -98,7 +110,7 @@ export default function AssignmentModal({
                   <option value="">Select CAD user</option>
                   {(cadUsers || []).map((u) => (
                     <option key={u?._id ?? u?.id} value={u?._id ?? u?.id}>
-                      {formatUserDisplayLabel(u) || String(u?._id ?? u?.id ?? "")}
+                      {formatUserDisplayLabel(u) || "CAD user"}
                     </option>
                   ))}
                 </select>

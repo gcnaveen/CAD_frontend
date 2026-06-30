@@ -365,7 +365,7 @@ const ViewCurrentProject = () => {
   const getCadCenterDisplay = (cadCenter) => {
     if (!cadCenter) return "-";
     if (typeof cadCenter === "string") return cadCenter;
-    return cadCenter.name || cadCenter._id || "-";
+    return cadCenter.name || "-";
   };
 
   const columns = [
@@ -521,7 +521,7 @@ const ViewCurrentProject = () => {
                 { value: "", label: "All CAD users" },
                 ...cadUsers.map((u) => ({
                   value: u.id || u._id,
-                  label: formatUserDisplayLabel(u) || String(u.id || u._id),
+                  label: formatUserDisplayLabel(u) || "CAD user",
                 })),
               ]}
             />
@@ -603,7 +603,7 @@ const ViewCurrentProject = () => {
                 loading={cadUsersLoading}
                 options={cadUsers.map((u) => ({
                   value: u.id || u._id,
-                  label: formatUserDisplayLabel(u) || String(u.id || u._id),
+                  label: formatUserDisplayLabel(u) || "CAD user",
                 }))}
               />
             </Form.Item>

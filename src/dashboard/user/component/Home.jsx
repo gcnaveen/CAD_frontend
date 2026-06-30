@@ -4,6 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getDrafts } from "../../../services/draftApi.js";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
+import {
+  getSurveyorOrderStatusLabel,
+  SURVEYOR_ORDER_STATUS_STYLES,
+} from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
 const PinIcon = ({ className = "" }) => (
@@ -119,7 +123,8 @@ const Home = () => {
   const hasDraft = drafts.length > 0;
 
   const pickId = (draft) => draft?._id ?? draft?.id;
-  const getEntityName = (val) => (typeof val === "object" ? (val?.name ?? val?.label ?? val?._id ?? val?.id) : val);
+  const getEntityName = (val) =>
+    typeof val === "object" ? (val?.name ?? val?.label ?? "—") : val ?? "—";
   const getDraftProgress = (d) => {
     let done = 0;
     const total = 3;
@@ -142,47 +147,21 @@ const Home = () => {
 
   const normalizedOrders = useMemo(
     () =>
-      orderRows.map((row, idx) => {
-        const status =
-          row?.status === "PAYMENT_PENDING"
-            ? "Payment Pending"
-            : row?.status === "CAD_DELIVERED" || row?.status === "APPROVED"
-            ? "Completed"
-            : row?.status === "REJECTED"
-            ? "Cancelled"
-            : row?.status === "PENDING"
-            ? "Pending"
-            : "Active";
-        return {
-          serial: idx + 1,
-          id: row?.applicationId || row?._id,
-          date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
-          status,
-          location: [getOrderEntityName(row?.village), getOrderEntityName(row?.hobli), getOrderEntityName(row?.taluka), getOrderEntityName(row?.district)]
-            .filter(Boolean)
-            .join(", "),
-          tags: [row?.surveyType, row?.surveyNo ? `S No : ${row.surveyNo}` : ""].filter(Boolean),
-          uploadId: row?._id,
-        };
-      }),
+      orderRows.map((row, idx) => ({
+        serial: idx + 1,
+        id: row?.applicationId || row?._id,
+        date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+        status: getSurveyorOrderStatusLabel(row?.status),
+        location: [getOrderEntityName(row?.village), getOrderEntityName(row?.hobli), getOrderEntityName(row?.taluka), getOrderEntityName(row?.district)]
+          .filter(Boolean)
+          .join(", "),
+        tags: [row?.surveyType, row?.surveyNo ? `S No : ${row.surveyNo}` : ""].filter(Boolean),
+        uploadId: row?._id,
+      })),
     [orderRows]
   );
 
-  const statusPill = (status) => {
-    const map = {
-      "Payment Pending":
-        "border-[color-mix(in_srgb,var(--warning)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--warning)_10%,var(--bg-secondary))] text-[var(--warning)]",
-      Pending:
-        "border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)]",
-      Active:
-        "border-[color-mix(in_srgb,var(--cyan-accent)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--cyan-accent)_10%,var(--bg-secondary))] text-[var(--cyan-accent)]",
-      Completed:
-        "border-[color-mix(in_srgb,var(--success)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--success)_10%,var(--bg-secondary))] text-success",
-      Cancelled:
-        "border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] text-danger",
-    };
-    return map[status] || map.Pending;
-  };
+  const statusPill = (status) => SURVEYOR_ORDER_STATUS_STYLES[status] || SURVEYOR_ORDER_STATUS_STYLES.Pending;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[var(--user-accent-soft)] via-[color-mix(in_srgb,var(--brand-gold)_08%,var(--bg-secondary))] to-[var(--bg-primary)]">

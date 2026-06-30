@@ -2,10 +2,6 @@ import React from "react";
 import { Modal, Select } from "antd";
 import { resolveAssignedCadUserIdFromEntity, formatUserDisplayLabel } from "../../services/assignmentApi.js";
 
-function getSketchId(sketch) {
-  return sketch?._id ?? sketch?.id ?? "";
-}
-
 function getCurrentAssignedCadUserId(sketch) {
   return resolveAssignedCadUserIdFromEntity(sketch);
 }
@@ -27,7 +23,6 @@ export default function PullbackReassignModal({
     }
   }, [open, sketch?._id]);
 
-  const sketchId = getSketchId(sketch);
   const currentId = getCurrentAssignedCadUserId(sketch);
   const cadOptions = (cadUsers || []).filter((u) => {
     const id = u?._id ?? u?.id;
@@ -63,7 +58,20 @@ export default function PullbackReassignModal({
         assignment is ASSIGNED, IN_PROGRESS, or ON_HOLD.
       </p>
       <p className="mb-4 text-xs text-fg-muted">
-        Sketch: <span className="font-mono">{String(sketchId || "-")}</span>
+        Sketch upload by{" "}
+        <span className="font-semibold text-fg">
+          {formatUserDisplayLabel(sketch?.uploadedBy) ||
+            formatUserDisplayLabel(sketch?.surveyor) ||
+            formatUserDisplayLabel(sketch?.user) ||
+            "—"}
+        </span>
+        {sketch?.applicationId ? (
+          <>
+            {" "}
+            · Application ID:{" "}
+            <span className="font-semibold text-fg">{sketch.applicationId}</span>
+          </>
+        ) : null}
       </p>
 
       {errorText ? (
@@ -81,7 +89,7 @@ export default function PullbackReassignModal({
           onChange={setAssignedCadUserId}
           options={cadOptions.map((u) => ({
             value: String(u?._id ?? u?.id ?? ""),
-            label: formatUserDisplayLabel(u) || String(u?._id ?? u?.id ?? ""),
+            label: formatUserDisplayLabel(u) || "CAD user",
           }))}
           showSearch
           optionFilterProp="label"
