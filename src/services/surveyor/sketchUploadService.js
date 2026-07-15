@@ -25,9 +25,7 @@ function handleError(error, fallbackMessage) {
  *   kharabu?: string | { url: string, fileName?: string, mimeType?: string, size?: number },
  *   audio?: { url: string, fileUrl: string, fileName?: string, mimeType?: string, size?: number },
  *   others?: string,
- *   amountRupees?: number,
- *   amountPaise?: number,
- *   totalPayableRupees?: number,
+ *   amountPaise?: number, // mutually exclusive with amountRupees / amount — send only one
  *   isSuperimpose?: boolean
  * }} payload
  * @returns {Promise<{ success: boolean, data: any }>}

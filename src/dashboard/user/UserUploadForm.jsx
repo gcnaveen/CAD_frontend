@@ -438,7 +438,7 @@ const UserUploadForm = ({
         DOCUMENT_TYPE_KEYS.forEach((k) => { delete payload[k]; });
       }
 
-      // Total Payable = same as review step (tier after discount + Google superimpose). Set last so nothing overwrites.
+      // Total Payable = same as review step. Backend accepts only ONE of amountPaise | amountRupees | amount.
       const upTier = uploadPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.upload;
       const revTier = revisionPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.revision;
       const checkout = buildSketchCheckoutBreakdown({
@@ -448,51 +448,31 @@ const UserUploadForm = ({
         isGoogleSuperimpose: googleOn,
       });
       const totalPayableRupees = Number(Number(checkout.finalPayableRupees).toFixed(2));
-      const baseAmountRupees = Number(Number(checkout.baseAmountRupees || 0).toFixed(2));
-      const gstPercent = Number(checkout.gstPercent || 18);
-      const gstAmountRupees = Number(Number(checkout.gstAmountRupees || 0).toFixed(2));
       const amountPaise = Math.round(totalPayableRupees * 100);
-      const baseAmountPaise = Math.round(baseAmountRupees * 100);
-      const gstAmountPaise = Math.round(gstAmountRupees * 100);
-      payload.baseAmountRupees = baseAmountRupees;
-      payload.baseAmountPaise = baseAmountPaise;
-      payload.gstPercent = gstPercent;
-      payload.gstRate = gstPercent;
-      payload.gstAmountRupees = gstAmountRupees;
-      payload.gstAmountPaise = gstAmountPaise;
-      payload.amountRupees = totalPayableRupees;
-      payload.payableAmountRupees = totalPayableRupees;
-      payload.finalAmountRupees = totalPayableRupees;
-      payload.totalAmountRupees = totalPayableRupees;
-      payload.totalPayableRupees = totalPayableRupees;
-      // Many PSPs (e.g. PhonePe) expect smallest currency unit; send explicitly so server does not guess.
+      // Strip any accidental amount aliases so validation never sees more than one.
+      delete payload.amount;
+      delete payload.amountRupees;
+      delete payload.amountPaise;
+      delete payload.payableAmountRupees;
+      delete payload.payableAmountPaise;
+      delete payload.finalAmountRupees;
+      delete payload.finalAmountPaise;
+      delete payload.totalAmountRupees;
+      delete payload.totalAmountPaise;
+      delete payload.totalPayableRupees;
+      // PhonePe / backend gateway amount — send paise only (e.g. ₹247.80 → 24780).
       payload.amountPaise = amountPaise;
-      payload.payableAmountPaise = amountPaise;
-      payload.finalAmountPaise = amountPaise;
-      payload.totalAmountPaise = amountPaise;
+      payload.isSuperimpose = googleOn;
       payload.pricingSummary = {
         isRevision: Boolean(isRevision),
         isSuperimpose: Boolean(googleOn),
-        baseAmountRupees,
-        gstPercent,
-        gstAmountRupees,
+        baseAmountRupees: Number(Number(checkout.baseAmountRupees || 0).toFixed(2)),
+        gstPercent: Number(checkout.gstPercent || 18),
+        gstAmountRupees: Number(Number(checkout.gstAmountRupees || 0).toFixed(2)),
         finalAmountRupees: totalPayableRupees,
       };
 
-      console.log("[SketchUpload] payment totals", {
-        baseAmountRupees,
-        baseAmountPaise,
-        gstPercent,
-        gstAmountRupees,
-        gstAmountPaise,
-        totalPayableRupees,
-        amountPaise,
-        isSuperimpose: googleOn,
-        payloadKeys: Object.keys(payload).filter((k) => k.toLowerCase().includes("amount") || k.includes("Payable")),
-      });
-      // console.log("PAYLOAD:", payload);
       const result = await createSketchUpload(payload);
-      // const result = { success: true };
       if (result.success) {
         const payMeta = result?.meta?.payment ?? {};
         const serverPaise =

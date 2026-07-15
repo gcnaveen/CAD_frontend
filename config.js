@@ -5,15 +5,6 @@ export const SOCKET_URL = "https://m8earcixrb.execute-api.ap-south-1.amazonaws.c
 export const BASE_LINK = "/";
 export const SOCKET_PATH = "/";
 
-//   export const API_BASE_URL = "https://anupalana.karnataka.gov.in/api/";
-//  export const BASE_URL = "/";
-//  export const SOCKET_URL = "https://anupalana.karnataka.gov.in/api";
-//  export const BASE_LINK = "/";
-//  export const SOCKET_PATH = "/";
-
-/**
- * COMMON FOR BOTH DEV & PROD
- */
 export const JWT_SECRET = "[REDACTED_JWT_SECRET]";
 export const ROLES = {
   ADMIN: "ADMIN",
