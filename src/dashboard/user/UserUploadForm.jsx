@@ -35,7 +35,18 @@ const MAIN_DOCUMENT_FIELDS = ["moolaTippani", "atlas", "rrPakkabook"];
 const DOCUMENT_TYPE_KEYS   = ["is_originaltippani","is_hissatippani","is_atlas","is_rrpakkabook","is_akarabandu","is_kharabuttar","is_mulapatra"];
 
 function toUrl(doc) { if (!doc) return null; if (typeof doc === "string") return doc; return doc.url || doc.fileUrl || doc.fileURL || null; }
-function toMeta(doc) { if (!doc) return null; if (typeof doc === "string") return { fileUrl: doc, fileName: "file" }; const url = toUrl(doc); if (!url) return null; return { fileUrl: url, fileName: doc.fileName || doc.name || "file", mimeType: doc.mimeType || doc.type, size: doc.size }; }
+/** Draft/API may send a single file object, a URL string, or an array of file objects. */
+function toMeta(doc) {
+  if (!doc) return null;
+  if (Array.isArray(doc)) {
+    const first = doc.find((d) => d && (typeof d === "string" || toUrl(d)));
+    return first ? toMeta(first) : null;
+  }
+  if (typeof doc === "string") return { fileUrl: doc, fileName: "file" };
+  const url = toUrl(doc);
+  if (!url) return null;
+  return { fileUrl: url, fileName: doc.fileName || doc.name || "file", mimeType: doc.mimeType || doc.type, size: doc.size };
+}
 function audioFromDraft(raw) {
   if (!raw) return null;
   const item = Array.isArray(raw) ? raw[0] : raw;
@@ -627,13 +638,21 @@ const UserUploadForm = ({
         };
         if (uploadMode === "single") {
           const m = toMeta(draft.singleUpload); const item = toFileListItem(m, "draft-singleUpload");
-          if (item) { nv.singleUpload = [item]; setUploadedDocs({ singleUpload: m }); }
+          if (item) { nv.singleUpload = [item]; setUploadedDocs({ singleUpload: m }); nv.hasDocuments = true; }
           const types = DOCUMENT_TYPE_KEYS.filter((k) => draft[k] === true);
           if (types.length) nv.documentTypes = types;
         } else {
           const next = {};
-          for (const f of DOCUMENT_FIELDS) { const src = draft?.documents?.[f] ?? draft?.[f]; const m = toMeta(src); const item = toFileListItem(m, `draft-${f}`); if (item) { nv[f] = [item]; next[f] = m; } }
-          if (Object.keys(next).length) setUploadedDocs(next);
+          for (const f of DOCUMENT_FIELDS) {
+            const src = draft?.documents?.[f] ?? draft?.[f];
+            const m = toMeta(src);
+            const item = toFileListItem(m, `draft-${f}`);
+            if (item) { nv[f] = [item]; next[f] = m; }
+          }
+          if (Object.keys(next).length) {
+            setUploadedDocs(next);
+            nv.hasDocuments = true;
+          }
         }
         if (draft.audio) {
           const av = audioFromDraft(draft.audio);
@@ -643,7 +662,21 @@ const UserUploadForm = ({
           }
         }
         const otherDocs = Array.isArray(draft.other_documents) ? draft.other_documents : [];
-        if (otherDocs.length) { const list = []; const om = {}; otherDocs.forEach((d, i) => { const m = toMeta(d); const uid = `draft-other-${i}`; const item = toFileListItem(m, uid); if (item) { list.push(item); om[uid] = m; } }); if (list.length) { nv.other_documents = list; setUploadedOther((p) => ({ ...p, ...om })); } }
+        if (otherDocs.length) {
+          const list = [];
+          const om = {};
+          otherDocs.forEach((d, i) => {
+            const m = toMeta(d);
+            const uid = `draft-other-${i}`;
+            const item = toFileListItem(m, uid);
+            if (item) { list.push(item); om[uid] = m; }
+          });
+          if (list.length) {
+            nv.other_documents = list;
+            nv.hasDocuments = true;
+            setUploadedOther((p) => ({ ...p, ...om }));
+          }
+        }
         form.setFieldsValue(nv);
       } catch (e) {
         const status = e?.response?.status;
