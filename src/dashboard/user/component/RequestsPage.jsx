@@ -4,6 +4,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
 import {
   getSurveyorOrderStatusLabel,
+  getSurveyorOrderStatusQuery,
+  matchesSurveyorOrderBucket,
+  resolveSurveyorOrderCounts,
   SURVEYOR_ORDER_STATUS_STYLES,
 } from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
@@ -54,25 +57,59 @@ const RequestsPage = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await getSurveyorOrders({ bucket: tab, page: 1, limit: 50 });
-        const rows = Array.isArray(res?.data) ? res.data : [];
-        setOrders(rows.map((row, index) => ({
-          serial: index + 1,
-          id: row?.applicationId || row?._id,
-          date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
-          apiStatus: row?.status,
-          status: getSurveyorOrderStatusLabel(row?.status),
-          location: [getEntityName(row?.village), getEntityName(row?.hobli), getEntityName(row?.taluka), getEntityName(row?.district)]
-            .filter(Boolean)
-            .join(", "),
-          tags: [row?.surveyType, row?.surveyNo ? `S No: ${row.surveyNo}` : ""].filter(Boolean),
-          uploadId: row?._id,
-        })));
+        const activeStatus = getSurveyorOrderStatusQuery("active");
+        const completedStatus = getSurveyorOrderStatusQuery("completed");
+        const cancelledStatus = getSurveyorOrderStatusQuery("cancelled");
+        const listParams =
+          tab === "all"
+            ? { bucket: "all", page: 1, limit: 50 }
+            : { status: getSurveyorOrderStatusQuery(tab), page: 1, limit: 50 };
+
+        const [listRes, activeRes, completedRes, cancelledRes] = await Promise.all([
+          getSurveyorOrders(listParams),
+          tab === "active"
+            ? Promise.resolve(null)
+            : getSurveyorOrders({ status: activeStatus, page: 1, limit: 1 }),
+          tab === "completed"
+            ? Promise.resolve(null)
+            : getSurveyorOrders({ status: completedStatus, page: 1, limit: 1 }),
+          tab === "cancelled"
+            ? Promise.resolve(null)
+            : getSurveyorOrders({ status: cancelledStatus, page: 1, limit: 1 }),
+        ]);
+
+        const rows = Array.isArray(listRes?.data) ? listRes.data : [];
+        const filteredRows = rows.filter((row) => matchesSurveyorOrderBucket(row?.status, tab));
+        setOrders(
+          filteredRows.map((row, index) => ({
+            serial: index + 1,
+            id: row?.applicationId || row?._id,
+            date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+            apiStatus: row?.status,
+            status: getSurveyorOrderStatusLabel(row?.status),
+            location: [
+              getEntityName(row?.village),
+              getEntityName(row?.hobli),
+              getEntityName(row?.taluka),
+              getEntityName(row?.district),
+            ]
+              .filter(Boolean)
+              .join(", "),
+            tags: [row?.surveyType, row?.surveyNo ? `S No: ${row.surveyNo}` : ""].filter(Boolean),
+            uploadId: row?._id,
+          }))
+        );
+
+        const fromByStatus = resolveSurveyorOrderCounts(listRes?.meta?.counts || {});
+        const pickTotal = (res, fallback) => {
+          const t = Number(res?.meta?.total);
+          return Number.isFinite(t) ? t : fallback;
+        };
         setCounts({
-          all: Number(res?.meta?.counts?.all || 0),
-          active: Number(res?.meta?.counts?.active || 0),
-          completed: Number(res?.meta?.counts?.completed || 0),
-          cancelled: Number(res?.meta?.counts?.cancelled || 0),
+          all: fromByStatus.all || pickTotal(listRes, 0),
+          active: pickTotal(tab === "active" ? listRes : activeRes, fromByStatus.active),
+          completed: pickTotal(tab === "completed" ? listRes : completedRes, fromByStatus.completed),
+          cancelled: pickTotal(tab === "cancelled" ? listRes : cancelledRes, fromByStatus.cancelled),
         });
       } catch {
         setOrders([]);

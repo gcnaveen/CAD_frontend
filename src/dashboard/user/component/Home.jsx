@@ -6,6 +6,8 @@ import { getDrafts } from "../../../services/draftApi.js";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
 import {
   getSurveyorOrderStatusLabel,
+  getSurveyorOrderStatusQuery,
+  resolveSurveyorOrderCounts,
   SURVEYOR_ORDER_STATUS_STYLES,
 } from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
@@ -97,15 +99,32 @@ const Home = () => {
   const loadOrders = async () => {
     setOrdersLoading(true);
     try {
-      const res = await getSurveyorOrders({ bucket: "active", page: 1, limit: 5 });
-      const items = Array.isArray(res?.data) ? res.data : [];
-      const counts = res?.meta?.counts || {};
+      const activeStatus = getSurveyorOrderStatusQuery("active");
+      const completedStatus = getSurveyorOrderStatusQuery("completed");
+      const cancelledStatus = getSurveyorOrderStatusQuery("cancelled");
+
+      const [activeRes, completedRes, cancelledRes] = await Promise.all([
+        getSurveyorOrders({ status: activeStatus, page: 1, limit: 5 }),
+        getSurveyorOrders({ status: completedStatus, page: 1, limit: 1 }),
+        getSurveyorOrders({ status: cancelledStatus, page: 1, limit: 1 }),
+      ]);
+
+      const items = Array.isArray(activeRes?.data) ? activeRes.data : [];
+      const fromByStatus = resolveSurveyorOrderCounts(activeRes?.meta?.counts || {});
+      const activeTotal = Number(activeRes?.meta?.total);
+      const completedTotal = Number(completedRes?.meta?.total);
+      const cancelledTotal = Number(cancelledRes?.meta?.total);
+
       setOrderRows(items);
       setOrderCounts({
-        all: Number(counts?.all || 0),
-        active: Number(counts?.active || 0),
-        completed: Number(counts?.completed || 0),
-        cancelled: Number(counts?.cancelled || 0),
+        all:
+          fromByStatus.all ||
+          (Number.isFinite(activeTotal) ? activeTotal : 0) +
+            (Number.isFinite(completedTotal) ? completedTotal : 0) +
+            (Number.isFinite(cancelledTotal) ? cancelledTotal : 0),
+        active: Number.isFinite(activeTotal) ? activeTotal : fromByStatus.active,
+        completed: Number.isFinite(completedTotal) ? completedTotal : fromByStatus.completed,
+        cancelled: Number.isFinite(cancelledTotal) ? cancelledTotal : fromByStatus.cancelled,
       });
     } catch {
       setOrderRows([]);

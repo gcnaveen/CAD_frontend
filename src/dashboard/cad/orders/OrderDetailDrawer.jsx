@@ -27,6 +27,7 @@ import {
   normalizeFileList,
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils";
+import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard";
 import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Text } = Typography;
@@ -614,6 +615,26 @@ const OrderDetailDrawer = ({
             </Text>
           )}
         </Card>
+
+        {Array.isArray(sketch.revisionRequests) && sketch.revisionRequests.length > 0 && (
+          <>
+            <Divider style={{ margin: "8px 0" }} />
+            <RevisionRequestsCard
+              revisionRequests={sketch.revisionRequests}
+              labels={{
+                title: cadBi.drawer.revisionRequests,
+                empty: cadBi.drawer.revisionEmpty,
+                revisionNo: cadBi.drawer.revisionNo,
+                remarks: cadBi.drawer.revisionRemarks,
+                requestedAt: cadBi.drawer.revisionRequestedAt,
+                resolvedAt: cadBi.drawer.revisionResolvedAt,
+                noRemarks: cadBi.drawer.revisionNoRemarks,
+                audio: cadBi.drawer.revisionAudio,
+                openActive: cadBi.drawer.revisionOpenActive,
+              }}
+            />
+          </>
+        )}
 
         <Divider style={{ margin: "8px 0" }} />
 
