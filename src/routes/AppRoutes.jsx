@@ -1,6 +1,13 @@
 // // src/routes/AppRoutes.jsx  — full replacement
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import ProtectedRoute from "./ProtectedRoute";
+import {
+  getRedirectForRole,
+  isAuthOnlyPath,
+  resolveSessionToken,
+} from "../utils/authRedirect";
 
 // Public
 import Homepage from "../pages/Homepage";
@@ -52,18 +59,75 @@ import RequestsPage from "../dashboard/user/component/RequestsPage.jsx";
 import ProfilePage from "../dashboard/user/component/ProfilePage.jsx";
 import DraftsPage from "../dashboard/user/component/DraftsPage.jsx";
 
+/**
+ * If token exists → never stay on login/register (covers browser Back + bfcache).
+ * If token is gone (logout) → login/register are allowed.
+ */
+function useBlockAuthPagesWhenLoggedIn(token, role) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const home = getRedirectForRole(role);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!isAuthOnlyPath(location.pathname)) return;
+    navigate(home, { replace: true });
+  }, [token, home, location.pathname, navigate]);
+
+  // Browser Back can restore a cached login document; re-check immediately.
+  useEffect(() => {
+    const kickOffAuthPage = () => {
+      if (!resolveSessionToken(token)) return;
+      if (!isAuthOnlyPath(window.location.pathname)) return;
+      navigate(home, { replace: true });
+    };
+
+    window.addEventListener("popstate", kickOffAuthPage);
+    window.addEventListener("pageshow", kickOffAuthPage);
+    return () => {
+      window.removeEventListener("popstate", kickOffAuthPage);
+      window.removeEventListener("pageshow", kickOffAuthPage);
+    };
+  }, [token, home, navigate]);
+}
+
 export default function AppRoutes() {
+  const reduxToken = useSelector((state) => state.auth?.token);
+  const role = useSelector(
+    (state) => state.auth?.role ?? state.auth?.user?.role
+  );
+  const token = resolveSessionToken(reduxToken);
+  const loggedInHome = getRedirectForRole(role);
+
+  useBlockAuthPagesWhenLoggedIn(token, role);
+
+  // While logged in, auth routes never mount login UI — only a replace redirect.
+  const guestOrRedirect = (Page) =>
+    token ? <Navigate to={loggedInHome} replace /> : <Page />;
+
   return (
     <Routes>
       {/* Public */}
       <Route path="/" element={<Homepage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-and-conditions" element={<TermsandCondition />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/login-email" element={<LoginPageEmail />} />
-      <Route path="/login/email" element={<Navigate to="/login-email" replace />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/register/cad-operator" element={<Cadregisterform />} />
+      <Route path="/login" element={guestOrRedirect(LoginPage)} />
+      <Route path="/login-email" element={guestOrRedirect(LoginPageEmail)} />
+      <Route
+        path="/login/email"
+        element={
+          token ? (
+            <Navigate to={loggedInHome} replace />
+          ) : (
+            <Navigate to="/login-email" replace />
+          )
+        }
+      />
+      <Route path="/register" element={guestOrRedirect(RegisterPage)} />
+      <Route
+        path="/register/cad-operator"
+        element={guestOrRedirect(Cadregisterform)}
+      />
       <Route
         path="/payment/return"
         element={

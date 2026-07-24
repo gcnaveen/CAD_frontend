@@ -43,6 +43,7 @@ import {
   normalizeFileList,
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils.js";
+import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard.jsx";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -757,6 +758,17 @@ const ProjectOrderDetailDrawer = ({
                   )}
                 />
               </Card>
+            </>
+          )}
+
+          {/* Surveyor revision requests */}
+          {Array.isArray(order.revisionRequests) && order.revisionRequests.length > 0 && (
+            <>
+              <Divider style={{ margin: "8px 0" }} />
+              <RevisionRequestsCard
+                revisionRequests={order.revisionRequests}
+                style={{ marginBottom: 0 }}
+              />
             </>
           )}
 

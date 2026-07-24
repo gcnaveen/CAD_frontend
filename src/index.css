@@ -997,3 +997,19 @@ body,
   color: var(--text-primary) !important;
   border: 1px solid var(--border-color) !important;
 }
+
+/* Ant Design Table — sort/filter column highlight (FastColor breaks on CSS var backgrounds) */
+.app-antd-root .ant-table-thead th.ant-table-column-sort,
+.app-antd-root .ant-table-thead th.ant-table-column-has-sorters:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary);
+}
+
+.app-antd-root .ant-table-tbody td.ant-table-column-sort {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary);
+}
+
+.app-antd-root .ant-table-filter-trigger:hover {
+  background: var(--bg-hover) !important;
+}

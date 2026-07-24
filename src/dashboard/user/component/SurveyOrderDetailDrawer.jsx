@@ -28,6 +28,7 @@ import {
 } from "../../../services/assignmentApi.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
 import FileViewDownloadButtons from "../../../components/files/FileViewDownloadButtons.jsx";
+import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard.jsx";
 import SketchPaymentRetryButton from "../../../components/payments/SketchPaymentRetryButton.jsx";
 import {
   canRetrySketchPayment,
@@ -711,6 +712,10 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
                 ))}
               </div>
             </Card>
+          )}
+
+          {Array.isArray(details?.revisionRequests) && details.revisionRequests.length > 0 && (
+            <RevisionRequestsCard revisionRequests={details.revisionRequests} />
           )}
 
           {canRequestRevision && (

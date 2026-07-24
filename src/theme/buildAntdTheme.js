@@ -52,6 +52,14 @@ export function buildAntdTheme(isDark) {
         colorText: "var(--text-primary)",
         borderColor: "var(--border-color)",
         rowHoverBg: "var(--bg-hover)",
+        // FastColor cannot derive sort/filter tints from CSS var backgrounds — falls back to black.
+        bodySortBg: "var(--bg-secondary)",
+        headerSortActiveBg: "var(--bg-hover)",
+        headerSortHoverBg: "var(--bg-hover)",
+        fixedHeaderSortActiveBg: "var(--bg-hover)",
+        headerFilterHoverBg: "var(--bg-hover)",
+        filterDropdownBg: "var(--bg-elevated)",
+        filterDropdownMenuBg: "var(--bg-elevated)",
       },
       Input: {
         colorBgContainer: "var(--bg-primary)",
