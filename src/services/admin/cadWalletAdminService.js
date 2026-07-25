@@ -1,9 +1,13 @@
 import apiClient from "../apiClient.js";
 import { mapWalletSummary } from "../cad/cadWalletService.js";
+import {
+  mapLedgerSettlement,
+  resolveLedgerPayoutRupees,
+} from "../../utils/cadOperatorEarnings.js";
+import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
 
 function handleError(error, fallbackMessage) {
-  const msg = error.response?.data?.message ?? error.message ?? fallbackMessage;
-  throw new Error(msg);
+  throw new Error(getApiErrorMessage(error, fallbackMessage));
 }
 
 function numRupees(raw, rupeesKey, paiseKey, altKey) {
@@ -19,8 +23,13 @@ function numRupees(raw, rupeesKey, paiseKey, altKey) {
  */
 export function mapCadPayoutStatistics(raw) {
   const s = raw ?? {};
+  const settlement = mapLedgerSettlement(s);
   return {
+    /** @deprecated Prefer payoutModel + payoutRupees from business-rules / settlement. */
     payoutPercent: Number(s.payoutPercent ?? 0) || 0,
+    payoutModel: settlement.payoutModel,
+    payoutRupees: settlement.payoutRupees,
+    pricingRuleVersion: settlement.pricingRuleVersion,
     cadUserCount: Number(s.cadUserCount ?? 0) || 0,
     assignmentCount: Number(s.assignmentCount ?? 0) || 0,
     completedDeliveryCount: Number(s.completedDeliveryCount ?? 0) || 0,
@@ -56,17 +65,32 @@ export function mapCadPayoutStatistics(raw) {
  */
 export function mapCadPayoutEntry(raw) {
   const e = raw ?? {};
+  const settlement = mapLedgerSettlement(e);
+  const legacyAmount = numRupees(e, "amountRupees", "amountPaise", "amount");
   return {
     ledgerId: e.ledgerId ?? e._id ?? e.id ?? "",
     kind: e.kind ?? "—",
     revisionNo: e.revisionNo ?? 0,
     sourcePaidRupees: numRupees(e, "sourcePaidRupees", "sourcePaidAmountPaise", "sourcePaid"),
-    payoutPercent: Number(e.payoutPercent ?? 0) || 0,
-    amountRupees: numRupees(e, "amountRupees", "amountPaise", "amount"),
+    /** @deprecated Prefer settlement.payoutModel / payoutPaise. */
+    payoutPercent: settlement.payoutPercent ?? (Number(e.payoutPercent ?? 0) || 0),
+    amountRupees: resolveLedgerPayoutRupees(e, legacyAmount),
     paidAmountRupees: numRupees(e, "paidAmountRupees", "paidAmountPaise", "paidAmount"),
     remainingRupees: numRupees(e, "remainingRupees", "remainingPaise", "remaining"),
     paidPercent: Number(e.paidPercent ?? 0) || 0,
     balanceStatus: String(e.balanceStatus ?? "PENDING").toUpperCase(),
+    pricingRuleVersion: settlement.pricingRuleVersion,
+    payoutModel: settlement.payoutModel,
+    grossPricePaise: settlement.grossPricePaise,
+    bookingPaise: settlement.bookingPaise,
+    balancePaise: settlement.balancePaise,
+    payoutPaise: settlement.payoutPaise,
+    platformFeePaise: settlement.platformFeePaise,
+    grossPriceRupees: settlement.grossPriceRupees,
+    bookingRupees: settlement.bookingRupees,
+    balanceRupees: settlement.balanceRupees,
+    payoutRupees: settlement.payoutRupees,
+    platformFeeRupees: settlement.platformFeeRupees,
   };
 }
 
@@ -197,17 +221,51 @@ export function mapCadWalletPendingSummaryResponse(raw, options = {}) {
       ? envelope.data
       : envelope;
 
-  const normalizeSingle = (singleRoot, payoutPercentSource = singleRoot) => ({
-    type: "single",
-    payoutPercent:
-      Number(
+  const normalizeSingle = (singleRoot, payoutMetaSource = singleRoot) => {
+    const item = mapCadUserPendingItem(singleRoot);
+    const settlement = mapLedgerSettlement({
+      ...(payoutMetaSource?.statistics ?? {}),
+      ...(singleRoot?.statistics ?? {}),
+      payoutPercent:
         singleRoot?.statistics?.payoutPercent ??
-          payoutPercentSource?.statistics?.payoutPercent ??
-          payoutPercentSource?.payoutPercent ??
-          0
-      ) || 0,
-    ...mapCadUserPendingItem(singleRoot),
-  });
+        payoutMetaSource?.statistics?.payoutPercent ??
+        payoutMetaSource?.payoutPercent,
+      payoutModel:
+        singleRoot?.statistics?.payoutModel ??
+        singleRoot?.payoutModel ??
+        payoutMetaSource?.statistics?.payoutModel ??
+        payoutMetaSource?.payoutModel,
+      pricingRuleVersion:
+        singleRoot?.statistics?.pricingRuleVersion ??
+        singleRoot?.pricingRuleVersion ??
+        payoutMetaSource?.statistics?.pricingRuleVersion ??
+        payoutMetaSource?.pricingRuleVersion,
+      payoutRupees:
+        singleRoot?.statistics?.payoutRupees ??
+        payoutMetaSource?.statistics?.payoutRupees ??
+        payoutMetaSource?.payoutRupees,
+      payoutPaise:
+        singleRoot?.statistics?.payoutPaise ??
+        payoutMetaSource?.statistics?.payoutPaise ??
+        payoutMetaSource?.payoutPaise,
+    });
+    return {
+      type: "single",
+      ...item,
+      /** @deprecated Prefer payoutModel + business-rules. */
+      payoutPercent:
+        Number(
+          singleRoot?.statistics?.payoutPercent ??
+            payoutMetaSource?.statistics?.payoutPercent ??
+            payoutMetaSource?.payoutPercent ??
+            0
+        ) || 0,
+      payoutModel: settlement.payoutModel ?? item.statistics?.payoutModel ?? null,
+      payoutRupees: settlement.payoutRupees ?? item.statistics?.payoutRupees ?? null,
+      pricingRuleVersion:
+        settlement.pricingRuleVersion ?? item.statistics?.pricingRuleVersion ?? null,
+    };
+  };
 
   if (root.cadUser && !Array.isArray(root.cadUsers)) {
     return normalizeSingle(root);
@@ -240,10 +298,23 @@ export function mapCadWalletPendingSummaryResponse(raw, options = {}) {
   }
 
   const statistics = mapCadPayoutStatistics(root.statistics ?? {});
+  const listSettlement = mapLedgerSettlement({
+    ...statistics,
+    payoutPercent: root.payoutPercent ?? statistics.payoutPercent,
+    payoutModel: root.payoutModel ?? statistics.payoutModel,
+    pricingRuleVersion: root.pricingRuleVersion ?? statistics.pricingRuleVersion,
+    payoutRupees: root.payoutRupees ?? statistics.payoutRupees,
+    payoutPaise: root.payoutPaise ?? statistics.payoutPaise,
+  });
   return {
     type: "list",
+    /** @deprecated Prefer payoutModel + business-rules. */
     payoutPercent:
       Number(root.payoutPercent ?? statistics.payoutPercent ?? 0) || 0,
+    payoutModel: listSettlement.payoutModel ?? statistics.payoutModel ?? null,
+    payoutRupees: listSettlement.payoutRupees ?? statistics.payoutRupees ?? null,
+    pricingRuleVersion:
+      listSettlement.pricingRuleVersion ?? statistics.pricingRuleVersion ?? null,
     totalPending: Number(root.totalPending ?? root.totalPendingRupees ?? 0) || 0,
     statistics,
     cadUsers: (Array.isArray(root.cadUsers) ? root.cadUsers : []).map(mapCadUserPendingItem),

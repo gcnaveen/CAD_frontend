@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { Button, Result, Spin, Typography, message } from "antd";
 import SketchPaymentRetryButton from "../components/payments/SketchPaymentRetryButton.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService";
 import {
   clearSketchPaymentContext,
+  isBalancePaymentCompleted,
+  isCadBalancePaymentPurpose,
   isSketchPaymentCompleted,
   normalizeSketchPaymentPageState,
+  readSketchPaymentContext,
   resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils";
 
@@ -31,6 +34,17 @@ export default function PaymentReturnPage() {
     [searchParams, location.state]
   );
 
+  const paymentPurpose = useMemo(
+    () =>
+      searchParams.get("purpose") ||
+      location.state?.purpose ||
+      readSketchPaymentContext()?.purpose ||
+      null,
+    [searchParams, location.state]
+  );
+
+  const isBalanceCheckout = isCadBalancePaymentPurpose(paymentPurpose);
+
   const querySummary = useMemo(() => {
     const keys = ["code", "status", "success", "merchantOrderId", "transactionId", "providerReferenceId"];
     const obj = {};
@@ -41,15 +55,18 @@ export default function PaymentReturnPage() {
     return obj;
   }, [searchParams]);
 
-  const applyUploadState = useCallback((data) => {
-    setUpload(data);
-    const nextState = normalizeSketchPaymentPageState(data);
-    setState(nextState);
-    if (nextState === "success") {
-      clearSketchPaymentContext();
-    }
-    return nextState;
-  }, []);
+  const applyUploadState = useCallback(
+    (data) => {
+      setUpload(data);
+      const nextState = normalizeSketchPaymentPageState(data, paymentPurpose);
+      setState(nextState);
+      if (nextState === "success") {
+        clearSketchPaymentContext();
+      }
+      return nextState;
+    },
+    [paymentPurpose]
+  );
 
   const refresh = useCallback(async () => {
     if (!uploadId) {
@@ -91,7 +108,11 @@ export default function PaymentReturnPage() {
           const res = await getSketchUploadById(uploadId);
           if (!res?.success || !res?.data) return;
 
-          if (isSketchPaymentCompleted(res.data)) {
+          const completed = isBalanceCheckout
+            ? isBalancePaymentCompleted(res.data)
+            : isSketchPaymentCompleted(res.data);
+
+          if (completed) {
             applyUploadState(res.data);
             if (pollTimerRef.current) clearInterval(pollTimerRef.current);
             return;
@@ -115,10 +136,10 @@ export default function PaymentReturnPage() {
       cancelled = true;
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [uploadId, refresh, applyUploadState]);
+  }, [uploadId, refresh, applyUploadState, isBalanceCheckout]);
 
   const retrySection =
-    uploadId && upload ? (
+    uploadId && upload && !isBalanceCheckout ? (
       <SketchPaymentRetryButton
         uploadId={uploadId}
         upload={upload}
@@ -130,7 +151,14 @@ export default function PaymentReturnPage() {
   const primaryActions = (
     <div className="flex flex-col items-center gap-3">
       <div className="flex flex-wrap gap-2 justify-center">
-        <Button type="primary" onClick={() => navigate("/dashboard/user/requests")}>
+        <Button
+          type="primary"
+          onClick={() =>
+            navigate("/dashboard/user/requests", {
+              state: uploadId ? { openOrderId: uploadId } : undefined,
+            })
+          }
+        >
           Go to Requests
         </Button>
         <Button onClick={refresh} disabled={loading}>
@@ -153,7 +181,7 @@ export default function PaymentReturnPage() {
     return (
       <Result
         status="success"
-        title="Payment successful"
+        title={isBalanceCheckout ? "Balance payment successful" : "Payment successful"}
         subTitle={
           <div>
             <Paragraph className="mb-0">
@@ -162,6 +190,11 @@ export default function PaymentReturnPage() {
             <Paragraph className="mb-0">
               <Text strong>Order status:</Text> {upload?.status || "—"}
             </Paragraph>
+            {isBalanceCheckout && (
+              <Paragraph className="mb-0">
+                CAD download is unlocked. Open the order to download files.
+              </Paragraph>
+            )}
           </div>
         }
         extra={primaryActions}

@@ -17,10 +17,11 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { setCredentials } from "../../features/auth/authSlice";
 import { updateUser } from "../../services/user/userService";
 import { uploadImageToS3 } from "../../services/upload/upload.service";
+import { getUploadErrorMessage } from "../../services/upload/upload.errors.js";
 import { cadBi, cadBiFmt } from "./cadBilingual";
 
 const { Title, Text } = Typography;
@@ -190,7 +191,7 @@ export default function CompleteProfile() {
       form.setFieldValue(fieldName, fileUrl);
       message.success(cadBi.profile.fileUploaded);
     } catch (error) {
-      message.error(error?.message || cadBi.profile.uploadFailed);
+      message.error(getUploadErrorMessage(error) || cadBi.profile.uploadFailed);
     } finally {
       setUploading((prev) => ({ ...prev, [fieldName]: false }));
     }

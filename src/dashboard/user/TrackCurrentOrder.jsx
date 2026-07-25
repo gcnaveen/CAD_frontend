@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Button, Spin, Empty, message } from "antd";
 import { ArrowLeft } from "lucide-react";
 import TrackOrderCard from "./component/TrackOrderCard";
 import { getSketchUploads } from "../../services/surveyor/sketchUploadService.js";
+import { getSketchStatusLabel } from "../../utils/lifecycleQc.js";
 
 const TrackCurrentOrder = () => {
   const navigate = useNavigate();
@@ -53,18 +54,8 @@ const TrackCurrentOrder = () => {
     navigate(-1);
   };
 
-  // Map API status to display format
-  const getStatusDisplay = (status) => {
-    const statusMap = {
-      PAYMENT_PENDING: "Payment Pending",
-      PENDING: "Pending Review",
-      UNDER_REVIEW: "Under Review",
-      UNDER_REVISION: "Under Revision",
-      APPROVED: "Approved",
-      REJECTED: "Rejected",
-    };
-    return statusMap[status] || status;
-  };
+  // M-08 lifecycleMachine labels (legacy UNDER_REVIEW → UNDER_REVISION)
+  const getStatusDisplay = (status) => getSketchStatusLabel(status);
 
   const renderContent = () => {
     if (loading) {
@@ -74,7 +65,7 @@ const TrackCurrentOrder = () => {
         </div>
       );
     }
-    
+
     if (orders.length === 0) {
       return (
         <Empty
@@ -94,6 +85,7 @@ const TrackCurrentOrder = () => {
               status={getStatusDisplay(order.status)}
               statusType={order.status}
               uploadId={order._id}
+              sla={order.sla || order.assignment?.sla}
               orderData={{
                 surveyType: order.surveyType,
                 district: order.district,

@@ -1,7 +1,8 @@
-/** Statuses where surveyors may submit CAD feedback. */
+import { canonicalizeSketchStatus } from "./lifecycleQc.js";
+
+/** Statuses where surveyors may submit CAD feedback (canonical M-08 codes). */
 export const FEEDBACK_ELIGIBLE_STATUSES = new Set([
   "CAD_DELIVERED",
-  "UNDER_REVIEW",
   "UNDER_REVISION",
   "APPROVED",
   "REJECTED",
@@ -22,7 +23,7 @@ export function extractFeedbackFromEntity(entity) {
 }
 
 export function isFeedbackEligibleStatus(status) {
-  return FEEDBACK_ELIGIBLE_STATUSES.has(String(status || "").toUpperCase());
+  return FEEDBACK_ELIGIBLE_STATUSES.has(canonicalizeSketchStatus(status));
 }
 
 export function canViewAssignmentFeedback(row) {

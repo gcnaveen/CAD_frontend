@@ -17,10 +17,11 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { setCredentials } from "../../features/auth/authSlice";
 import { getUserById, updateUser } from "../../services/user/userService";
 import { uploadImageToS3 } from "../../services/upload/upload.service";
+import { getUploadErrorMessage } from "../../services/upload/upload.errors.js";
 
 const { Title, Text } = Typography;
 
@@ -148,7 +149,7 @@ export default function EditProfile() {
       form.setFieldValue(fieldName, fileUrl);
       message.success("File uploaded successfully");
     } catch (error) {
-      message.error(error?.message || "Upload failed");
+      message.error(getUploadErrorMessage(error) || "Upload failed");
     } finally {
       setUploading((prev) => ({ ...prev, [fieldName]: false }));
     }

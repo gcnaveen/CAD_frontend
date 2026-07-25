@@ -8,6 +8,9 @@ import {
   normalizeFileList,
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils.js";
+import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
+import { getSlaRiskTone, resolveSla } from "../../../utils/sla.js";
 
 const { Text, Paragraph } = Typography;
 
@@ -36,17 +39,6 @@ const SINGLE_MODE_DOCUMENT_LABELS = {
 };
 
 /**
- * Status display mapping
- */
-const STATUS_DISPLAY = {
-  PENDING: "Pending Review",
-  UNDER_REVIEW: "Under Review",
-  UNDER_REVISION: "Under Revision",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-};
-
-/**
  * Status color mapping
  */
 const getStatusColor = (status) => {
@@ -56,6 +48,9 @@ const getStatusColor = (status) => {
     UNDER_REVISION: "processing",
     APPROVED: "success",
     REJECTED: "error",
+    PAYMENT_PENDING: "gold",
+    ASSIGNED: "processing",
+    CAD_DELIVERED: "cyan",
   };
   return colorMap[status] || "default";
 };
@@ -93,7 +88,7 @@ const formatDate = (dateString) => {
 /**
  * Reusable order tracking card with view-details drawer.
  * @param {string} projectNo - Project number (e.g. "1")
- * @param {string} status - Current order status display text (e.g. "Pending Review")
+ * @param {string} status - Lifecycle label from M-08 (e.g. "Queued for assignment")
  * @param {string} statusType - API status type (e.g. "PENDING", "APPROVED") for color coding
  * @param {string} uploadId - Upload ID to fetch details
  * @param {function} onViewDetails - Optional callback when view details is clicked
@@ -103,12 +98,16 @@ const TrackOrderCard = ({
   status = "CAD in Progress",
   statusType,
   uploadId,
+  sla: slaProp,
   onViewDetails,
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [downloadingByKey, setDownloadingByKey] = useState({});
+
+  const listSla = resolveSla({ sla: slaProp }) || null;
+  const cardSlaTone = getSlaRiskTone(listSla?.state);
 
   const fetchOrderDetails = useCallback(async () => {
     if (!uploadId) return;
@@ -181,6 +180,13 @@ const TrackOrderCard = ({
       <Card
         className="order-tracking-card overflow-hidden border-line shadow-sm transition-shadow hover:shadow-md"
         bordered
+        style={
+          cardSlaTone === "breached"
+            ? { borderColor: "var(--danger)" }
+            : cardSlaTone === "escalated" || cardSlaTone === "warning"
+              ? { borderColor: "var(--warning)" }
+              : undefined
+        }
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-start gap-4">
@@ -199,6 +205,14 @@ const TrackOrderCard = ({
                   {status}
                 </Tag>
               </p>
+              {(resolveSla(orderDetails) || listSla) ? (
+                <div className="mt-2">
+                  <SlaStatus
+                    sla={resolveSla(orderDetails) || listSla}
+                    compact
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
           <Button
@@ -299,8 +313,11 @@ const TrackOrderCard = ({
             >
               <Descriptions.Item label="Status">
                 <Tag color={getStatusColor(orderDetails.status)}>
-                  {STATUS_DISPLAY[orderDetails.status] || orderDetails.status || "-"}
+                  {getSketchStatusLabel(orderDetails.status)}
                 </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="SLA / deadline">
+                <SlaStatus entity={orderDetails} showPromise />
               </Descriptions.Item>
               <Descriptions.Item label="Status Note">
                 {orderDetails.statusNote || "-"}

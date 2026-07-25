@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router";
 import axios from "axios";
 import {
   ArrowLeft,
@@ -12,6 +12,12 @@ import {
 import ThemeToggle from "../../components/ThemeToggle.jsx";
 import InstallButton from "../../components/pwa/InstallButton.jsx";
 import { API_BASE_URL } from "../../../config";
+import { uploadImageToS3 } from "../../services/upload/upload.service.js";
+import {
+  getUploadErrorMessage,
+  UploadAuthRequiredError,
+} from "../../services/upload/upload.errors.js";
+import { TOKEN_KEY } from "../../services/apiClient.js";
 
 const STEPS = [
   { key: 1, label: "Profile", short: "You", Icon: User },
@@ -93,38 +99,25 @@ export default function Cadregisterform() {
     setIsResumeUploading(true);
 
     try {
+      // H-10: anonymous presign returns 401 — resume upload needs a signed-in user
+      if (!localStorage.getItem(TOKEN_KEY)) {
+        throw new UploadAuthRequiredError(
+          "Resume upload requires a signed-in account. You can submit without a resume, or sign in first."
+        );
+      }
       const entityId =
         digitsOnly(form.mobile) ||
         form.email.trim() ||
         `cad-interest-${Date.now()}`;
-      const presignedResponse = await publicApiClient.post("/api/upload/image", {
-        fileName: file.name,
-        contentType: file.type || "application/pdf",
-        entityId,
-      });
-      const presigned = presignedResponse?.data?.data ?? presignedResponse?.data;
-      const { uploadUrl, fileUrl } = presigned || {};
-      if (!uploadUrl || !fileUrl) {
-        throw new Error("Failed to get upload URL for resume");
-      }
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/pdf",
-        },
-      });
-      if (!uploadResponse.ok) {
-        throw new Error("Resume upload failed");
-      }
-
+      const { fileUrl } = await uploadImageToS3(file, entityId);
       setField("resumeUrl", fileUrl);
       setResumeFileName(file.name);
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        resumeUrl: error?.message || "Unable to upload resume right now. Please try again.",
+        resumeUrl:
+          getUploadErrorMessage(error) ||
+          "Unable to upload resume right now. Please try again.",
       }));
     } finally {
       ev.target.value = "";
@@ -464,10 +457,12 @@ export default function Cadregisterform() {
           {step === 1 && (
             <div className="flex flex-1 flex-col gap-5">
               <Field
+                id="cad-reg-full-name"
                 label="Full name"
                 error={errors.fullName}
                 input={
                   <input
+                    name="fullName"
                     className={inputClass("fullName")}
                     placeholder="Enter your full name"
                     value={form.fullName}
@@ -477,10 +472,13 @@ export default function Cadregisterform() {
                 }
               />
               <Field
+                id="cad-reg-mobile"
                 label="Mobile number"
                 error={errors.mobile}
                 input={
                   <input
+                    name="phone"
+                    type="tel"
                     className={inputClass("mobile")}
                     placeholder="10-digit Indian mobile"
                     inputMode="numeric"
@@ -494,10 +492,12 @@ export default function Cadregisterform() {
                 }
               />
               <Field
+                id="cad-reg-email"
                 label="Email"
                 error={errors.email}
                 input={
                   <input
+                    name="email"
                     className={inputClass("email")}
                     type="email"
                     placeholder="you@example.com"
@@ -513,16 +513,20 @@ export default function Cadregisterform() {
           {step === 2 && (
             <div className="flex flex-1 flex-col gap-5">
               <Field
+                id="cad-reg-address"
                 label="Address (optional)"
                 error={errors.address}
+                required={false}
                 hint="If you add it: city, district, PIN — helps match you to nearby survey clusters."
                 input={
                   <textarea
+                    name="address"
                     className={`${inputClass("address")} min-h-[140px] resize-y`}
                     placeholder="House / street, area, city, district, state, PIN"
                     value={form.address}
                     onChange={(e) => setField("address", e.target.value)}
                     rows={5}
+                    autoComplete="street-address"
                   />
                 }
               />
@@ -532,11 +536,13 @@ export default function Cadregisterform() {
           {step === 3 && (
             <div className="flex flex-1 flex-col gap-5">
               <Field
+                id="cad-reg-skills"
                 label="Skills"
                 error={errors.skills}
                 hint="e.g. 2D survey drafting, layers & xrefs, Tippani / RTC packages"
                 input={
                   <textarea
+                    name="skills"
                     className={`${inputClass("skills")} min-h-[120px] resize-y`}
                     placeholder="List software versions, specializations, and drawing types you handle best"
                     value={form.skills}
@@ -546,10 +552,12 @@ export default function Cadregisterform() {
                 }
               />
               <Field
+                id="cad-reg-years"
                 label="Years of experience"
                 error={errors.yearsExperience}
                 input={
                   <input
+                    name="yearsExperience"
                     className={inputClass("yearsExperience")}
                     type="number"
                     min={0}
@@ -562,12 +570,30 @@ export default function Cadregisterform() {
                 }
               />
               <Field
+                id="cad-reg-resume-file"
                 label="Resume (optional)"
                 error={errors.resumeUrl}
+                required={false}
                 hint="Upload PDF/DOC/DOCX (max 10MB). It will be attached as a link."
                 input={
                   <div className="flex flex-col gap-2.5">
-                    <label
+                    <input
+                      id="cad-reg-resume-file"
+                      name="resume"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleResumeUpload}
+                      disabled={isResumeUploading}
+                      className="sr-only"
+                      aria-describedby={[
+                        "cad-reg-resume-file-hint",
+                        errors.resumeUrl ? "cad-reg-resume-file-error" : null,
+                      ].filter(Boolean).join(" ")}
+                    />
+                    <button
+                      type="button"
+                      disabled={isResumeUploading}
+                      onClick={() => document.getElementById("cad-reg-resume-file")?.click()}
                       className="inline-flex w-fit cursor-pointer items-center justify-center rounded-full px-4 py-2.5 text-[13px] font-semibold transition-transform hover:scale-[1.01]"
                       style={{
                         background: "rgba(255,255,255,0.08)",
@@ -575,15 +601,8 @@ export default function Cadregisterform() {
                         color: "rgba(248,250,252,0.9)",
                       }}
                     >
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleResumeUpload}
-                        disabled={isResumeUploading}
-                        className="hidden"
-                      />
                       {isResumeUploading ? "Uploading resume..." : "Upload resume"}
-                    </label>
+                    </button>
                     {form.resumeUrl && (
                       <div
                         className="flex items-center justify-between gap-2 rounded-[12px] border px-3 py-2"
@@ -698,21 +717,41 @@ export default function Cadregisterform() {
   );
 }
 
-function Field({ label, hint, error, input }) {
+function Field({ id, label, hint, error, required = true, input }) {
+  const hintId = hint ? `${id}-hint` : null;
+  const errorId = error ? `${id}-error` : null;
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+  const isNativeControl =
+    React.isValidElement(input) &&
+    typeof input.type === "string" &&
+    ["input", "textarea", "select"].includes(input.type);
+  const control = isNativeControl
+    ? React.cloneElement(input, {
+        id,
+        "aria-required": required ? "true" : undefined,
+        "aria-invalid": error ? "true" : "false",
+        "aria-describedby": describedBy,
+      })
+    : input;
+
   return (
     <div>
       <label
+        htmlFor={id}
         className="mb-2 block text-[11px] font-bold uppercase tracking-[0.12em]"
         style={{ color: "rgba(201,168,76,0.85)" }}
       >
         {label}
       </label>
-      {input}
+      {control}
       {hint && !error && (
-        <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "rgba(226,232,240,0.45)" }}>{hint}</p>
+        <p id={hintId} style={{ margin: "6px 0 0 0", fontSize: "12px", color: "rgba(226,232,240,0.45)" }}>{hint}</p>
+      )}
+      {hint && error && (
+        <p id={hintId} className="sr-only">{hint}</p>
       )}
       {error && (
-        <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#fca5a5" }}>{error}</p>
+        <p id={errorId} role="alert" style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#fca5a5" }}>{error}</p>
       )}
     </div>
   );

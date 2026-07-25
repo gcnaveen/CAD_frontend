@@ -1,0 +1,55 @@
+{
+  "version": "M-08",
+  "description": "Single source for sketch lifecycle labels, QC copy, notification triggers, and analytics keys. Prefer GET /api/public/business-rules → lifecycleMachine + qc; keep this snapshot identical.",
+  "lifecycleMachine": {
+    "labels": {
+      "PAYMENT_PENDING": "Awaiting booking payment",
+      "PENDING": "Queued for assignment",
+      "ASSIGNED": "With CAD",
+      "CAD_DELIVERED": "Delivered (balance may apply)",
+      "UNDER_REVISION": "Revision in flight",
+      "APPROVED": "Completed",
+      "REJECTED": "Cancelled"
+    },
+    "sketchStatuses": [
+      { "code": "PAYMENT_PENDING", "label": "Awaiting booking payment" },
+      { "code": "PENDING", "label": "Queued for assignment" },
+      { "code": "ASSIGNED", "label": "With CAD" },
+      { "code": "CAD_DELIVERED", "label": "Delivered (balance may apply)" },
+      { "code": "UNDER_REVISION", "label": "Revision in flight" },
+      { "code": "APPROVED", "label": "Completed" },
+      { "code": "REJECTED", "label": "Cancelled" }
+    ],
+    "legacySketchStatusMap": {
+      "UNDER_REVIEW": "UNDER_REVISION"
+    },
+    "notificationTriggers": [
+      "sketch.payment_pending",
+      "sketch.queued",
+      "sketch.assigned",
+      "sketch.cad_delivered",
+      "sketch.under_revision",
+      "sketch.approved",
+      "sketch.rejected"
+    ],
+    "analyticsKeys": [
+      "lifecycle.payment_pending",
+      "lifecycle.pending",
+      "lifecycle.assigned",
+      "lifecycle.cad_delivered",
+      "lifecycle.under_revision",
+      "lifecycle.approved",
+      "lifecycle.rejected"
+    ]
+  },
+  "qc": {
+    "checkCount": 10,
+    "checklistId": "11E",
+    "expressSameChecklist": true,
+    "approvedCopy": "Every drawing is QC-checked against the approved 11E 10-point checklist before release.",
+    "expressCopy": "Express orders use the same 11E 10-point checklist — no reduced QC path.",
+    "includedBullet": "QC-checked against the approved 11E 10-point checklist before release",
+    "statValue": "10",
+    "statLabel": "Point QC checklist (11E)"
+  }
+}

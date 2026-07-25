@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ConfigProvider } from "antd";
-import { App as AntdApp } from "antd";
 import { ThemeContext } from "./ThemeContext.js";
 import { THEME_STORAGE_KEY, THEME_PREFERENCE } from "./themeConstants.js";
-import { buildAntdTheme } from "./buildAntdTheme.js";
 
 function readStoredPreference() {
   try {
@@ -41,6 +38,10 @@ function applyDomTheme(resolved) {
   root.style.colorScheme = dark ? "dark" : "light";
 }
 
+/**
+ * CSS-variable theme only — no Ant Design on the critical path (M-05).
+ * Authenticated shells wrap with `AntdShellProvider`.
+ */
 export function ThemeProvider({ children }) {
   const [preference, setPreferenceState] = useState(() =>
     typeof window !== "undefined" ? readStoredPreference() : THEME_PREFERENCE.SYSTEM,
@@ -92,24 +93,10 @@ export function ThemeProvider({ children }) {
       preference,
       setPreference,
       toggleTheme,
+      antdReady: false,
     }),
     [resolvedTheme, preference, setPreference, toggleTheme],
   );
 
-  const isDark = resolvedTheme === "dark";
-  const antdConfig = useMemo(() => buildAntdTheme(isDark), [isDark]);
-
-  return (
-    <ThemeContext.Provider value={ctx}>
-      <ConfigProvider theme={antdConfig}>
-        <AntdApp
-          className="app-antd-root"
-          message={{ className: "app-antd-message" }}
-          notification={{ className: "app-antd-notification" }}
-        >
-          {children}
-        </AntdApp>
-      </ConfigProvider>
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={ctx}>{children}</ThemeContext.Provider>;
 }

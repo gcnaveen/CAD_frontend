@@ -1,23 +1,17 @@
-import { Button, App } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
 import { useInstallPrompt } from "../../hooks/useInstallPrompt.js";
 
 /**
- * Shows only when the browser exposes a PWA install prompt (`beforeinstallprompt`).
- * Must render under Ant Design `<App>` (see `main.jsx`) so toast works.
+ * Native install CTA — avoids pulling Ant Design onto public pages (M-05).
  */
 export default function InstallButton({
-  type = "default",
-  size = "middle",
   children = "Install app",
   className,
   style,
   showLabel = true,
 }) {
-  const { message } = App.useApp();
   const { installable, installApp } = useInstallPrompt({
     onInstalled: () => {
-      message.success("App installed");
+      /* no antd toast on public shell */
     },
     onUserChoice: (outcome) => {
       if (import.meta.env.DEV) {
@@ -31,16 +25,36 @@ export default function InstallButton({
   }
 
   return (
-    <Button
-      type={type}
-      size={size}
-      icon={<DownloadOutlined />}
+    <button
+      type="button"
       onClick={() => void installApp()}
       className={className}
-      style={style}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: "6px 12px",
+        borderRadius: 8,
+        border: "1px solid currentColor",
+        background: "transparent",
+        cursor: "pointer",
+        fontSize: 13,
+        fontWeight: 600,
+        ...style,
+      }}
       aria-label={typeof children === "string" ? children : "Install app"}
     >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
       {showLabel ? children : null}
-    </Button>
+    </button>
   );
 }

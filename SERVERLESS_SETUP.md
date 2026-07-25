@@ -49,12 +49,14 @@ Make sure your API Gateway:
 ## Troubleshooting
 
 ### CORS Errors
-If you see CORS errors, add CORS headers in your Lambda/API Gateway:
+If you see CORS errors, configure the API allow-list (backend env). **Never use `*` in production.**
+
+```bash
+# Prod: exact browser origins only (no localhost)
+CORS_ALLOW_ORIGINS=https://app.yourdomain.com,https://www.yourdomain.com
 ```
-Access-Control-Allow-Origin: http://localhost:5173 (dev) or your domain (prod)
-Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Authorization
-```
+
+Dev may include `http://localhost:5173`. HTML-site CSP/headers are separate — see `docs/SECURITY_M01_CORS_HEADERS.md`.
 
 ### 404 Errors
 - Check that your API Gateway routes include `/api` prefix

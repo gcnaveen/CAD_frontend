@@ -1,5 +1,6 @@
 import apiClient from "./apiClient.js";
 import { getSketchUploadById } from "./surveyor/sketchUploadService.js";
+import { normalizeSurveySketchStatusesPayload } from "../utils/lifecycleQc.js";
 
 function handleError(error, fallbackMessage) {
   const message = error.response?.data?.message ?? error.message ?? fallbackMessage;
@@ -172,7 +173,7 @@ export function buildCreateAssignmentPayload(payload = {}) {
     payload.cadCenterId;
   const body = { surveyorSketchUploadId };
   if (assignedCadUserId) body.assignedCadUserId = String(assignedCadUserId);
-  if (payload.dueDate) body.dueDate = payload.dueDate;
+  // M-10: client dueDate is ignored for SLA authority — do not send.
   if (payload.notes != null) body.notes = payload.notes;
   return body;
 }
@@ -562,7 +563,7 @@ export function formatUserDisplayLabel(input) {
 export async function getSurveySketchStatuses() {
   try {
     const { data } = await apiClient.get("/api/admin/survey-sketch-statuses");
-    return unwrapData(data);
+    return normalizeSurveySketchStatusesPayload(unwrapData(data) ?? data);
   } catch (error) {
     handleError(error, "Failed to fetch survey sketch statuses");
   }
@@ -678,6 +679,9 @@ export async function updateAssignment(id, payload) {
     const patchBody = { ...payload };
     delete patchBody.surveyorSketchUploadId;
     delete patchBody.sketchUploadId;
+    // M-10: client dueDate is ignored for SLA authority — do not send.
+    delete patchBody.dueDate;
+    delete patchBody.dueAt;
     if (patchBody.assignedToUserId && !patchBody.assignedCadUserId) {
       patchBody.assignedCadUserId = patchBody.assignedToUserId;
       delete patchBody.assignedToUserId;
@@ -686,6 +690,41 @@ export async function updateAssignment(id, payload) {
     return unwrapData(data);
   } catch (error) {
     handleError(error, "Failed to update assignment");
+  }
+}
+
+/**
+ * Extend assignment SLA (M-10).
+ * POST /api/admin/survey-sketch-assignments/{assignmentId}/sla-extend
+ * @param {string} assignmentId
+ * @param {{ hours?: number, ms?: number, reason: string }} body
+ */
+export async function extendAssignmentSla(assignmentId, body = {}) {
+  try {
+    if (!assignmentId) throw new Error("assignmentId is required");
+    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+    if (!reason) throw new Error("reason is required");
+
+    const payload = { reason };
+    if (body.ms != null && body.ms !== "") {
+      const ms = Number(body.ms);
+      if (!Number.isFinite(ms) || ms <= 0) throw new Error("ms must be a positive number");
+      payload.ms = ms;
+    } else {
+      const hours = Number(body.hours);
+      if (!Number.isFinite(hours) || hours <= 0) {
+        throw new Error("hours must be a positive number");
+      }
+      payload.hours = hours;
+    }
+
+    const { data } = await apiClient.post(
+      `/api/admin/survey-sketch-assignments/${assignmentId}/sla-extend`,
+      payload
+    );
+    return unwrapData(data);
+  } catch (error) {
+    handleError(error, "Failed to extend assignment SLA");
   }
 }
 

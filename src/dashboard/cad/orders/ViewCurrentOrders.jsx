@@ -13,7 +13,17 @@ import {
   resolveCadAssignmentStatus,
   respondCadAssignment,
 } from "../../../services/assignmentApi";
-import { uploadImageToS3 } from "../../../services/upload/upload.service";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
+import { getSlaRiskTone, resolveSla } from "../../../utils/sla.js";
+import {
+  uploadCadDeliverableToS3,
+  validateCadDeliverableFiles,
+  toCadDeliverFilePayload,
+} from "../../../services/upload/upload.service";
+import {
+  getUploadErrorMessage,
+  isFileQuarantined,
+} from "../../../services/upload/upload.errors.js";
 import {
   flattenDocumentEntries,
   hasUploadedFiles,
@@ -161,7 +171,7 @@ const ViewCurrentOrders = () => {
       applicationId: sketchData.applicationId || upload.applicationId || "—",
       surveyNo: sketchData.surveyNo || upload.surveyNo || "—",
       locationSummary: locationLine || "—",
-      dueDate: assignment.dueDate || "",
+      sla: resolveSla(assignment),
       assignedByLabel: formatUserDisplayLabel(assignment.assignedBy) || "—",
       orderDate: assignment.assignedAt || assignment.createdAt || "",
       customerName:
@@ -325,28 +335,48 @@ const ViewCurrentOrders = () => {
       message.warning(cadBi.orders.selectCadFile);
       return;
     }
+
+    // H-12: at least one confirmed .dwg/.dxf source; PDF/image-only is rejected
+    const validation = validateCadDeliverableFiles(files);
+    if (!validation.valid) {
+      message.warning(validation.error || cadBi.orders.selectCadFile);
+      return;
+    }
+
     setActionLoading(target.assignmentId, true);
     try {
       const entityId = target.uploadId || target.assignmentId;
-      const uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const { fileUrl } = await uploadImageToS3(file, entityId);
-          return {
-            url: fileUrl,
-            fileName: file.name,
-            mimeType: file.type || "application/octet-stream",
-            size: file.size || 0,
-            uploadedAt: new Date().toISOString(),
-          };
-        })
-      );
+      const uploadedFiles = [];
+      for (const file of files) {
+        try {
+          const uploaded = await uploadCadDeliverableToS3(file, entityId);
+          uploadedFiles.push(toCadDeliverFilePayload(uploaded));
+        } catch (err) {
+          if (isFileQuarantined(err)) {
+            message.error(`${file.name}: ${getUploadErrorMessage(err)}`);
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      const hasSource = uploadedFiles.some((f) => f.role === "source");
+      if (!uploadedFiles.length) {
+        message.error(cadBi.orders.deliverFail);
+        return;
+      }
+      if (!hasSource) {
+        message.error(cadBi.orders.cadSourceRequired);
+        return;
+      }
+
       await deliverCadAssignment(target.assignmentId, { files: uploadedFiles });
       message.success(cadBi.orders.cadDelivered);
       await fetchAssignments({ page: pagination.page, limit: pagination.limit });
       setDrawerOpen(false);
       setSelectedOrder(null);
     } catch (error) {
-      message.error(error?.message || cadBi.orders.deliverFail);
+      message.error(getUploadErrorMessage(error) || cadBi.orders.deliverFail);
       throw error;
     } finally {
       setActionLoading(target.assignmentId, false);
@@ -381,7 +411,7 @@ const ViewCurrentOrders = () => {
       render: (value) => (
         <span className="cad-table-date">{value ? new Date(value).toLocaleString("en-IN") : "—"}</span>
       ),
-      sorter: (a, b) => new Date(a.orderDate || 0) - new Date(b.orderDate || 0),
+      sorter: false, // Prefer API SLA risk order
     },
     {
       title: <BilingualTableTitle label={cadBi.orders.applicationId} />,
@@ -409,14 +439,11 @@ const ViewCurrentOrders = () => {
     //   width: 220,
     // },
     {
-      title: <BilingualTableTitle label={cadBi.orders.dueDate} />,
-      dataIndex: "dueDate",
-      key: "dueDate",
-      width: 148,
-      render: (value) => (
-        <span className="cad-table-date">{value ? new Date(value).toLocaleString("en-IN") : "—"}</span>
-      ),
-      sorter: (a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0),
+      title: <BilingualTableTitle label={cadBi.orders.sla} />,
+      dataIndex: "sla",
+      key: "sla",
+      width: 200,
+      render: (sla) => <SlaStatus sla={sla} compact />,
     },
     // {
     //   title: "Assigned by",
@@ -534,6 +561,17 @@ const ViewCurrentOrders = () => {
           onChange={handleTableChange}
           tableLayout="fixed"
           size="middle"
+          onRow={(record) => {
+            const tone = getSlaRiskTone(record?.sla?.state);
+            if (!tone) return {};
+            const bg =
+              tone === "breached"
+                ? "color-mix(in srgb, var(--danger) 10%, transparent)"
+                : tone === "escalated"
+                  ? "color-mix(in srgb, #fa8c16 12%, transparent)"
+                  : "color-mix(in srgb, var(--warning) 12%, transparent)";
+            return { style: { background: bg } };
+          }}
           pagination={{
             current: pagination.page,
             pageSize: pagination.limit,

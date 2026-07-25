@@ -16,15 +16,23 @@ import {
   FormOutlined,
   MoneyCollectOutlined,
   PayCircleOutlined,
+  AuditOutlined,
+  CloudServerOutlined,
   FileSearchOutlined,
   SolutionOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
+import {
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
+import BuildProvenanceFooter from "../../../components/BuildProvenanceFooter.jsx";
 import "./superadminlayout.css";
 
 const { Header, Sider, Content } = Layout;
@@ -48,6 +56,18 @@ const allMenuItems = [
     icon: <MoneyCollectOutlined />,
     label: "Sketch pricing",
     roles: ["SUPER_ADMIN"],
+  },
+  {
+    key: "/superadmin/payments/reconciliation",
+    icon: <AuditOutlined />,
+    label: "Payment reconciliation",
+    roles: ["ADMIN", "SUPER_ADMIN"],
+  },
+  {
+    key: "/superadmin/ops",
+    icon: <CloudServerOutlined />,
+    label: "Ops",
+    roles: ["ADMIN", "SUPER_ADMIN"],
   },
   {
     key: "/superadmin/pay-cad-user",
@@ -88,7 +108,12 @@ const allMenuItems = [
     label: "Sketch Assignments",
     roles: ["ADMIN", "SUPER_ADMIN"],
   },
-  
+  {
+    key: "/superadmin/auto-assign/exceptions",
+    icon: <WarningOutlined />,
+    label: "Auto-assign exceptions",
+    roles: ["ADMIN", "SUPER_ADMIN"],
+  },
   {
     key: "/superadmin/user-surveyor-details",
     icon: <SearchOutlined />,
@@ -107,37 +132,28 @@ const SuperAdminLayout = () => {
   const dispatch = useDispatch();
   const isMasterPath = masterPaths.includes(location.pathname);
 
-  const userRole = useSelector((state) => state.auth?.role);
-  const currentRole = userRole || (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored)?.role : null;
-    } catch {
-      return null;
-    }
-  })();
+  const currentRole = normalizeRoleKey(
+    useSelector((state) =>
+      resolveStoredUserRole(state.auth?.role, state.auth?.user?.role)
+    )
+  );
 
-  const getFilteredMenuItems = () => {
-    return allMenuItems.filter((item) => {
-      if (item.roles && !item.roles.includes(currentRole)) {
-        return false;
-      }
+  const roleMaySee = (itemRoles) =>
+    !itemRoles || (currentRole && itemRoles.includes(currentRole));
+
+  const menuItems = allMenuItems
+    .map((item) => {
+      if (!roleMaySee(item.roles)) return null;
       if (item.children) {
-        item.children = item.children.filter((child) => {
-          if (child.roles && !child.roles.includes(currentRole)) {
-            return false;
-          }
-          return true;
-        });
-        if (item.children.length === 0) {
-          return false;
-        }
+        const children = item.children.filter((child) =>
+          roleMaySee(child.roles)
+        );
+        if (children.length === 0) return null;
+        return { ...item, children };
       }
-      return true;
-    });
-  };
-
-  const menuItems = getFilteredMenuItems();
+      return item;
+    })
+    .filter(Boolean);
 
   React.useEffect(() => {
     if (isMasterPath) {
@@ -222,7 +238,7 @@ const SuperAdminLayout = () => {
             }}
           >
             <img
-              src="/assets/logo.png"
+              src="/assets/logo.webp"
               alt="North Cot CAD"
               style={{
                 width: "100%",
@@ -377,6 +393,7 @@ const SuperAdminLayout = () => {
           }}
         >
           <Outlet />
+          <BuildProvenanceFooter />
         </Content>
       </Layout>
     </Layout>

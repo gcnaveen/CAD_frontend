@@ -18,16 +18,23 @@ import {
   enrichAdminAssignmentTableRows,
   extractUploadsListResponse,
 } from "../services/admin/adminAssignmentsTableService.js";
+import {
+  loadManualAssignGates,
+  normalizeAssignmentFlow,
+  parseManualAssignBlocked,
+} from "../services/admin/autoAssignAdminService.js";
 import AssignmentFlowToggle from "../components/assignments/AssignmentFlowToggle.jsx";
 import SketchTable from "../components/assignments/SketchTable.jsx";
 import AssignmentFeedbackViewer from "../components/assignments/AssignmentFeedbackViewer.jsx";
 import AssignmentModal from "../components/assignments/AssignmentModal.jsx";
+import SlaExtendModal from "../components/sla/SlaExtendModal.jsx";
 import { extractFeedbackFromEntity } from "../utils/assignmentFeedbackUtils.js";
+import { canonicalizeSketchStatus } from "../utils/lifecycleQc.js";
 
 function normalizeStatuses(payload) {
   if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.statuses)) return payload.statuses;
+  if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 }
@@ -43,10 +50,16 @@ export default function AdminAssignmentsPage() {
   const allowed = roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN;
 
   const [autoAssignEnabled, setAutoAssignEnabled] = React.useState(false);
+  const [flowPolicy, setFlowPolicy] = React.useState(null);
+  const [exceptionQueueTotal, setExceptionQueueTotal] = React.useState(0);
+  const [manualAssignHint, setManualAssignHint] = React.useState("");
   const [flowLoading, setFlowLoading] = React.useState(false);
   const [statuses, setStatuses] = React.useState([]);
+  const [statusMeta, setStatusMeta] = React.useState(null);
   const [statusFilter, setStatusFilter] = React.useState("");
   const [rows, setRows] = React.useState([]);
+  const [manualGates, setManualGates] = React.useState({});
+  const [gatesLoading, setGatesLoading] = React.useState(false);
   const [tableLoading, setTableLoading] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
@@ -62,6 +75,17 @@ export default function AdminAssignmentsPage() {
   const [feedbackSketch, setFeedbackSketch] = React.useState(null);
   const [feedbackLoading, setFeedbackLoading] = React.useState(false);
   const [pageError, setPageError] = React.useState("");
+  const [slaExtendOpen, setSlaExtendOpen] = React.useState(false);
+  const [slaExtendAssignmentId, setSlaExtendAssignmentId] = React.useState(null);
+
+  const applyFlow = React.useCallback((flowRaw) => {
+    const flow = normalizeAssignmentFlow(flowRaw);
+    setAutoAssignEnabled(flow.autoAssignEnabled);
+    setFlowPolicy(flow.policy);
+    setExceptionQueueTotal(flow.exceptionQueueTotal);
+    setManualAssignHint(flow.manualAssignHint);
+    return flow;
+  }, []);
 
   const loadTop = React.useCallback(async () => {
     if (!allowed) return;
@@ -72,25 +96,30 @@ export default function AdminAssignmentsPage() {
         getSurveySketchStatuses(),
         cadUsers.length ? Promise.resolve(cadUsers) : getCadUsers(),
       ]);
-      const enabled =
-        flow?.autoAssignEnabled ??
-        flow?.enabled ??
-        flow?.isAuto ??
-        flow?.auto ??
-        flow?.autoAssign ??
-        false;
-      setAutoAssignEnabled(Boolean(enabled));
+      applyFlow(flow);
       setStatuses(normalizeStatuses(st));
+      setStatusMeta(
+        st && typeof st === "object" && !Array.isArray(st)
+          ? {
+              labels: st.labels,
+              transitions: st.transitions,
+              qc: st.qc,
+              notificationTriggers: st.notificationTriggers,
+              analyticsKeys: st.analyticsKeys,
+            }
+          : null
+      );
       if (!cadUsers.length && users?.length) setCadUsers(users);
     } catch (err) {
       if (err?.status === 403) setPageError("No permission");
       else setPageError(err?.message || "Failed to load assignment module");
     }
-  }, [allowed, cadUsers.length]);
+  }, [allowed, cadUsers.length, applyFlow]);
 
   const loadTable = React.useCallback(async () => {
     if (!allowed) return;
     setTableLoading(true);
+    setGatesLoading(true);
     setPageError("");
     try {
       const resp = await getSurveySketchUploads(statusFilter, page, limit);
@@ -105,12 +134,26 @@ export default function AdminAssignmentsPage() {
 
       const enriched = await enrichAdminAssignmentTableRows(uploads, users);
       setRows(enriched);
+
+      const pendingIds = enriched
+        .filter((row) => canonicalizeSketchStatus(row?.status) === "PENDING")
+        .map((row) => row?._id ?? row?.id)
+        .filter(Boolean);
+
+      if (pendingIds.length) {
+        const gates = await loadManualAssignGates(pendingIds);
+        setManualGates(gates);
+      } else {
+        setManualGates({});
+      }
     } catch (err) {
       if (err?.status === 403) setPageError("No permission");
       else setPageError(err?.message || "Failed to load sketches");
       setRows([]);
+      setManualGates({});
     } finally {
       setTableLoading(false);
+      setGatesLoading(false);
     }
   }, [allowed, statusFilter, page, limit, cadUsers]);
 
@@ -126,8 +169,11 @@ export default function AdminAssignmentsPage() {
     setFlowLoading(true);
     setPageError("");
     try {
-      await updateAssignmentFlow({ autoAssignEnabled: Boolean(nextAutoEnabled) });
-      setAutoAssignEnabled(Boolean(nextAutoEnabled));
+      const updated = await updateAssignmentFlow({
+        autoAssignEnabled: Boolean(nextAutoEnabled),
+      });
+      applyFlow(updated ?? { autoAssignEnabled: nextAutoEnabled });
+      await loadTable();
     } catch (err) {
       if (err?.status === 403) setPageError("No permission");
       else setPageError(err?.message || "Failed to update assignment flow");
@@ -158,10 +204,6 @@ export default function AdminAssignmentsPage() {
     setModalMode("edit");
     setModalInitial({
       status: sketch?.status ?? "",
-      dueDate:
-        sketch?.assignment?.dueDate?.slice?.(0, 10) ??
-        sketch?.dueDate?.slice?.(0, 10) ??
-        "",
       notes: sketch?.assignment?.notes ?? sketch?.notes ?? "",
     });
     setModalOpen(true);
@@ -200,6 +242,16 @@ export default function AdminAssignmentsPage() {
     loadTable();
   };
 
+  const openExtendSla = (row) => {
+    const assignmentId = getAssignmentIdFromSketch(row);
+    if (!assignmentId) {
+      message.error("Missing assignment id for this sketch");
+      return;
+    }
+    setSlaExtendAssignmentId(assignmentId);
+    setSlaExtendOpen(true);
+  };
+
   const submitModal = async (payload) => {
     setModalLoading(true);
     setModalError("");
@@ -212,11 +264,19 @@ export default function AdminAssignmentsPage() {
         await updateAssignment(assignmentId, payload);
       }
       closeModal();
+      await loadTop();
       await loadTable();
     } catch (err) {
-      if (err?.status === 409) setModalError("Sketch already assigned");
-      else if (err?.status === 403) setModalError("No permission");
-      else setModalError(err?.message || "Failed to save assignment");
+      const blocked = parseManualAssignBlocked(err);
+      if (blocked.blocked) {
+        setModalError(blocked.message);
+      } else if (err?.status === 409) {
+        setModalError("Sketch already assigned");
+      } else if (err?.status === 403) {
+        setModalError("No permission");
+      } else {
+        setModalError(err?.message || "Failed to save assignment");
+      }
     } finally {
       setModalLoading(false);
     }
@@ -260,10 +320,19 @@ export default function AdminAssignmentsPage() {
           <div className="mt-1 text-sm text-fg-muted">
             Assign CAD users and view surveyor feedback after delivery.
           </div>
+          {statusMeta?.qc?.approvedCopy ? (
+            <div className="mt-1 text-xs text-fg-muted">
+              QC ({statusMeta.qc.checkCount || 10}-point {statusMeta.qc.checklistId || "11E"}):{" "}
+              {statusMeta.qc.approvedCopy}
+            </div>
+          ) : null}
         </div>
         <button
           type="button"
-          onClick={() => loadTable()}
+          onClick={() => {
+            loadTop();
+            loadTable();
+          }}
           disabled={tableLoading}
           className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
         >
@@ -277,7 +346,14 @@ export default function AdminAssignmentsPage() {
         </div>
       ) : null}
 
-      <AssignmentFlowToggle value={autoAssignEnabled} loading={flowLoading} onChange={onToggleFlow} />
+      <AssignmentFlowToggle
+        value={autoAssignEnabled}
+        loading={flowLoading}
+        onChange={onToggleFlow}
+        policy={flowPolicy}
+        exceptionQueueTotal={exceptionQueueTotal}
+        manualAssignHint={manualAssignHint}
+      />
 
       <div className="rounded-xl border border-line bg-surface p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -361,9 +437,12 @@ export default function AdminAssignmentsPage() {
         rows={rows}
         loading={tableLoading}
         autoAssignEnabled={autoAssignEnabled}
+        manualGates={manualGates}
+        gatesLoading={gatesLoading}
         onAssignClick={openAssign}
         onEditClick={openEdit}
         onFeedbackClick={openFeedback}
+        onExtendSlaClick={openExtendSla}
       />
 
       <Drawer
@@ -409,6 +488,18 @@ export default function AdminAssignmentsPage() {
         errorText={modalError}
         onClose={closeModal}
         onSubmit={submitModal}
+      />
+
+      <SlaExtendModal
+        open={slaExtendOpen}
+        assignmentId={slaExtendAssignmentId}
+        onClose={() => {
+          setSlaExtendOpen(false);
+          setSlaExtendAssignmentId(null);
+        }}
+        onSuccess={() => {
+          loadTable();
+        }}
       />
     </div>
   );

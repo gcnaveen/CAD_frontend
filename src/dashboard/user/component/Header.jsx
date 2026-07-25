@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useLocation } from "react-router";
+import { useDispatch } from "react-redux";
 import { Avatar, Dropdown } from "antd";
 import {
   User,
@@ -15,7 +15,7 @@ import { logout } from "../../../features/auth/authSlice";
 import { useTheme } from "../../../theme/useTheme.js";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
 
-const FALLBACK_LOGO = "/assets/logo.png";
+const FALLBACK_LOGO = "/assets/logo.webp";
 
 const UserDashboardHeader = () => {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ const UserDashboardHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const logoSrc =
-    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.png";
+    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
 
   const _userName =
     localStorage.getItem("userName") ||
@@ -100,7 +100,7 @@ const UserDashboardHeader = () => {
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   if (e.currentTarget.src.endsWith("logo.png")) return;
-                  e.currentTarget.src = FALLBACK_LOGO;
+                  e.currentTarget.src = "/assets/logo.png";
                 }}
               />
             </button>

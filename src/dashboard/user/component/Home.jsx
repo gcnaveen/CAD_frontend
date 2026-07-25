@@ -1,14 +1,14 @@
 // src/dashboard/user/component/Home.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { getDrafts } from "../../../services/draftApi.js";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
 import {
   getSurveyorOrderStatusLabel,
   getSurveyorOrderStatusQuery,
+  getSurveyorOrderStatusStyle,
   resolveSurveyorOrderCounts,
-  SURVEYOR_ORDER_STATUS_STYLES,
 } from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
@@ -170,6 +170,7 @@ const Home = () => {
         serial: idx + 1,
         id: row?.applicationId || row?._id,
         date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+        apiStatus: row?.status,
         status: getSurveyorOrderStatusLabel(row?.status),
         location: [getOrderEntityName(row?.village), getOrderEntityName(row?.hobli), getOrderEntityName(row?.taluka), getOrderEntityName(row?.district)]
           .filter(Boolean)
@@ -180,7 +181,7 @@ const Home = () => {
     [orderRows]
   );
 
-  const statusPill = (status) => SURVEYOR_ORDER_STATUS_STYLES[status] || SURVEYOR_ORDER_STATUS_STYLES.Pending;
+  const statusPill = (apiStatus) => getSurveyorOrderStatusStyle(apiStatus);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[var(--user-accent-soft)] via-[color-mix(in_srgb,var(--brand-gold)_08%,var(--bg-secondary))] to-[var(--bg-primary)]">
@@ -362,7 +363,7 @@ const Home = () => {
                           <p className="text-xs font-bold text-fg-muted mt-0.5">{order.date}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`px-2.5 py-1 rounded-full border text-[11px] font-extrabold ${statusPill(order.status)}`}>
+                          <span className={`px-2.5 py-1 rounded-full border text-[11px] font-extrabold ${statusPill(order.apiStatus)}`}>
                             {order.status}
                           </span>
                           <ChevronRight className="w-4 h-4 text-fg-muted" />

@@ -1,30 +1,58 @@
-import React, { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
 import {
   IndianRupee, FileText, Link2, Bell, ArrowRight,
   Check, Shield, RefreshCw, Clock
 } from "lucide-react";
+import { FALLBACK_QC, getQcIncludedBullet } from "../utils/lifecycleQc.js";
+import { getQcRules } from "../services/public/businessRulesService.js";
 
 const BENEFIT_ICONS = [IndianRupee, FileText, Link2, Bell];
 
-const INCLUDED = [
+const INCLUDED_BASE = [
   "Professional 2D AutoCAD drawing of Karnataka survey plot",
   "Admin review of uploaded documents before job assignment",
-  "6-point QC review before delivery",
+  null, // QC bullet from M-08 qc.includedBullet
   "DWG (editable) and PDF (print-ready) both formats",
   "Secure, order-specific download link",
   "WhatsApp notifications at assignment, completion, and delivery",
   "24/7 order acceptance — order any time",
 ];
 
+function buildIncluded(qcBullet) {
+  return INCLUDED_BASE.map((item) =>
+    item == null ? qcBullet || getQcIncludedBullet(FALLBACK_QC) : item
+  );
+}
+
 export default function Benefits() {
   const navigate = useNavigate();
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.benefits;
   const sectionRef = useRef(null);
-  const included = tr?.includedItems?.length ? tr.includedItems : INCLUDED;
+  const [qcBullet, setQcBullet] = useState(getQcIncludedBullet(FALLBACK_QC));
+  const included = useMemo(() => {
+    const base = tr?.includedItems?.length
+      ? [...tr.includedItems]
+      : buildIncluded(qcBullet);
+    // Keep the QC line aligned with M-08 qc.includedBullet (never 3/6-point copy).
+    if (base.length >= 3) base[2] = qcBullet;
+    return base;
+  }, [tr, qcBullet]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getQcRules()
+      .then((rules) => {
+        if (!cancelled && rules) setQcBullet(getQcIncludedBullet(rules));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;

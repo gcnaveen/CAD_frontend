@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Modal, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { deleteDraft, getDrafts } from "../../services/draftApi.js";
 
 function formatDate(value) {

@@ -1,32 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../features/auth/authSlice";
 import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
 import { toggleLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
 import { useTheme } from "../theme/useTheme.js";
 import { ArrowUpRight } from "lucide-react";
-import InstallButton from "./pwa/InstallButton.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+import InstallButton from "./pwa/InstallButton.jsx";
 
-const FALLBACK_LOGO = "/assets/logo.png";
-
-const getDisplayName = (user) => {
-  if (!user) return "User";
-  if (typeof user.name === "string") return user.name;
-  if (user.name && typeof user.name === "object") {
-    const first = user.name.first ?? "";
-    const last = user.name.last ?? "";
-    return (
-      [first, last].filter(Boolean).join(" ") ||
-      user.auth?.email ||
-      user.email ||
-      "User"
-    );
-  }
-  return user.auth?.email || user.email || "User";
-};
+const FALLBACK_LOGO = "/assets/logo.webp";
+const FALLBACK_LOGO_PNG = "/assets/logo.png";
 
 const NAV_LINKS = [
   { key: "header.nav.howItWorks", section: "how-it-works" },
@@ -46,7 +30,7 @@ const Header = () => {
   const { resolvedTheme } = useTheme();
 
   const logoSrc =
-    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.png";
+    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
 
   useEffect(() => {
     const stored = localStorage.getItem(USER_KEY);
@@ -212,7 +196,7 @@ const Header = () => {
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   if (e.currentTarget.src.endsWith("logo.png")) return;
-                  e.currentTarget.src = FALLBACK_LOGO;
+                  e.currentTarget.src = FALLBACK_LOGO_PNG;
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.02)";

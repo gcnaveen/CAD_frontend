@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
 import {
@@ -11,13 +11,15 @@ import {
   PenLine,
   Sparkles,
 } from "lucide-react";
+import { getCadOperatorEarningsRules } from "../services/public/businessRulesService.js";
+import { FALLBACK_CAD_OPERATOR_EARNINGS } from "../utils/cadOperatorEarnings.js";
 
 const FEATURE_ICONS = [Wallet, Zap, ShieldCheck, Layers, PenLine, Sparkles];
 
 const FALLBACK_FEATURES = [
   {
     title: "Per-drawing payouts",
-    body: "Get compensated for every approved AutoCAD deliverable you complete through the platform.",
+    body: "Fixed ₹400 operator earnings on each standard approved drawing (₹500 order).",
   },
   {
     title: "Rapid settlement",
@@ -46,11 +48,22 @@ const Autocadskills = () => {
   const sectionRef = useRef(null);
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.autocadskills;
+  const [earnings, setEarnings] = useState(FALLBACK_CAD_OPERATOR_EARNINGS);
 
   const featureDefs = tr?.features?.length ? tr.features : FALLBACK_FEATURES;
   const verticalLabels = tr?.verticalLabels?.length
     ? tr.verticalLabels
     : ["Briefed jobs", "Platform QC", "Timely pay"];
+
+  useEffect(() => {
+    let cancelled = false;
+    getCadOperatorEarningsRules().then((rules) => {
+      if (!cancelled && rules) setEarnings(rules);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const root = sectionRef.current;
@@ -322,7 +335,7 @@ const Autocadskills = () => {
                 fontSize: "1.15em",
               }}
             >
-              ₹500
+              ₹{earnings.standardOrderGrossRupees}
             </span>{" "}
             <span
               style={{
@@ -331,9 +344,11 @@ const Autocadskills = () => {
                 fontSize: "0.92em",
               }}
             >
-              {tr?.operatorSharePrefix || "(operator share up to"}{" "}
-              <span style={{ color: "rgba(201,168,76,0.95)" }}>₹400</span>{" "}
-              {tr?.operatorShareSuffix || "depending on tier)"}
+              {tr?.operatorSharePrefix || "(operator earnings fixed"}{" "}
+              <span style={{ color: "rgba(201,168,76,0.95)" }}>
+                ₹{earnings.payoutRupees}
+              </span>
+              {tr?.operatorShareSuffix || ")"}
             </span>
           </p>
           <p
@@ -344,7 +359,7 @@ const Autocadskills = () => {
             }}
           >
             {tr?.bottomDisclaimer ||
-              "Figures indicative; final rates confirmed when you onboard."}
+              `On ₹${earnings.standardOrderGrossRupees} = booking ₹${earnings.bookingRupees} + balance ₹${earnings.balanceRupees}. Rates from current business rules.`}
           </p>
         </div>
 

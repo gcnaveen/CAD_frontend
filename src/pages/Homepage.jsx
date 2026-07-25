@@ -1,29 +1,54 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import Header from "../components/Header";
 import Hero from "../sections/Hero";
-import AboutPlatform from "../sections/AboutPlatform";
-import HowItWorks from "../sections/HowItWorks";
-import HowVideo from "../sections/HowVideo";
-import Benifits from "../sections/Benifits";
-import ClientTestimonials from "../sections/ClientTestimonials";
-import FAQ from "../sections/FAQ";
-import Autocadskills from "../sections/Autocadskills";
-import BeforeAfterSection from "../sections/BeforeAfterSection";
 import Footer from "../components/Footer";
+
+const AboutPlatform = lazy(() => import("../sections/AboutPlatform"));
+const HowItWorks = lazy(() => import("../sections/HowItWorks"));
+const HowVideo = lazy(() => import("../sections/HowVideo"));
+const Benifits = lazy(() => import("../sections/Benifits"));
+const ClientTestimonials = lazy(() => import("../sections/ClientTestimonials"));
+const FAQ = lazy(() => import("../sections/FAQ"));
+const Autocadskills = lazy(() => import("../sections/Autocadskills"));
+const BeforeAfterSection = lazy(() => import("../sections/BeforeAfterSection"));
+
+function BelowFold({ children }) {
+  return (
+    <Suspense fallback={<div className="min-h-[240px]" aria-hidden="true" />}>
+      {children}
+    </Suspense>
+  );
+}
 
 const Homepage = () => {
   return (
     <div className="homepage-font">
       <Header />
       <Hero />
-      <AboutPlatform />
-      <HowItWorks />
-      <Autocadskills />
-      <HowVideo />
-      <BeforeAfterSection />
-      <Benifits />
-      <ClientTestimonials />
-      <FAQ />
+      <BelowFold>
+        <AboutPlatform />
+      </BelowFold>
+      <BelowFold>
+        <HowItWorks />
+      </BelowFold>
+      <BelowFold>
+        <Autocadskills />
+      </BelowFold>
+      <BelowFold>
+        <HowVideo />
+      </BelowFold>
+      <BelowFold>
+        <BeforeAfterSection />
+      </BelowFold>
+      <BelowFold>
+        <Benifits />
+      </BelowFold>
+      <BelowFold>
+        <ClientTestimonials />
+      </BelowFold>
+      <BelowFold>
+        <FAQ />
+      </BelowFold>
       <Footer />
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Alert,
   Button,
@@ -27,7 +27,6 @@ import {
   ClockCircleOutlined,
   DollarOutlined,
   PayCircleOutlined,
-  PercentageOutlined,
   ReloadOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
@@ -37,7 +36,14 @@ import {
   getCadWalletPendingSummary,
   payCadUser,
 } from "../../../services/admin/cadWalletAdminService.js";
+import { getCadOperatorEarningsRules } from "../../../services/public/businessRulesService.js";
 import { formatRupees } from "../../../utils/formatRupees.js";
+import {
+  FALLBACK_CAD_OPERATOR_EARNINGS,
+  formatCadOperatorEarningsCopy,
+  formatCadPayoutRateLabel,
+  isFixedCadPayout,
+} from "../../../utils/cadOperatorEarnings.js";
 
 const { Title, Text } = Typography;
 
@@ -93,7 +99,23 @@ const entryColumns = [
     title: "CAD earning",
     key: "earned",
     align: "right",
-    render: (_, row) => formatRupees(row.amountRupees, { maximumFractionDigits: 2 }),
+    render: (_, row) =>
+      formatRupees(row.payoutRupees ?? row.amountRupees, { maximumFractionDigits: 2 }),
+  },
+  {
+    title: "Model",
+    key: "model",
+    width: 110,
+    render: (_, row) => {
+      if (row.payoutModel) {
+        return (
+          <Tag color={String(row.payoutModel).toUpperCase() === "FIXED" ? "blue" : "default"}>
+            {String(row.payoutModel).toUpperCase()}
+          </Tag>
+        );
+      }
+      return "—";
+    },
   },
   {
     title: "CAD paid",
@@ -155,6 +177,21 @@ function mergeDetailResponse(apiData, record, cadUserId) {
       fromList?.statistics?.payoutPercent ??
       record?.statistics?.payoutPercent ??
       0,
+    payoutModel:
+      apiData?.payoutModel ??
+      fromList?.statistics?.payoutModel ??
+      record?.statistics?.payoutModel ??
+      null,
+    payoutRupees:
+      apiData?.payoutRupees ??
+      fromList?.statistics?.payoutRupees ??
+      record?.statistics?.payoutRupees ??
+      null,
+    pricingRuleVersion:
+      apiData?.pricingRuleVersion ??
+      fromList?.statistics?.pricingRuleVersion ??
+      record?.statistics?.pricingRuleVersion ??
+      null,
   };
 
   if (!merged.payment && merged.summary) {
@@ -178,9 +215,9 @@ export default function PayCadUser() {
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
   const [totalPending, setTotalPending] = useState(0);
-  const [payoutPercent, setPayoutPercent] = useState(0);
   const [platformStats, setPlatformStats] = useState(null);
   const [cadUsers, setCadUsers] = useState([]);
+  const [cadEarningsRules, setCadEarningsRules] = useState(FALLBACK_CAD_OPERATOR_EARNINGS);
 
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -201,17 +238,19 @@ export default function PayCadUser() {
     setListLoading(true);
     setListError("");
     try {
-      const data = await getCadWalletPendingSummary();
+      const [data, earnings] = await Promise.all([
+        getCadWalletPendingSummary(),
+        getCadOperatorEarningsRules(),
+      ]);
       setTotalPending(data.totalPending ?? 0);
-      setPayoutPercent(data.payoutPercent ?? 0);
       setPlatformStats(data.statistics ?? null);
       setCadUsers(data.cadUsers ?? []);
+      setCadEarningsRules(earnings ?? FALLBACK_CAD_OPERATOR_EARNINGS);
     } catch (e) {
       const msg = e?.message || "Failed to load pending payouts";
       setListError(msg);
       message.error(msg);
       setTotalPending(0);
-      setPayoutPercent(0);
       setPlatformStats(null);
       setCadUsers([]);
     } finally {
@@ -453,10 +492,23 @@ export default function PayCadUser() {
   const maxPayable = payment?.maxPayable ?? summary?.pendingPaymentRupees ?? 0;
   const canPay = maxPayable > 0;
   const selectedName = selectedUser ? formatUserDisplayLabel(selectedUser.cadUser) : "";
-  const userPayoutPercent = detail?.payoutPercent ?? userStats?.payoutPercent ?? payoutPercent;
   const detailCadUser = detail?.cadUser ?? selectedUser?.cadUser;
   const detailAssignments = detail?.assignments ?? [];
   const showDetail = Boolean(summary) && !payResult;
+  const payoutRateLabel = formatCadPayoutRateLabel(cadEarningsRules);
+  const payoutCopy = formatCadOperatorEarningsCopy(cadEarningsRules);
+  const detailPayoutModel =
+    detail?.payoutModel ??
+    userStats?.payoutModel ??
+    (isFixedCadPayout(cadEarningsRules) ? cadEarningsRules.model : null);
+  const detailRuleVersion =
+    detail?.pricingRuleVersion ??
+    userStats?.pricingRuleVersion ??
+    cadEarningsRules.ruleVersion;
+  const detailPayoutRupees =
+    detail?.payoutRupees ??
+    userStats?.payoutRupees ??
+    (isFixedCadPayout(cadEarningsRules) ? cadEarningsRules.payoutRupees : null);
 
   return (
     <div>
@@ -467,8 +519,7 @@ export default function PayCadUser() {
             Pay CAD User
           </Title>
           <Text type="secondary">
-            CAD earnings are {payoutPercent || 20}% of surveyor payments on completed deliveries.
-            Review balances and record payouts below.
+            {payoutCopy} Review balances and record payouts below.
           </Text>
         </div>
 
@@ -511,12 +562,20 @@ export default function PayCadUser() {
           <Col xs={24} sm={12} md={6}>
             <Card>
               <Statistic
-                title="Payout rate"
-                value={payoutPercent || 20}
-                prefix={<PercentageOutlined />}
-                suffix="%"
+                title="CAD payout"
+                value={
+                  isFixedCadPayout(cadEarningsRules)
+                    ? cadEarningsRules.payoutRupees
+                    : cadEarningsRules.percent ?? 0
+                }
+                prefix={<DollarOutlined />}
+                suffix={isFixedCadPayout(cadEarningsRules) ? "₹ fixed" : "%"}
                 precision={0}
               />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {payoutRateLabel}
+                {cadEarningsRules.ruleVersion ? ` · ${cadEarningsRules.ruleVersion}` : ""}
+              </Text>
             </Card>
           </Col>
         </Row>
@@ -628,7 +687,18 @@ export default function PayCadUser() {
 
               <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
                 <Descriptions.Item label="Email">{getCadUserEmail(detailCadUser)}</Descriptions.Item>
-                <Descriptions.Item label="Payout rate">{userPayoutPercent}%</Descriptions.Item>
+                <Descriptions.Item label="Payout model">
+                  {detailPayoutModel
+                    ? `${String(detailPayoutModel).toUpperCase()}${
+                        detailPayoutRupees != null
+                          ? ` · ₹${Number(detailPayoutRupees).toLocaleString("en-IN")}`
+                          : ""
+                      }`
+                    : payoutRateLabel}
+                </Descriptions.Item>
+                {detailRuleVersion ? (
+                  <Descriptions.Item label="Pricing rule">{detailRuleVersion}</Descriptions.Item>
+                ) : null}
                 <Descriptions.Item label="Surveyor payments total">
                   {formatRupees(userStats?.totalSourcePaidRupees ?? 0, { maximumFractionDigits: 2 })}
                 </Descriptions.Item>

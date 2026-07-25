@@ -2,7 +2,12 @@
 import React, { useState } from "react";
 import { Form, Upload, Checkbox, Input, message, Modal } from "antd";
 import { Upload as UploadIcon } from "lucide-react";
-import { getImagePresignedUrl, getAudioPresignedUrl, deleteUploadedFile } from "../../../../services/upload/upload.api.js";
+import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
+import {
+  uploadImageToS3,
+  uploadAudioToS3,
+} from "../../../../services/upload/upload.service.js";
+import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
 
 const UPLOAD_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
@@ -56,11 +61,6 @@ const DocumentsStep = ({
 
   const NORMAL_DOC_FIELDS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
   const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
-
-  const hasAnyFiles = (fieldName) => {
-    const list = form.getFieldValue(fieldName);
-    return Array.isArray(list) && list.length > 0;
-  };
 
   const hasAnyUploads = () => {
     const single = form.getFieldValue("singleUpload");
@@ -147,49 +147,10 @@ const DocumentsStep = ({
     setUploading((p) => ({ ...p, [fieldName]: true }));
     try {
       const actual = fileObj instanceof File ? fileObj : file;
-      const result = isAudio(actual)
-        ? await getAudioPresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: villageId })
-        : await getImagePresignedUrl({ fileName: actual.name, contentType: actual.type, entityId: villageId });
-      const { uploadUrl, fileUrl, key } = result?.data ?? result;
-      if (!uploadUrl || !fileUrl) throw new Error("Failed to get upload URL");
-      const redactedUploadUrl = typeof uploadUrl === "string" ? uploadUrl.split("?")[0] : uploadUrl;
-      try {
-        const res = await fetch(uploadUrl, {
-          method: "PUT",
-          body: actual,
-          headers: { "Content-Type": actual.type },
-        });
-
-        if (!res.ok) {
-          let details = "";
-          try {
-            details = await res.text();
-          } catch {
-            // ignore
-          }
-
-          // Temporary: helps backend verify why presigned PUT fails.
-          console.error("s3 backend log", {
-            uploadUrl: redactedUploadUrl,
-            fileName: actual?.name,
-            contentType: actual?.type,
-            status: res.status,
-            statusText: res.statusText,
-            responseBody: typeof details === "string" ? details : "",
-          });
-
-          throw new Error("Upload to storage failed");
-        }
-      } catch (e) {
-        // If fetch throws (network/CORS), still log something useful.
-        console.error("s3 backend log", {
-          uploadUrl: redactedUploadUrl,
-          fileName: actual?.name,
-          contentType: actual?.type,
-          error: e?.message || String(e),
-        });
-        throw e;
-      }
+      // H-10: JWT + fileSizeBytes + confirm; FILE_QUARANTINED throws (do not attach URL)
+      const { fileUrl, key } = isAudio(actual)
+        ? await uploadAudioToS3(actual, villageId)
+        : await uploadImageToS3(actual, villageId);
       const uid = file.uid || `upload-${Date.now()}`;
       const meta = { fileUrl, fileName: file.name || actual.name, mimeType: file.type || actual.type, size: file.size || actual.size };
       const cur = form.getFieldValue(fieldName) || [];
@@ -214,7 +175,7 @@ const DocumentsStep = ({
       if (fieldName === "other_documents") onOtherDocumentUpload?.(uid, meta);
       else onDocumentUpload?.(fieldName, meta);
       message.success("Uploaded successfully");
-    } catch (e) { message.error(e.message || "Upload failed"); }
+    } catch (e) { message.error(getUploadErrorMessage(e)); }
     finally { setUploading((p) => ({ ...p, [fieldName]: false })); }
     return false;
   };
@@ -535,7 +496,6 @@ const DocumentsStep = ({
                               {list.map((f) => {
                                 const url = f?.fileUrl || f?.url;
                                 const displayName = f?.fileName || f?.name || "file";
-                                const label = f?.otherDocName;
                                 return (
                                   <div key={f.uid || displayName} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2">
                                     {/* <div className="min-w-0 flex items-center gap-2">

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../features/auth/authSlice";
 import { staffLogin } from "../services/auth/authService.js";
@@ -38,6 +38,7 @@ export default function LoginPageEmail() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState({});
   const [mounted, setMounted] = useState(false);
+  const errorSummaryRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -45,25 +46,32 @@ export default function LoginPageEmail() {
     setTimeout(() => setMounted(true), 60);
   }, []);
 
+  const announceFieldErrors = (nextErrors) => {
+    setErrors(nextErrors);
+    requestAnimationFrame(() => {
+      errorSummaryRef.current?.focus();
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
     setErrors({});
 
     if (!email.trim()) {
-      setErrors({ email: "Email is required" });
+      announceFieldErrors({ email: "Email is required" });
       return;
     }
     if (!validateEmail(email.trim())) {
-      setErrors({ email: "Please enter a valid email address" });
+      announceFieldErrors({ email: "Please enter a valid email address" });
       return;
     }
     if (!password) {
-      setErrors({ password: "Password is required" });
+      announceFieldErrors({ password: "Password is required" });
       return;
     }
     if (!/^\d{4}$/.test(password)) {
-      setErrors({ password: "Password must be exactly 4 digits" });
+      announceFieldErrors({ password: "Password must be exactly 4 digits" });
       return;
     }
 
@@ -89,10 +97,26 @@ export default function LoginPageEmail() {
         type: "error",
         text: error?.message ?? "Invalid email or password. Please try again.",
       });
+      requestAnimationFrame(() => errorSummaryRef.current?.focus());
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fieldErrorList = Object.values(errors).filter(Boolean);
+  const showErrorSummary = fieldErrorList.length > 0 || message.type === "error";
+  const emailDescribedBy = [
+    "login-email-hint",
+    errors.email ? "login-email-error" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const passwordDescribedBy = [
+    "login-password-hint",
+    errors.password ? "login-password-error" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="theme-animate-surface auth-page" style={{
@@ -156,7 +180,8 @@ export default function LoginPageEmail() {
           backdrop-filter: blur(4px);
         }
         .lp-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 55%, transparent); }
-        .lp-input:focus {
+        .lp-input:focus,
+        .lp-input:focus-visible {
           border-color: color-mix(in srgb, var(--brand-gold) 65%, var(--border-color));
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold) 18%, transparent);
           background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
@@ -184,6 +209,13 @@ export default function LoginPageEmail() {
           transition: all 0.25s ease;
         }
         .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .submit-btn:focus-visible,
+        .auth-input-eye:focus-visible,
+        a:focus-visible,
+        button:focus-visible {
+          outline: 2px solid var(--brand-gold);
+          outline-offset: 2px;
+        }
         .coord-label {
           font-family: monospace;
           font-size: 10px;
@@ -192,6 +224,10 @@ export default function LoginPageEmail() {
           position: absolute;
           pointer-events: none;
           user-select: none;
+        }
+        .auth-error-summary:focus {
+          outline: 2px solid var(--danger);
+          outline-offset: 2px;
         }
       `}</style>
 
@@ -269,7 +305,7 @@ export default function LoginPageEmail() {
               overflow: "hidden",
             }}>
               <img
-                src="/assets/logo.png"
+                src="/assets/logo.webp"
                 alt="North-cot"
                 style={{ width: "80px", height: "80px", objectFit: "contain" }}
               />
@@ -330,25 +366,93 @@ export default function LoginPageEmail() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {showErrorSummary && (
+                <div
+                  ref={errorSummaryRef}
+                  id="login-error-summary"
+                  className="auth-error-summary"
+                  role="alert"
+                  aria-live="assertive"
+                  tabIndex={-1}
+                  style={{
+                    padding: "11px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(192,57,43,0.08)",
+                    border: "1px solid rgba(192,57,43,0.25)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "color-mix(in srgb, var(--danger) 88%, #000)",
+                  }}
+                >
+                  {message.type === "error" && message.text ? (
+                    <p style={{ margin: 0 }}>{message.text}</p>
+                  ) : (
+                    <>
+                      <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Please fix the following:</p>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {errors.email && (
+                          <li>
+                            <a href="#login-email" style={{ color: "inherit" }}>{errors.email}</a>
+                          </li>
+                        )}
+                        {errors.password && (
+                          <li>
+                            <a href="#login-password" style={{ color: "inherit" }}>{errors.password}</a>
+                          </li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {message.type === "success" && message.text && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    padding: "11px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(42,110,42,0.08)",
+                    border: "1px solid rgba(42,110,42,0.25)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "var(--success)",
+                  }}
+                >
+                  {message.text}
+                </div>
+              )}
+
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
+                <label
+                  htmlFor="login-email"
+                  style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                >
                   Email Address
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
+                    id="login-email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Please enter your email address"
+                    placeholder="name@example.com"
                     className={`lp-input${errors.email ? " error" : ""}`}
-                    autoComplete="email"
+                    autoComplete="username"
+                    inputMode="email"
+                    aria-required="true"
+                    aria-invalid={errors.email ? "true" : "false"}
+                    aria-describedby={emailDescribedBy}
                     disabled={isLoading}
                     style={{ paddingLeft: "40px" }}
                   />
                   <Mail
                     size={16}
+                    aria-hidden="true"
                     style={{
                       position: "absolute",
                       left: "13px",
@@ -358,31 +462,47 @@ export default function LoginPageEmail() {
                     }}
                   />
                 </div>
-                {errors.email && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.email}</p>}
+                <p id="login-email-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                  Use your work email
+                </p>
+                {errors.email && (
+                  <p id="login-email-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
+                <label
+                  htmlFor="login-password"
+                  style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                >
                   Password
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="Enter 4-digit password"
+                    placeholder="••••"
                     className={`lp-input${errors.password ? " error" : ""}`}
                     style={{ paddingRight: "46px" }}
                     inputMode="numeric"
                     maxLength={4}
                     autoComplete="current-password"
+                    aria-required="true"
+                    aria-invalid={errors.password ? "true" : "false"}
+                    aria-describedby={passwordDescribedBy}
                     disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((p) => !p)}
-                    tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="auth-input-eye"
                     style={{
                       position: "absolute",
                       right: "13px",
@@ -396,32 +516,35 @@ export default function LoginPageEmail() {
                     }}
                     disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    {showPassword ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
                   </button>
                 </div>
-                {errors.password && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.password}</p>}
+                <p id="login-password-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                  4-digit numeric password
+                </p>
+                {errors.password && (
+                  <p id="login-password-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
-              {message.text && (
-                <div
-                  style={{
-                    padding: "11px 14px",
-                    borderRadius: "10px",
-                    background: message.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
-                    border: `1px solid ${message.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: message.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
-                  }}
-                >
-                  {message.text}
-                </div>
+              {isLoading && (
+                <p id="login-submit-status" className="sr-only" aria-live="polite">
+                  Signing in, please wait
+                </p>
               )}
 
-              <button type="submit" className="submit-btn" disabled={isLoading}>
+              <button
+                type="submit"
+                className="submit-btn"
+                disabled={isLoading}
+                aria-busy={isLoading}
+                aria-describedby={isLoading ? "login-submit-status" : undefined}
+              >
                 {isLoading ? (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }} aria-hidden="true">
                       <path d="M21 12a9 9 0 11-6.219-8.56" />
                     </svg>
                     Signing in...
@@ -429,7 +552,7 @@ export default function LoginPageEmail() {
                 ) : (
                   <>
                     Login
-                    <ArrowRight size={16} />
+                    <ArrowRight size={16} aria-hidden="true" />
                   </>
                 )}
               </button>
@@ -438,7 +561,7 @@ export default function LoginPageEmail() {
                 Prefer phone login?{" "}
                 <a
                   href="/login"
-                  style={{ color: "var(--brand-gold-muted)", fontWeight: 700, textDecoration: "none" }}
+                  style={{ color: "var(--brand-gold-muted)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: "2px" }}
                 >
                   Go to phone login
                 </a>
@@ -451,8 +574,8 @@ export default function LoginPageEmail() {
           display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
           marginTop: "20px",
         }}>
-          <Shield size={12} color="rgba(154,112,32,0.5)" />
-          <span className="auth-below-muted" style={{ fontSize: "11px", color: "rgba(154,112,32,0.5)", fontWeight: 500, letterSpacing: "0.04em" }}>
+          <Shield size={12} color="var(--homepage-label)" aria-hidden="true" />
+          <span className="auth-below-muted" style={{ fontSize: "11px", color: "var(--homepage-label)", fontWeight: 500, letterSpacing: "0.04em" }}>
             Protected by industry-standard encryption
           </span>
         </div>

@@ -1,7 +1,7 @@
 // src/dashboard/user/UserUploadForm.jsx
 // Full redesign — 4-step wizard. All original logic preserved.
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router";
 import { Checkbox, Form, Modal, message } from "antd";
 import { useSelector } from "react-redux";
 import { createSketchUpload, getSurveyorSketchPricing } from "../../services/surveyor/sketchUploadService.js";
@@ -449,18 +449,7 @@ const UserUploadForm = ({
         DOCUMENT_TYPE_KEYS.forEach((k) => { delete payload[k]; });
       }
 
-      // Total Payable = same as review step. Backend accepts only ONE of amountPaise | amountRupees | amount.
-      const upTier = uploadPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.upload;
-      const revTier = revisionPricing ?? FALLBACK_SURVEYOR_SKETCH_PRICING.revision;
-      const checkout = buildSketchCheckoutBreakdown({
-        upload: upTier,
-        revision: revTier,
-        isRevision,
-        isGoogleSuperimpose: googleOn,
-      });
-      const totalPayableRupees = Number(Number(checkout.finalPayableRupees).toFixed(2));
-      const amountPaise = Math.round(totalPayableRupees * 100);
-      // Strip any accidental amount aliases so validation never sees more than one.
+      // §4.1 / C-01: server owns expectedAmountPaise — never send amount* from the browser.
       delete payload.amount;
       delete payload.amountRupees;
       delete payload.amountPaise;
@@ -471,37 +460,13 @@ const UserUploadForm = ({
       delete payload.totalAmountRupees;
       delete payload.totalAmountPaise;
       delete payload.totalPayableRupees;
-      // PhonePe / backend gateway amount — send paise only (e.g. ₹247.80 → 24780).
-      payload.amountPaise = amountPaise;
+      delete payload.pricingSummary;
+      // Pricing factors only — backend computes sketchPayment.amountPaise.
       payload.isSuperimpose = googleOn;
-      payload.pricingSummary = {
-        isRevision: Boolean(isRevision),
-        isSuperimpose: Boolean(googleOn),
-        baseAmountRupees: Number(Number(checkout.baseAmountRupees || 0).toFixed(2)),
-        gstPercent: Number(checkout.gstPercent || 18),
-        gstAmountRupees: Number(Number(checkout.gstAmountRupees || 0).toFixed(2)),
-        finalAmountRupees: totalPayableRupees,
-      };
 
       const result = await createSketchUpload(payload);
       if (result.success) {
-        const payMeta = result?.meta?.payment ?? {};
-        const serverPaise =
-          payMeta.amountPaise ??
-          result?.data?.sketchPayment?.amountPaise ??
-          result?.data?.sketchPayment?.amount_paise ??
-          null;
-        if (
-          payMeta.requiresPayment &&
-          serverPaise != null &&
-          Number(serverPaise) !== amountPaise
-        ) {
-          const serverRs = Number(serverPaise) / 100;
-          message.warning(
-            `Payment gateway amount mismatch: expected ₹${totalPayableRupees.toFixed(2)} but gateway is charging ₹${serverRs.toFixed(2)}. Proceeding with backend amount.`
-          );
-        }
-        // If backend says payment is required, send user to checkout.
+        // If backend says payment is required, send user to checkout (server amount).
         if (redirectToPayment(result)) return;
 
         message.success("Request submitted successfully!");

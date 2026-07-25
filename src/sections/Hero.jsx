@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { Suspense, lazy, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { t } from "../constants/translation";
 import { ArrowRight, MapPin, Clock, ShieldCheck, IndianRupee } from "lucide-react";
 import SurveyingBackground from "../components/SurveyingBackground";
+
+const HeroVideo = lazy(() => import("../components/HeroVideo.jsx"));
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -229,17 +231,21 @@ const Hero = () => {
                 maxHeight: "min(52vh, 420px)",
               }}
             >
-              <video
-                className="h-full w-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster=""
-                aria-label="Karnataka survey context"
+              <Suspense
+                fallback={
+                  <img
+                    src="/assets/hero-poster.webp"
+                    alt=""
+                    className="h-full w-full object-cover"
+                    width={960}
+                    height={600}
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                }
               >
-                <source src="/assets/herobgvideofinal.mp4" type="video/mp4" />
-              </video>
+                <HeroVideo />
+              </Suspense>
               <div
                 className="pointer-events-none absolute inset-0 rounded-2xl"
                 style={{
