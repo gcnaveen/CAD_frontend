@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Avatar, Button, Spin, Typography } from "antd";
 import { EditOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { setCredentials } from "../../../features/auth/authSlice";
 import { getUserById } from "../../../services/user/userService";
 import { useUserDisplayName } from "../../../hooks/useUserDisplayName";

@@ -146,7 +146,7 @@ export const translations = {
       tag: "QUALITY CHECK",
       title: "Every Drawing Is Checked Before You Download",
       subtitle:
-        "No drawing leaves without passing a quality review by our admin team — against your uploaded documents.",
+        "Every drawing is QC-checked against the approved 11E 10-point checklist before release.",
       points: [
         {
           title: "All boundary lines present",
@@ -172,7 +172,7 @@ export const translations = {
       features: [
         {
           title: "Per-drawing payouts",
-          body: "Get compensated for every approved AutoCAD deliverable you complete through the platform.",
+          body: "Fixed ₹400 operator earnings on each standard approved drawing (₹500 order: booking ₹100 + balance ₹400).",
         },
         {
           title: "Rapid settlement",
@@ -196,9 +196,10 @@ export const translations = {
         },
       ],
       bottomFeePrefix: "Typical survey drawing fee on North-cot —",
-      operatorSharePrefix: "(operator share up to",
-      operatorShareSuffix: "depending on tier)",
-      bottomDisclaimer: "Figures indicative; final rates confirmed when you onboard.",
+      operatorSharePrefix: "(operator earnings fixed",
+      operatorShareSuffix: ")",
+      bottomDisclaimer:
+        "On ₹500 = booking ₹100 + balance ₹400. Operator payout is fixed ₹400 — not a percent of payment.",
       ctaButton: "Register as an operator",
     },
     benefits: {
@@ -244,7 +245,7 @@ export const translations = {
       includedItems: [
         "Professional 2D AutoCAD drawing of Karnataka survey plot",
         "Admin review of uploaded documents before job assignment",
-        "6-point QC review before delivery",
+        "QC-checked against the approved 11E 10-point checklist before release",
         "DWG (editable) and PDF (print-ready) both formats",
         "Secure, order-specific download link",
         "WhatsApp notifications at assignment, completion, and delivery",
@@ -521,7 +522,7 @@ export const translations = {
       tag: "ಗುಣಮಟ್ಟ ಪರಿಶೀಲನೆ",
       title: "ನೀವು ಡೌನ್‌ಲೋಡ್ ಮಾಡುವ ಮೊದಲು ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
       subtitle:
-        "ನಮ್ಮ ಆಡ್ಮಿನ್ ತಂಡ ನಿಮ್ಮ ಅಪ್ಲೋಡ್ ದಾಖಲೆಗಳ ವಿರುದ್ಧ ಗುಣಮಟ್ಟ ಪರಿಶೀಲನೆ ಮಾಡದ ಹೊರತು ಯಾವುದೇ ಡ್ರಾಯಿಂಗ್ ತಲುಪುವುದಿಲ್ಲ.",
+        "ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ ಅನ್ನು ಬಿಡುಗಡೆಗೂ ಮುನ್ನ ಅನುಮೋದಿತ 11E 10-ಪಾಯಿಂಟ್ ಚೆಕ್‌ಲಿಸ್ಟ್ ವಿರುದ್ಧ QC-ಪರಿಶೀಲಿಸಲಾಗುತ್ತದೆ.",
       points: [
         {
           title: "ಎಲ್ಲಾ ಗಡಿ ರೇಖೆಗಳು ಇರಬೇಕು",
@@ -547,7 +548,7 @@ export const translations = {
       features: [
         {
           title: "ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್ ಪಾವತಿ",
-          body: "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಮೂಲಕ ನೀವು ಪೂರ್ಣಗೊಳಿಸುವ ಪ್ರತಿಯೊಂದು ಅನುಮೋದಿತ AutoCAD ಡೆಲಿವರಿಗೂ ಪಾವತಿ ಪಡೆಯಿರಿ.",
+          body: "ಪ್ರತಿ ಸ್ಟ್ಯಾಂಡರ್ಡ್ ಅನುಮೋದಿತ ಡ್ರಾಯಿಂಗ್‌ಗೆ ಸ್ಥಿರ ₹400 ಆಪರೇಟರ್ ಗಳಿಕೆ (₹500 ಆರ್ಡರ್: ಬುಕಿಂಗ್ ₹100 + ಬ್ಯಾಲೆನ್ಸ್ ₹400).",
         },
         {
           title: "ವೇಗದ ಸೆಟಲ್‌ಮೆಂಟ್",
@@ -571,9 +572,10 @@ export const translations = {
         },
       ],
       bottomFeePrefix: "North-cot ನಲ್ಲಿ ಸಾಮಾನ್ಯ ಸರ್ವೇ ಡ್ರಾಯಿಂಗ್ ಶುಲ್ಕ —",
-      operatorSharePrefix: "(ಆಪರೇಟರ್ ಶೇರ್ ಅತಿ ಹೆಚ್ಚು",
-      operatorShareSuffix: "tier ಅನುಸಾರ)",
-      bottomDisclaimer: "ಅಂಕಿಅಂಶಗಳು ಸೂಚಕ; ನೀವು onboard ಆದಾಗ ಅಂತಿಮ ದರಗಳನ್ನು ದೃಢೀಕರಿಸುತ್ತೇವೆ.",
+      operatorSharePrefix: "(ಆಪರೇಟರ್ ಗಳಿಕೆ ಸ್ಥಿರ",
+      operatorShareSuffix: ")",
+      bottomDisclaimer:
+        "₹500 = ಬುಕಿಂಗ್ ₹100 + ಬ್ಯಾಲೆನ್ಸ್ ₹400. ಆಪರೇಟರ್ ಪೇಔಟ್ ಸ್ಥಿರ ₹400 — ಪಾವತಿಯ ಶೇಕಡಾವಾರು ಅಲ್ಲ.",
       ctaButton: "ಆಪರೇಟರ್ ಆಗಿ ನೋಂದಣಿ ಮಾಡಿ",
     },
     benefits: {
@@ -617,7 +619,7 @@ export const translations = {
       includedItems: [
         "ಕರ್ನಾಟಕ ಸರ್ವೇ ಪ್ಲಾಟ್‌ನ 2D AutoCAD ವೃತ್ತಿಪರ ಡ್ರಾಯಿಂಗ್",
         "ಕೆಲಸಕ್ಕೆ ನಿಯೋಜನೆಗೂ ಮುನ್ನ ಅಪ್ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆಗಳ ಆಡ್ಮಿನ್ ಪರಿಶೀಲನೆ",
-        "ಡಿಲಿವರಿ ಮೊದಲು 6-ಪಾಯಿಂಟ್ QC ಪರಿಶೀಲನೆ",
+        "ಅನುಮೋದಿತ 11E 10-ಪಾಯಿಂಟ್ ಚೆಕ್‌ಲಿಸ್ಟ್ ವಿರುದ್ಧ QC-ಪರಿಶೀಲನೆಯ ನಂತರವೇ ಬಿಡುಗಡೆ",
         "DWG (editable) ಮತ್ತು PDF (print-ready) ಎರಡೂ ಫಾರ್ಮ್ಯಾಟ್‌ಗಳು",
         "ಆರ್ಡರ್‌ಗೆ ನಿರ್ದಿಷ್ಟವಾದ ಸುರಕ್ಷಿತ ಡೌನ್‌ಲೋಡ್ ಲಿಂಕ್",
         "ನಿಯೋಜನೆ, ಪೂರ್ಣಗೊಳಿಕೆ ಮತ್ತು ಡಿಲಿವರಿ ಸಮಯಗಳಲ್ಲಿ WhatsApp ಅಧಿಸೂಚನೆ",

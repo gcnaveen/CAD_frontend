@@ -9,7 +9,7 @@ import {
   MenuUnfoldOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { logout } from "../../../features/auth/authSlice";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
@@ -107,7 +107,7 @@ const CADLayout = () => {
             }}
           >
             <img
-              src="/assets/logo.png"
+              src="/assets/logo.webp"
               alt={cadBi.layout.logoAlt}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
               onError={(e) => {

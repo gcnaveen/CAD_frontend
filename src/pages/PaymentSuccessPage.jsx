@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { Button, Result, Spin, Typography } from "antd";
-import Confetti from "react-confetti";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
 import {
   clearSketchPaymentContext,
+  isBalancePaymentCompleted,
+  isCadBalancePaymentPurpose,
   isSketchPaymentCompleted,
+  readSketchPaymentContext,
   resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils.js";
 
@@ -23,10 +25,12 @@ export default function PaymentSuccessPage() {
     width: window.innerWidth,
     height: window.innerHeight,
   });
-  const [confettiActive, setConfettiActive] = useState(true);
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [Confetti, setConfetti] = useState(null);
   const [loading, setLoading] = useState(true);
   const [upload, setUpload] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [pollExhausted, setPollExhausted] = useState(false);
   const pollAttemptsRef = useRef(0);
   const pollTimerRef = useRef(null);
 
@@ -34,6 +38,27 @@ export default function PaymentSuccessPage() {
     () => resolveSketchPaymentUploadId(searchParams, location.state),
     [searchParams, location.state]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    import("react-confetti").then((mod) => {
+      if (!cancelled) setConfetti(() => mod.default);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const paymentPurpose = useMemo(
+    () =>
+      searchParams.get("purpose") ||
+      location.state?.purpose ||
+      readSketchPaymentContext()?.purpose ||
+      null,
+    [searchParams, location.state]
+  );
+
+  const isBalanceCheckout = isCadBalancePaymentPurpose(paymentPurpose);
 
   const refresh = useCallback(async () => {
     if (!uploadId) {
@@ -45,7 +70,10 @@ export default function PaymentSuccessPage() {
       const res = await getSketchUploadById(uploadId);
       if (!res?.success || !res?.data) return false;
       setUpload(res.data);
-      if (isSketchPaymentCompleted(res.data)) {
+      const completed = isBalanceCheckout
+        ? isBalancePaymentCompleted(res.data)
+        : isSketchPaymentCompleted(res.data);
+      if (completed) {
         setConfirmed(true);
         clearSketchPaymentContext();
         return true;
@@ -56,7 +84,7 @@ export default function PaymentSuccessPage() {
     } finally {
       setLoading(false);
     }
-  }, [uploadId]);
+  }, [uploadId, isBalanceCheckout]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -67,13 +95,19 @@ export default function PaymentSuccessPage() {
     };
 
     window.addEventListener("resize", handleResize);
-    const confettiTimer = setTimeout(() => setConfettiActive(false), 4000);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(confettiTimer);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Confetti only after server confirms paid — browser redirect alone is not success (§4.1 / 27–28).
+  useEffect(() => {
+    if (!confirmed) {
+      setConfettiActive(false);
+      return undefined;
+    }
+    setConfettiActive(true);
+    const confettiTimer = setTimeout(() => setConfettiActive(false), 4000);
+    return () => clearTimeout(confettiTimer);
+  }, [confirmed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +124,7 @@ export default function PaymentSuccessPage() {
         const completed = await refresh();
         if (completed || pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          if (!completed) setPollExhausted(true);
         }
       }, POLL_INTERVAL_MS);
     };
@@ -104,36 +139,62 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     if (!confirmed) return undefined;
-    const redirectTimer = setTimeout(() => navigate("/dashboard/user/requests"), 5000);
+    const redirectTimer = setTimeout(
+      () =>
+        navigate("/dashboard/user/requests", {
+          state: uploadId ? { openOrderId: uploadId } : undefined,
+        }),
+      5000
+    );
     return () => clearTimeout(redirectTimer);
-  }, [confirmed, navigate]);
+  }, [confirmed, navigate, uploadId]);
 
   if (loading && uploadId) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Spin tip="Confirming payment status..." />
+        <Spin tip="Confirming payment with server..." />
       </div>
     );
   }
 
-  return (
-    <>
-      <Confetti
-        width={windowSize.width}
-        height={windowSize.height}
-        run={confettiActive}
-        recycle={confettiActive}
-        numberOfPieces={confettiActive ? 200 : 0}
-        gravity={0.15}
-        tweenDuration={4000}
-      />
+  const goRequests = () =>
+    navigate("/dashboard/user/requests", {
+      state: uploadId ? { openOrderId: uploadId } : undefined,
+    });
+
+  if (!uploadId) {
+    return (
       <Result
-        status="success"
-        title="Payment successful"
+        status="info"
+        title="Payment return"
+        subTitle="Missing order reference. Open your request from the dashboard to check payment status."
+        extra={[
+          <Button key="requests" type="primary" onClick={goRequests}>
+            Go to Requests
+          </Button>,
+          <Button key="home" onClick={() => navigate("/dashboard/user")}>
+            Go Home
+          </Button>,
+        ]}
+      />
+    );
+  }
+
+  if (!confirmed) {
+    return (
+      <Result
+        status={pollExhausted ? "warning" : "info"}
+        title={
+          pollExhausted
+            ? "Payment confirmation still pending"
+            : "Confirming your payment"
+        }
         subTitle={
           <div>
             <Paragraph className="mb-0">
-              Your payment was completed. You can track your request from the dashboard.
+              {pollExhausted
+                ? "We have not received server confirmation yet. Your order is only marked paid after PhonePe status matches the expected amount — this page alone does not unlock the order."
+                : "Waiting for server-to-server confirmation. Do not close this page."}
             </Paragraph>
             {upload?.applicationId && (
               <Paragraph className="mb-0">
@@ -145,22 +206,66 @@ export default function PaymentSuccessPage() {
                 <Text strong>Order status:</Text> {upload.status}
               </Paragraph>
             )}
-            {!confirmed && uploadId && (
+            {!pollExhausted && (
               <Paragraph className="mb-0" style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  Payment confirmation is still processing. Status will update shortly.
-                </Text>
-              </Paragraph>
-            )}
-            {confirmed && (
-              <Paragraph className="mb-0" style={{ marginTop: 8 }}>
-                <Text type="secondary">Taking you to Requests in 5 seconds…</Text>
+                <Spin size="small" />{" "}
+                <Text type="secondary">Polling payment status…</Text>
               </Paragraph>
             )}
           </div>
         }
         extra={[
-          <Button key="requests" type="primary" onClick={() => navigate("/dashboard/user/requests")}>
+          <Button key="refresh" type="primary" onClick={() => refresh()}>
+            Refresh status
+          </Button>,
+          <Button key="requests" onClick={goRequests}>
+            Go to Requests
+          </Button>,
+        ]}
+      />
+    );
+  }
+
+  return (
+    <>
+      {Confetti ? (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          run={confettiActive}
+          recycle={confettiActive}
+          numberOfPieces={confettiActive ? 200 : 0}
+          gravity={0.15}
+          tweenDuration={4000}
+        />
+      ) : null}
+      <Result
+        status="success"
+        title={isBalanceCheckout ? "Balance payment confirmed" : "Payment confirmed"}
+        subTitle={
+          <div>
+            <Paragraph className="mb-0">
+              {isBalanceCheckout
+                ? "CAD download is unlocked. You can download files from the order details."
+                : "Your payment was confirmed by the server. You can track your request from the dashboard."}
+            </Paragraph>
+            {upload?.applicationId && (
+              <Paragraph className="mb-0">
+                <Text strong>Application ID:</Text> {upload.applicationId}
+              </Paragraph>
+            )}
+            {upload?.status && (
+              <Paragraph className="mb-0">
+                <Text strong>Order status:</Text> {upload.status}
+              </Paragraph>
+            )}
+            <Paragraph className="mb-0" style={{ marginTop: 8 }}>
+              <Text type="secondary">Taking you to Requests in 5 seconds…</Text>
+            </Paragraph>
+          </div>
+        }
+        extra={[
+          <Button key="requests" type="primary" onClick={goRequests}>
             Go to Requests
           </Button>,
           <Button key="home" onClick={() => navigate("/dashboard/user")}>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Alert,
   Button,
@@ -28,6 +28,8 @@ const FIELD_KEYS = [
   "sketchUploadDiscountRupees",
   "sketchRevisionPlanAmountRupees",
   "sketchRevisionDiscountRupees",
+  "sketchBalancePlanAmountRupees",
+  "sketchBalanceDiscountRupees",
 ];
 
 function getCurrentRole(roleFromRedux) {
@@ -97,13 +99,16 @@ export default function SketchPricing() {
   const upDisc = Form.useWatch("sketchUploadDiscountRupees", form);
   const revPlan = Form.useWatch("sketchRevisionPlanAmountRupees", form);
   const revDisc = Form.useWatch("sketchRevisionDiscountRupees", form);
+  const balPlan = Form.useWatch("sketchBalancePlanAmountRupees", form);
+  const balDisc = Form.useWatch("sketchBalanceDiscountRupees", form);
 
   const computed = useMemo(() => {
     return {
       uploadPayable: payable(upPlan, upDisc),
       revisionPayable: payable(revPlan, revDisc),
+      balancePayable: payable(balPlan, balDisc),
     };
-  }, [upPlan, upDisc, revPlan, revDisc]);
+  }, [upPlan, upDisc, revPlan, revDisc, balPlan, balDisc]);
 
   const onFinish = async (values) => {
     if (!baseline) {
@@ -147,7 +152,8 @@ export default function SketchPricing() {
             Sketch pricing
           </Title>
           <Text type="secondary">
-            Configure survey sketch upload and revision amounts (rupees). Only changed fields are sent on save.
+            Configure survey sketch upload, revision, and CAD download balance amounts (rupees). Only
+            changed fields are sent on save.
           </Text>
         </div>
 
@@ -166,6 +172,8 @@ export default function SketchPricing() {
                 sketchUploadDiscountRupees: 0,
                 sketchRevisionPlanAmountRupees: 0,
                 sketchRevisionDiscountRupees: 0,
+                sketchBalancePlanAmountRupees: 400,
+                sketchBalanceDiscountRupees: 0,
               }}
             >
               <Title level={5}>Upload pricing</Title>
@@ -214,6 +222,34 @@ export default function SketchPricing() {
                 </Col>
               </Row>
 
+              <Title level={5} style={{ marginTop: 8 }}>
+                CAD download balance (C-02)
+              </Title>
+              <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+                Second payment after CAD delivery. Set plan to 0 to rely on env default, or discount
+                plan to 0 payable to waive the gate.
+              </Text>
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="sketchBalancePlanAmountRupees"
+                    label="Plan amount (₹)"
+                    rules={[{ required: true, message: "Required" }]}
+                  >
+                    <InputNumber min={0} style={{ width: "100%" }} placeholder="400" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="sketchBalanceDiscountRupees"
+                    label="Discount (₹)"
+                    rules={[{ required: true, message: "Required" }]}
+                  >
+                    <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <Card size="small" type="inner" title="Computed payable (preview)" style={{ marginBottom: 16 }}>
                 <Row gutter={[16, 8]}>
                   <Col span={12}>
@@ -227,6 +263,12 @@ export default function SketchPricing() {
                   </Col>
                   <Col span={12} style={{ textAlign: "right" }}>
                     ₹{computed.revisionPayable.toFixed(2)}
+                  </Col>
+                  <Col span={12}>
+                    <Text strong>Balance payable</Text>
+                  </Col>
+                  <Col span={12} style={{ textAlign: "right" }}>
+                    ₹{computed.balancePayable.toFixed(2)}
                   </Col>
                 </Row>
               </Card>

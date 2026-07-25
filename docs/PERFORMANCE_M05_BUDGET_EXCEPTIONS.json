@@ -1,0 +1,16 @@
+{
+  "finding": "M-05",
+  "title": "Frontend performance budgets (JS + media)",
+  "budget": {
+    "lcp_mobile_p75_s": 2.5,
+    "inp_p75_ms": 200,
+    "cls": 0.1,
+    "initial_js_gzip_kb": 250
+  },
+  "exceptions": [],
+  "notes": [
+    "2026-07-25: initial JS measured ~132 KB gzip after route shells + deferred Ant Design (AntdShellProvider) — under budget; no exception required.",
+    "Hero mobile video target ≤1.5 MB — run: npm run optimize:media -- --video (requires ffmpeg on PATH).",
+    "Update docs/PERFORMANCE_M05_LAST_MEASUREMENT.json after each release via npm run check:bundle."
+  ]
+}

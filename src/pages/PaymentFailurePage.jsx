@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { Button, Result, Spin, Typography, message } from "antd";
 import SketchPaymentRetryButton from "../components/payments/SketchPaymentRetryButton.jsx";
 import { getSketchUploadById } from "../services/surveyor/sketchUploadService.js";
 import {
+  isCadBalancePaymentPurpose,
   normalizeSketchPaymentPageState,
+  readSketchPaymentContext,
   resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils.js";
 
@@ -22,6 +24,17 @@ export default function PaymentFailurePage() {
     () => resolveSketchPaymentUploadId(searchParams, location.state),
     [searchParams, location.state]
   );
+
+  const paymentPurpose = useMemo(
+    () =>
+      searchParams.get("purpose") ||
+      location.state?.purpose ||
+      readSketchPaymentContext()?.purpose ||
+      null,
+    [searchParams, location.state]
+  );
+
+  const isBalanceCheckout = isCadBalancePaymentPurpose(paymentPurpose);
 
   const refresh = useCallback(async () => {
     if (!uploadId) {
@@ -47,7 +60,7 @@ export default function PaymentFailurePage() {
     refresh();
   }, [refresh]);
 
-  const paymentState = upload ? normalizeSketchPaymentPageState(upload) : null;
+  const paymentState = upload ? normalizeSketchPaymentPageState(upload, paymentPurpose) : null;
 
   if (loading) {
     return (
@@ -61,14 +74,22 @@ export default function PaymentFailurePage() {
     return (
       <Result
         status="success"
-        title="Payment already completed"
+        title={isBalanceCheckout ? "Balance payment already completed" : "Payment already completed"}
         subTitle={
           <Paragraph className="mb-0">
             <Text strong>Application ID:</Text> {upload?.applicationId || "—"}
           </Paragraph>
         }
         extra={[
-          <Button key="requests" type="primary" onClick={() => navigate("/dashboard/user/requests")}>
+          <Button
+            key="requests"
+            type="primary"
+            onClick={() =>
+              navigate("/dashboard/user/requests", {
+                state: uploadId ? { openOrderId: uploadId } : undefined,
+              })
+            }
+          >
             Go to Requests
           </Button>,
         ]}
@@ -93,7 +114,11 @@ export default function PaymentFailurePage() {
             )}
           </Paragraph>
           <Paragraph className="mb-0">
-            <Text type="secondary">If you believe this is wrong, wait a moment and refresh.</Text>
+            <Text type="secondary">
+              {isBalanceCheckout
+                ? "Open the order and retry balance payment to unlock CAD download."
+                : "If you believe this is wrong, wait a moment and refresh."}
+            </Text>
           </Paragraph>
         </div>
       }
@@ -103,14 +128,22 @@ export default function PaymentFailurePage() {
             <Button type="primary" onClick={() => navigate("/dashboard/user")}>
               Go Home
             </Button>
-            <Button onClick={() => navigate("/dashboard/user/requests")}>Go to Requests</Button>
+            <Button
+              onClick={() =>
+                navigate("/dashboard/user/requests", {
+                  state: uploadId ? { openOrderId: uploadId } : undefined,
+                })
+              }
+            >
+              Go to Requests
+            </Button>
             {uploadId && (
               <Button onClick={refresh} disabled={loading}>
                 Refresh
               </Button>
             )}
           </div>
-          {uploadId && upload && (
+          {uploadId && upload && !isBalanceCheckout && (
             <SketchPaymentRetryButton
               uploadId={uploadId}
               upload={upload}

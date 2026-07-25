@@ -5,7 +5,6 @@ export const SOCKET_URL = "https://m8earcixrb.execute-api.ap-south-1.amazonaws.c
 export const BASE_LINK = "/";
 export const SOCKET_PATH = "/";
 
-export const JWT_SECRET = "[REDACTED_JWT_SECRET]";
 export const ROLES = {
   ADMIN: "ADMIN",
   CAD: "CAD",

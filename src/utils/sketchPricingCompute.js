@@ -17,6 +17,9 @@ const num = (v, d = 0) => {
  */
 export function computeSketchTierPayable(tier) {
   if (!tier || typeof tier !== "object") return 0;
+  if (tier.payableRupees != null && Number.isFinite(Number(tier.payableRupees))) {
+    return Math.max(0, Number(tier.payableRupees));
+  }
   const plan = num(tier.planAmountRupees, 0);
   const disc = num(tier.discountRupees, 0);
   if (plan > 0) {
@@ -55,6 +58,8 @@ export function sketchTierBreakdownParts(tier) {
 export const FALLBACK_SURVEYOR_SKETCH_PRICING = {
   upload: { planAmountRupees: 0, discountRupees: 0, feePaise: 150 },
   revision: { planAmountRupees: 0, discountRupees: 0, feePaise: 10000 },
+  /** Default CAD download balance gate (₹400). */
+  balance: { planAmountRupees: 0, discountRupees: 0, feePaise: 40000 },
 };
 
 /** Added once to the sketch tier total when Google Superimpose is selected. */
@@ -115,7 +120,7 @@ export function buildSketchCheckoutBreakdown({
 /**
  * Normalize surveyor GET /api/surveyor/sketch-pricing payloads.
  * @param {any} raw
- * @returns {{ upload: SketchPricingTier, revision: SketchPricingTier }}
+ * @returns {{ upload: SketchPricingTier, revision: SketchPricingTier, balance: SketchPricingTier }}
  */
 export function normalizeSurveyorSketchPricingPayload(raw) {
   const root = raw?.data ?? raw;
@@ -129,6 +134,8 @@ export function normalizeSurveyorSketchPricingPayload(raw) {
     root?.revisionPricing ??
     root?.sketchRevision ??
     root?.revisionPrice;
+  const balance =
+    root?.balance ?? root?.balancePricing ?? root?.sketchBalance ?? root?.downloadBalance;
 
   const coerce = (t, fb) => {
     let plan = num(t?.planAmountRupees ?? t?.planRupees, 0);
@@ -139,15 +146,21 @@ export function normalizeSurveyorSketchPricingPayload(raw) {
     const discPaise = num(t?.discountPaise, 0);
     if (disc <= 0 && discPaise > 0) disc = discPaise / 100;
 
+    const feePaise = num(t?.feePaise ?? t?.fee_paise, num(fb.feePaise, 0));
+    const payableFromApi = num(t?.payableRupees, NaN);
+
     return {
       planAmountRupees: plan,
       discountRupees: disc,
-      feePaise: num(t?.feePaise ?? t?.fee_paise, num(fb.feePaise, 0)),
+      feePaise,
+      ...(Number.isFinite(payableFromApi) ? { payableRupees: payableFromApi } : {}),
+      ...(t?.source != null ? { source: t.source } : {}),
     };
   };
 
   return {
     upload: coerce(upload, FALLBACK_SURVEYOR_SKETCH_PRICING.upload),
     revision: coerce(revision, FALLBACK_SURVEYOR_SKETCH_PRICING.revision),
+    balance: coerce(balance, FALLBACK_SURVEYOR_SKETCH_PRICING.balance),
   };
 }

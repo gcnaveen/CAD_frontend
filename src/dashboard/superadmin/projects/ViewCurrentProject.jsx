@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Typography, Table, Button, Space, Spin, Empty, message, Tag, Select, Drawer, Input, Form, Switch } from "antd";
 import { EyeOutlined, EditOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import ProjectOrderDetailDrawer from "./ProjectOrderDetailDrawer";
 import apiClient from "../../../services/apiClient.js";
 import {
@@ -13,6 +13,9 @@ import {
   updateAssignmentFlow,
   formatUserDisplayLabel,
 } from "../../../services/assignmentApi.js";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
+import { getSlaRiskTone, resolveSla } from "../../../utils/sla.js";
+import { normalizeAssignmentFlow } from "../../../services/admin/autoAssignAdminService.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -53,7 +56,7 @@ const ViewCurrentProject = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [, setSelectedAssignment] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -88,11 +91,8 @@ const ViewCurrentProject = () => {
     const loadAutoAssign = async () => {
       try {
         const flow = await getAssignmentFlow();
-        const enabled =
-          flow?.autoAssignEnabled ??
-          flow?.data?.autoAssignEnabled ??
-          flow?.value?.autoAssignEnabled;
-        if (!cancelled) setAutoAssign(Boolean(enabled));
+        const normalized = normalizeAssignmentFlow(flow);
+        if (!cancelled) setAutoAssign(normalized.autoAssignEnabled);
       } catch (err) {
         if (cancelled) return;
         message.error(err?.message || "Failed to load auto assign setting");
@@ -253,7 +253,6 @@ const ViewCurrentProject = () => {
         editForm.setFieldsValue({
           status: d.status ?? undefined,
           assignedToUserId: d.assignedTo ?? undefined,
-          dueDate: d.dueDate ? d.dueDate.slice(0, 16) : undefined,
           notes: d.notes ?? "",
         });
       })
@@ -281,7 +280,6 @@ const ViewCurrentProject = () => {
       const payload = {
         ...(values.status != null && values.status !== "" && { status: values.status }),
         ...(values.assignedToUserId != null && values.assignedToUserId !== "" && { assignedToUserId: values.assignedToUserId }),
-        ...(values.dueDate && { dueDate: new Date(values.dueDate).toISOString() }),
         ...(values.notes != null && { notes: typeof values.notes === "string" ? values.notes : String(values.notes ?? "") }),
       };
       await apiClient.patch(
@@ -324,20 +322,6 @@ const ViewCurrentProject = () => {
     return colorMap[status] || "default";
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
   const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     try {
@@ -360,12 +344,6 @@ const ViewCurrentProject = () => {
     const name = location.name || "-";
     const code = location.code ? ` (${location.code})` : "";
     return `${name}${code}`;
-  };
-
-  const getCadCenterDisplay = (cadCenter) => {
-    if (!cadCenter) return "-";
-    if (typeof cadCenter === "string") return cadCenter;
-    return cadCenter.name || "-";
   };
 
   const columns = [
@@ -431,6 +409,12 @@ const ViewCurrentProject = () => {
           {getAssignmentStatusDisplay(status)}
         </Tag>
       ),
+    },
+    {
+      title: "SLA",
+      key: "sla",
+      width: 200,
+      render: (_, record) => <SlaStatus entity={record} compact />,
     },
     {
       title: "Created At",
@@ -506,6 +490,9 @@ const ViewCurrentProject = () => {
                 onChange={handleAutoAssignChange}
                 disabled={autoAssignLoading}
               />
+              <Link to="/superadmin/auto-assign/exceptions" style={{ fontSize: 12 }}>
+                Exceptions
+              </Link>
             </Space>
           )}
           <Space>
@@ -541,6 +528,17 @@ const ViewCurrentProject = () => {
           dataSource={assignments}
           rowKey="_id"
           loading={loading}
+          onRow={(record) => {
+            const tone = getSlaRiskTone(resolveSla(record)?.state);
+            if (!tone) return {};
+            const bg =
+              tone === "breached"
+                ? "rgba(207, 19, 34, 0.08)"
+                : tone === "escalated"
+                  ? "rgba(250, 140, 22, 0.1)"
+                  : "rgba(250, 173, 20, 0.1)";
+            return { style: { background: bg } };
+          }}
           pagination={{
             current: pagination.page,
             pageSize: pagination.limit,
@@ -606,9 +604,6 @@ const ViewCurrentProject = () => {
                   label: formatUserDisplayLabel(u) || "CAD user",
                 }))}
               />
-            </Form.Item>
-            <Form.Item name="dueDate" label="Due Date">
-              <Input type="datetime-local" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="notes" label="Notes">
               <TextArea rows={4} placeholder="Notes (optional)" />

@@ -9,16 +9,35 @@ lerna-debug.log*
 
 # Dependencies
 node_modules
+node_modules_old*
 
 # Build
 dist
 dist-ssr
+dev-dist
+
+# Tests / CI
+coverage
+playwright-report
+test-results
+blob-report
+eslint-report.json
 
 # Environment (do not commit secrets)
 .env
 .env.local
 .env.*.local
 *.local
+
+# Deployment archives / local dumps (M-04)
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+CAD_FRONTEND-*.zip
+cad*.zip
 
 # Editor
 .vscode/*

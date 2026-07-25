@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Form, Upload, Input, message, Button, Typography, Space, Radio, Checkbox, Card } from "antd";
 import { Upload as UploadIcon, Music, Mic, Square, Trash2, Upload as UploadIcon2 } from "lucide-react";
-import { getImagePresignedUrl, getAudioPresignedUrl, deleteUploadedFile } from "../../../services/upload/upload.api.js";
-import { uploadAudioToS3 } from "../../../services/upload/upload.service.js";
+import { deleteUploadedFile } from "../../../services/upload/upload.api.js";
+import {
+  uploadImageToS3,
+  uploadAudioToS3,
+} from "../../../services/upload/upload.service.js";
+import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
 
 const { TextArea } = Input;
@@ -84,12 +88,6 @@ const UploadSurvey = ({
     return audioTypes.some(type => file.type?.startsWith(type) || file.type === type);
   };
 
-  // Determine if file is image based on MIME type
-  const isImageFile = (file) => {
-    const imageTypes = ["image/"];
-    return imageTypes.some(type => file.type?.startsWith(type));
-  };
-
   const handleUpload = async (file, fieldName) => {
     // When beforeUpload is called, 'file' IS the File object
     // We need to preserve it even if upload fails
@@ -127,72 +125,12 @@ const UploadSurvey = ({
     setUploading((prev) => ({ ...prev, [fieldName]: true }));
 
     try {
-      // Use the actual File object for upload
       const actualFile = fileObj instanceof File ? fileObj : file;
-      
-      // Choose API endpoint based on file type
-      let result;
-      if (isAudioFile(actualFile)) {
-        result = await getAudioPresignedUrl({
-          fileName: actualFile.name,
-          contentType: actualFile.type,
-          entityId: village,
-        });
-      } else {
-        result = await getImagePresignedUrl({
-          fileName: actualFile.name,
-          contentType: actualFile.type,
-          entityId: village,
-        });
-      }
-      
-      const responseData = result?.data ?? result;
-      const { uploadUrl, fileUrl, key } = responseData;
-      
-      if (!uploadUrl || !fileUrl) {
-        throw new Error("Failed to get upload URL");
-      }
+      // H-10: JWT + fileSizeBytes + confirm; FILE_QUARANTINED throws (do not attach URL)
+      const { fileUrl, key } = isAudioFile(actualFile)
+        ? await uploadAudioToS3(actualFile, village)
+        : await uploadImageToS3(actualFile, village);
 
-      // Upload file to S3
-      const redactedUploadUrl = typeof uploadUrl === "string" ? uploadUrl.split("?")[0] : uploadUrl;
-      try {
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "PUT",
-          body: actualFile,
-          headers: { "Content-Type": actualFile.type },
-        });
-
-        if (!uploadResponse.ok) {
-          let details = "";
-          try {
-            details = await uploadResponse.text();
-          } catch {
-            // ignore
-          }
-
-          // Temporary: helps backend verify why presigned PUT fails.
-          console.error("s3 backend log", {
-            uploadUrl: redactedUploadUrl,
-            fileName: actualFile?.name,
-            contentType: actualFile?.type,
-            status: uploadResponse.status,
-            statusText: uploadResponse.statusText,
-            responseBody: typeof details === "string" ? details : "",
-          });
-
-          throw new Error("Failed to upload file to S3");
-        }
-      } catch (e) {
-        console.error("s3 backend log", {
-          uploadUrl: redactedUploadUrl,
-          fileName: actualFile?.name,
-          contentType: actualFile?.type,
-          error: e?.message || String(e),
-        });
-        throw e;
-      }
-
-      // Store file info in form (fileUrl and metadata)
       const currentValue = form.getFieldValue(fieldName) || [];
       const fileUid = file.uid || `rc-upload-${Date.now()}-${Math.random()}`;
       const fileMeta = {
@@ -209,7 +147,7 @@ const UploadSurvey = ({
           name: file.name || actualFile.name,
           url: fileUrl,
           fileUrl,
-          key: key,
+          key,
           fileName: fileMeta.fileName,
           mimeType: fileMeta.mimeType,
           size: fileMeta.size,
@@ -219,7 +157,6 @@ const UploadSurvey = ({
         },
       ]);
 
-      // Notify parent so submit can use URL even if form drops it
       if (fieldName === "other_documents") {
         onOtherDocumentUpload?.(fileUid, fileMeta);
       } else {
@@ -227,9 +164,9 @@ const UploadSurvey = ({
       }
 
       message.success(`${fieldName} uploaded successfully`);
-      return false; // Prevent default upload
+      return false;
     } catch (error) {
-      message.error(error.message || `Failed to upload ${fieldName}`);
+      message.error(getUploadErrorMessage(error) || `Failed to upload ${fieldName}`);
       return false;
     } finally {
       setUploading((prev) => ({ ...prev, [fieldName]: false }));
@@ -386,7 +323,7 @@ const UploadSurvey = ({
       }
     } catch (error) {
       console.error("Failed to upload audio:", error);
-      message.error(error.message || "Failed to upload audio");
+      message.error(getUploadErrorMessage(error) || "Failed to upload audio");
     } finally {
       setUploadingAudio(false);
     }
@@ -488,7 +425,7 @@ const UploadSurvey = ({
       return false; // Prevent default upload
     } catch (error) {
       console.error("Failed to upload audio:", error);
-      message.error(error.message || "Failed to upload audio");
+      message.error(getUploadErrorMessage(error) || "Failed to upload audio");
       return false;
     } finally {
       setUploadingAudio(false);

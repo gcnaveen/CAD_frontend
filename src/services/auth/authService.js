@@ -33,8 +33,7 @@ export async function staffLogin(payload) {
     const { data } = await apiClient.post("/api/auth/login", payload);
     return data;
   } catch (error) {
-    const message = error.response?.data?.message ?? error.message ?? "Staff login failed";
-    throw new Error(message);
+    throw new Error(getApiErrorMessage(error, "Staff login failed"));
   }
 }
 

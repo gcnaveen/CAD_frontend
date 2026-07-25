@@ -61,14 +61,23 @@ function BeforeAfterMedia({
       }}
     >
       {/* BEFORE image — full size, sits beneath */}
-      <img src={beforeSrc} alt="Before" className="ba-img ba-img--before" decoding="async" />
+      <img
+        src={beforeSrc}
+        alt="Before"
+        className="ba-img ba-img--before"
+        loading="lazy"
+        decoding="async"
+        sizes="(max-width: 768px) 100vw, 560px"
+      />
 
       {/* AFTER image — same full size, clipped via clipPath so it never shifts */}
       <img
         src={afterSrc}
         alt="After"
         className="ba-img ba-img--after"
+        loading="lazy"
         decoding="async"
+        sizes="(max-width: 768px) 100vw, 560px"
         style={{ clipPath: `inset(0 ${100 - value}% 0 0)` }}
       />
 

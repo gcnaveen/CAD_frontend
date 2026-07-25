@@ -4,6 +4,7 @@ import {
   uploadAudioToS3,
   deleteFileFromS3,
 } from "../services/upload/upload.service.js";
+import { getUploadErrorMessage } from "../services/upload/upload.errors.js";
 import {
   IMAGE_MIME_TYPES,
   IMAGE_MAX_SIZE_BYTES,
@@ -13,8 +14,7 @@ import {
   AUDIO_MAX_SIZE_LABEL,
 } from "../services/upload/upload.constants.js";
 
-const getErrorMessage = (err) =>
-  err.response?.data?.message ?? err.message ?? "Something went wrong";
+const getErrorMessage = (err) => getUploadErrorMessage(err) || "Something went wrong";
 
 /**
  * Validate image file type and size.
@@ -59,10 +59,11 @@ function validateAudio(file) {
 }
 
 /**
- * Reusable file upload hook with validation and S3 upload.
+ * Reusable file upload hook with validation and S3 upload (H-10).
+ * Requires a Bearer token; returns null and sets error on auth/quota/quarantine failures.
  * @returns {{
- *   uploadImage: (file: File, entityId: string) => Promise<{ fileUrl: string, key: string } | null>,
- *   uploadAudio: (file: File, entityId: string) => Promise<{ fileUrl: string, key: string } | null>,
+ *   uploadImage: (file: File, entityId?: string) => Promise<{ fileUrl: string, key: string } | null>,
+ *   uploadAudio: (file: File, entityId?: string) => Promise<{ fileUrl: string, key: string } | null>,
  *   deleteFile: (fileUrl: string) => Promise<boolean>,
  *   loading: boolean,
  *   error: string | null,

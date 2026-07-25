@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   Drawer,
@@ -22,7 +22,6 @@ import {
   DollarOutlined,
   SoundOutlined,
 } from "@ant-design/icons";
-import apiClient from "../../../services/apiClient.js";
 import {
   cacheAssignmentIdForSketch,
   canPullbackSketchEntity,
@@ -30,11 +29,15 @@ import {
   getCadUsers,
   lookupAssignmentIdForSketch,
   pullbackReassignAssignment,
+  resolveAssignmentIdFromEntity,
   updateAssignment,
   resolveAssignedCadUserIdFromEntity,
   formatUserDisplayLabel,
 } from "../../../services/assignmentApi.js";
+import { parseManualAssignBlocked } from "../../../services/admin/autoAssignAdminService.js";
 import PullbackReassignModal from "../../../components/assignments/PullbackReassignModal.jsx";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
+import SlaExtendModal from "../../../components/sla/SlaExtendModal.jsx";
 import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../../constants/roles.js";
 import CadWalletPayoutSection from "../../../components/cadWallet/CadWalletPayoutSection.jsx";
 import FileViewDownloadButtons from "../../../components/files/FileViewDownloadButtons.jsx";
@@ -44,6 +47,8 @@ import {
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils.js";
 import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard.jsx";
+import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import { normalizeSla, resolveSla } from "../../../utils/sla.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -85,28 +90,14 @@ const SINGLE_MODE_DOCUMENT_LABELS = {
 };
 
 /**
- * Status display mapping
- */
-const STATUS_DISPLAY = {
-  PENDING: "Pending Review",
-  ASSIGNED: "Assigned",
-  UNDER_REVIEW: "Under Review",
-  UNDER_REVISION: "Under Revision",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  ON_HOLD: "On Hold",
-  CANCELLED: "Cancelled",
-};
-
-/**
- * Status color mapping
+ * Status color mapping (sketch lifecycle codes; UNDER_REVIEW maps via legacy map)
  */
 const getStatusColor = (status) => {
   const colorMap = {
+    PAYMENT_PENDING: "gold",
     PENDING: "warning",
     ASSIGNED: "processing",
+    CAD_DELIVERED: "cyan",
     UNDER_REVIEW: "processing",
     UNDER_REVISION: "processing",
     APPROVED: "success",
@@ -149,17 +140,6 @@ const formatDate = (dateString) => {
   }
 };
 
-/**
- * Convert a Date into the local `datetime-local` input format: `YYYY-MM-DDTHH:mm`
- * (no timezone information in the string).
- */
-const toDatetimeLocalValue = (date) => {
-  const pad2 = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(
-    date.getHours()
-  )}:${pad2(date.getMinutes())}`;
-};
-
 const ProjectOrderDetailDrawer = ({
   open,
   onClose,
@@ -183,11 +163,13 @@ const ProjectOrderDetailDrawer = ({
   const canManageCadWallet = useMemo(() => {
     return !readOnly && roleKey === ROLES.SUPER_ADMIN;
   }, [readOnly, roleKey]);
+  const canExtendSla = useMemo(
+    () => !readOnly && (roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN),
+    [readOnly, roleKey]
+  );
   const [assignedCadUser, setAssignedCadUser] = useState(null);
   const [status, setStatus] = useState("approved");
   const [note, setNote] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [minDueDate, setMinDueDate] = useState("");
   const [cadUsers, setCadUsers] = useState([]);
   const [cadUsersLoading, setCadUsersLoading] = useState(false);
   const [pullbackOpen, setPullbackOpen] = useState(false);
@@ -198,7 +180,8 @@ const ProjectOrderDetailDrawer = ({
   const [pullbackError, setPullbackError] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
   const [downloadingByKey, setDownloadingByKey] = useState({});
-  const clearedDueDateWarningShownRef = useRef(false);
+  const [slaExtendOpen, setSlaExtendOpen] = useState(false);
+  const [slaLocal, setSlaLocal] = useState(null);
 
   const singleUploadFiles = useMemo(
     () => normalizeFileList(order?.singleUpload),
@@ -235,12 +218,12 @@ const ProjectOrderDetailDrawer = ({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    const min = new Date();
-    min.setSeconds(0, 0);
-    setMinDueDate(toDatetimeLocalValue(min));
-    clearedDueDateWarningShownRef.current = false;
-  }, [open]);
+    if (!open) {
+      setSlaExtendOpen(false);
+      return;
+    }
+    setSlaLocal(resolveSla(order));
+  }, [open, order]);
 
   useEffect(() => {
     if (order) {
@@ -257,41 +240,13 @@ const ProjectOrderDetailDrawer = ({
       };
       setStatus(statusMap[order.status] || order.status || "approved");
       setNote(order.statusNote || order.note || "");
-
-      if (!order.dueDate) {
-        setDueDate("");
-        return;
-      }
-
-      // Convert API ISO date (UTC) -> local `datetime-local` string.
-      const apiDueDateDate = new Date(order.dueDate);
-      if (Number.isNaN(apiDueDateDate.getTime())) {
-        setDueDate("");
-        return;
-      }
-
-      const apiDueDateValue = toDatetimeLocalValue(apiDueDateDate);
-
-      // Prevent showing/using a dueDate that is already in the past.
-      // `datetime-local` is local time, so we compare using local Date parsing.
-      const minDate = minDueDate ? new Date(minDueDate) : (() => {
-        const d = new Date();
-        d.setSeconds(0, 0);
-        return d;
-      })();
-
-      if (apiDueDateDate < minDate) {
-        setDueDate("");
-        if (!readOnly && !clearedDueDateWarningShownRef.current) {
-          clearedDueDateWarningShownRef.current = true;
-          message.warning("Existing due date is in the past. Please select an upcoming due date.");
-        }
-        return;
-      }
-
-      setDueDate(apiDueDateValue);
     }
-  }, [order, minDueDate, readOnly]);
+  }, [order]);
+
+  const assignmentIdForSla = useMemo(
+    () => resolveAssignmentIdFromEntity(order) || order?.assignmentId || null,
+    [order]
+  );
 
   const closePullback = () => {
     setPullbackOpen(false);
@@ -389,24 +344,9 @@ const ProjectOrderDetailDrawer = ({
     }
     setSaveLoading(true);
     try {
-      // Guard against saving a past dueDate.
-      if (dueDate) {
-        const selected = new Date(dueDate);
-        const minDate = minDueDate ? new Date(minDueDate) : (() => {
-          const d = new Date();
-          d.setSeconds(0, 0);
-          return d;
-        })();
-        if (selected < minDate) {
-          message.error("Due date must be an upcoming date/time.");
-          return;
-        }
-      }
-
       const payload = {
         surveyorSketchUploadId: order._id,
         assignedCadUserId: assignedCadUser,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         notes: typeof note === "string" ? note : String(note ?? ""),
       };
 
@@ -430,6 +370,11 @@ const ProjectOrderDetailDrawer = ({
       if (order._id && assignmentId) {
         cacheAssignmentIdForSketch(order._id, assignmentId);
       }
+      if (assignment?.sla) {
+        setSlaLocal(normalizeSla(assignment.sla));
+      } else if (assignment) {
+        setSlaLocal(resolveSla(assignment));
+      }
       message.success("Assignment saved successfully.");
       if (onSave) {
         onSave({
@@ -439,12 +384,21 @@ const ProjectOrderDetailDrawer = ({
           assignedCadCenterId: assignedCadUser,
           status,
           note: status === "need_changes" ? note : "",
-          dueDate: payload.dueDate,
+          sla: assignment?.sla ?? order.sla,
         });
       }
       onClose?.();
     } catch (err) {
-      message.error(err.response?.data?.message || "Failed to save assignment");
+      const blocked = parseManualAssignBlocked(err);
+      if (blocked.blocked) {
+        message.error(blocked.message);
+      } else {
+        message.error(
+          err?.message ||
+            err.response?.data?.message ||
+            "Failed to save assignment"
+        );
+      }
     } finally {
       setSaveLoading(false);
     }
@@ -833,7 +787,7 @@ const ProjectOrderDetailDrawer = ({
           >
             <Descriptions.Item label="Status">
               <Tag color={getStatusColor(order.status)}>
-                {STATUS_DISPLAY[order.status] || order.status || "-"}
+                {getSketchStatusLabel(order.status) || order.status || "-"}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Status Note">
@@ -896,37 +850,22 @@ const ProjectOrderDetailDrawer = ({
                   suffixIcon={<UserOutlined />}
                 />
               </div>
-              {/* <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>Due Date</Text>
-                <Input
-                  type="datetime-local"
-                      min={minDueDate || undefined}
-                      step={60}
-                  style={{ width: "100%", maxWidth: 400 }}
-                  value={dueDate}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (!value) {
-                          setDueDate("");
-                          return;
-                        }
-
-                        const selected = new Date(value);
-                        const minDate = minDueDate ? new Date(minDueDate) : (() => {
-                          const d = new Date();
-                          d.setSeconds(0, 0);
-                          return d;
-                        })();
-                        if (selected < minDate) {
-                          message.warning("Due date must be an upcoming date/time.");
-                          return;
-                        }
-
-                        setDueDate(value);
-                      }}
-                  disabled={readOnly}
+              <div>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>SLA / deadline</Text>
+                <SlaStatus
+                  sla={slaLocal}
+                  entity={order}
+                  showPromise
+                  showExtensions
+                  extra={
+                    canExtendSla && assignmentIdForSla ? (
+                      <Button size="small" onClick={() => setSlaExtendOpen(true)}>
+                        Extend SLA
+                      </Button>
+                    ) : null
+                  }
                 />
-              </div> */}
+              </div>
               <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>Notes</Text>
                 <TextArea
@@ -1019,6 +958,16 @@ const ProjectOrderDetailDrawer = ({
       errorText={pullbackError}
       onClose={closePullback}
       onSubmit={handlePullbackSubmit}
+    />
+    <SlaExtendModal
+      open={slaExtendOpen}
+      assignmentId={assignmentIdForSla}
+      onClose={() => setSlaExtendOpen(false)}
+      onSuccess={(updated) => {
+        const next = normalizeSla(updated?.sla) || resolveSla(updated) || slaLocal;
+        setSlaLocal(next);
+        onOrderRefresh?.();
+      }}
     />
     </>
   );

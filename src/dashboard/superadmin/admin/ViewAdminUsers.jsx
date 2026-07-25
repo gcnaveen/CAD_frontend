@@ -8,7 +8,7 @@ import {
   message,
   Spin,
 } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import UserFormDrawer from "../../../components/users/UserFormDrawer.jsx";

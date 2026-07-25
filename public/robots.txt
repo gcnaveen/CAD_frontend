@@ -1,0 +1,28 @@
+# L-01 — Indexing strategy for North-cot (SPA)
+# Index marketing + auth entry pages only. Private app shells stay Disallow.
+# Auth is still required for those routes; Disallow reduces accidental crawl of
+# empty login-walled shells. DocumentMeta also sets noindex on private paths.
+#
+# Set Sitemap host via VITE_SITE_URL at deploy (default: https://northcot.in).
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /login-email
+Allow: /register
+Allow: /privacy-policy
+Allow: /terms-and-conditions
+
+Disallow: /dashboard
+Disallow: /superadmin
+Disallow: /admin
+Disallow: /complete-profile
+Disallow: /profile
+Disallow: /payment
+Disallow: /payment-success
+Disallow: /payment-failure
+Disallow: /cad
+Disallow: /surveyor
+Disallow: /403
+
+Sitemap: https://northcot.in/sitemap.xml

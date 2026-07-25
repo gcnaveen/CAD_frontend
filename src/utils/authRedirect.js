@@ -7,6 +7,7 @@ export const AUTH_ONLY_PATHS = new Set([
   "/login/email",
   "/register",
   "/register/cad-operator",
+  "/enroll",
 ]);
 
 /**

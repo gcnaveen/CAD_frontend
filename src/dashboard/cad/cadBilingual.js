@@ -55,6 +55,7 @@ export const cadBi = {
     assignedAt: "Assigned at / ನಿಯೋಜಿಸಿದ ಸಮಯ",
     applicationId: "Application ID / ಅರ್ಜಿ ಸಂಖ್ಯೆ",
     dueDate: "Due date / ಕೊನೆ ದಿನಾಂಕ",
+    sla: "SLA / deadline / ಗಡುವು",
     status: "Status / ಸ್ಥಿತಿ",
     details: "Details / ವಿವರಗಳು",
     viewDetails: "View Details / ವಿವರಗಳನ್ನು ನೋಡಿ",
@@ -89,6 +90,8 @@ export const cadBi = {
     acceptWindowWarn:
       "This assignment is older than 2 hours and may have reverted to admin. / ಈ ನಿಯೋಜನೆ 2 ಗಂಟೆಗಿಂತ ಹಳೆಯದು; ಆಡ್ಮಿನ್‌ಗೆ ಹಿಂದಿರುಗಿರಬಹುದು.",
     selectCadFile: "Please select a CAD file to deliver. / ಸಲ್ಲಿಸಲು CAD ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ.",
+    cadSourceRequired:
+      "At least one source .dwg or .dxf is required. PDF/image preview alone cannot be delivered. / ಕನಿಷ್ಠ ಒಂದು .dwg ಅಥವಾ .dxf ಮೂಲ ಫೈಲ್ ಅಗತ್ಯ. PDF/ಚಿತ್ರ ಪೂರ್ವವೀಕ್ಷಣೆ ಮಾತ್ರ ಸಲ್ಲಿಸಲಾಗುವುದಿಲ್ಲ.",
     cadDelivered: "CAD deliverable submitted successfully / CAD ಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ",
     deliverFail: "Failed to deliver CAD file / CAD ಫೈಲ್ ಸಲ್ಲಿಕೆ ವಿಫಲ",
   },
@@ -116,7 +119,14 @@ export const cadBi = {
     revisionOpenActive:
       "Open revision request — review remarks and audio, then upload an updated CAD deliverable. / ತೆರೆದ ಪರಿಷ್ಕರಣೆ ವಿನಂತಿ — ಟಿಪ್ಪಣಿ ಮತ್ತು ಆಡಿಯೋ ನೋಡಿ, ನಂತರ ನವೀಕೃತ CAD ಫೈಲ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ.",
     uploadCadFile: "Upload CAD file / CAD ಫೈಲ್ ಅಪ್ಲೋಡ್",
-    uploadCadHelp: "Upload completed CAD drawing files for this application. / ಈ ಅರ್ಜಿಗೆ ಪೂರ್ಣಗೊಂಡ CAD ಡ್ರಾಯಿಂಗ್ ಫೈಲ್‌ಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ.",
+    uploadCadHelp:
+      "Upload completed CAD drawings for this application. Source .dwg/.dxf is required; PDF or image preview is optional. / ಈ ಅರ್ಜಿಗೆ ಪೂರ್ಣಗೊಂಡ CAD ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ. ಮೂಲ .dwg/.dxf ಅಗತ್ಯ; PDF ಅಥವಾ ಚಿತ್ರ ಪೂರ್ವವೀಕ್ಷಣೆ ಐಚ್ಛಿಕ.",
+    cadSourceHint:
+      "At least one .dwg or .dxf source file is required. Preview-only (PDF/image) submissions are rejected. / ಕನಿಷ್ಠ ಒಂದು .dwg ಅಥವಾ .dxf ಮೂಲ ಫೈಲ್ ಅಗತ್ಯ. PDF/ಚಿತ್ರ ಮಾತ್ರ ತಿರಸ್ಕರಿಸಲಾಗುತ್ತದೆ.",
+    cadSourceRequired:
+      "Add at least one .dwg or .dxf source file before delivering. / ಸಲ್ಲಿಸುವ ಮೊದಲು ಕನಿಷ್ಠ ಒಂದು .dwg ಅಥವಾ .dxf ಮೂಲ ಫೈಲ್ ಸೇರಿಸಿ.",
+    invalidCadFileType:
+      "Only .dwg/.dxf (source) and optional .pdf/image (preview) are allowed. / ಕೇವಲ .dwg/.dxf (ಮೂಲ) ಮತ್ತು ಐಚ್ಛಿಕ .pdf/ಚಿತ್ರ (ಪೂರ್ವವೀಕ್ಷಣೆ) ಅನುಮತಿ.",
     selectCadFiles: "Select CAD file(s) / CAD ಫೈಲ್(ಗಳು) ಆಯ್ಕೆ",
     filesSelectedHint:
       "{n} file(s) selected. Use \"Upload CAD File(s)\" in the header to submit. / {n} ಫೈಲ್ ಆಯ್ಕೆ. ಸಲ್ಲಿಸಲು ಶೀರ್ಷಿಕೆಯಲ್ಲಿರುವ \"Upload CAD File(s)\" ಬಳಸಿ.",
@@ -124,6 +134,7 @@ export const cadBi = {
     surveyNo: "Survey No / ಸರ್ವೇ ಸಂಖ್ಯೆ",
     assignedAt: "Assigned at / ನಿಯೋಜಿಸಿದ ಸಮಯ",
     dueDate: "Due date / ಕೊನೆ ದಿನಾಂಕ",
+    sla: "SLA / deadline / ಗಡುವು",
     assignmentStatus: "Assignment status / ನಿಯೋಜನೆ ಸ್ಥಿತಿ",
     assignmentNotes: "Assignment notes / ನಿಯೋಜನೆ ಟಿಪ್ಪಣಿ",
     surveyType: "Survey type / ಸರ್ವೇ ಪ್ರಕಾರ",
@@ -161,16 +172,13 @@ export const cadBi = {
     typeSizeLine: "Type / ಪ್ರಕಾರ: {mime} • Size / ಗಾತ್ರ: {size}",
     audioUnsupported: "Your browser does not support the audio element. / ನಿಮ್ಮ ಬ್ರೌಸರ್ ಆಡಿಯೋ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ.",
     sketchStatus: {
-      PENDING: "Pending Review / ಪರಿಶೀಲನೆ ಬಾಕಿ",
-      ASSIGNED: "Assigned / ನಿಯೋಜಿಸಲಾಗಿದೆ",
-      UNDER_REVIEW: "Under Review / ಪರಿಶೀಲನೆಯಲ್ಲಿ",
-      UNDER_REVISION: "Under Revision / ಪರಿಷ್ಕರಣೆಗಾಗಿ",
-      APPROVED: "Approved / ಅನುಮೋದಿತ",
-      REJECTED: "Rejected / ತಿರಸ್ಕೃತ",
-      IN_PROGRESS: "In Progress / ಪ್ರಗತಿಯಲ್ಲಿ",
-      COMPLETED: "Completed / ಪೂರ್ಣಗೊಂಡಿದೆ",
-      ON_HOLD: "On Hold / ನಿಲ್ಲಿಸಲಾಗಿದೆ",
-      CANCELLED: "Cancelled / ರದ್ದು",
+      PAYMENT_PENDING: "Awaiting booking payment / ಬುಕಿಂಗ್ ಪಾವತಿ ಬಾಕಿ",
+      PENDING: "Queued for assignment / ನಿಯೋಜನೆಗೆ ಸರದಿ",
+      ASSIGNED: "With CAD / CAD ನಲ್ಲಿ",
+      CAD_DELIVERED: "Delivered (balance may apply) / ವಿತರಿಸಲಾಗಿದೆ (ಬ್ಯಾಲೆನ್ಸ್ ಅನ್ವಯಿಸಬಹುದು)",
+      UNDER_REVISION: "Revision in flight / ಪರಿಷ್ಕರಣೆ ಪ್ರಗತಿಯಲ್ಲಿ",
+      APPROVED: "Completed / ಪೂರ್ಣಗೊಂಡಿದೆ",
+      REJECTED: "Cancelled / ರದ್ದು",
     },
     surveyTypes: {
       joint_flat: "Joint Flat / ಜಂಟಿ ಫ್ಲಾಟ್",
@@ -285,6 +293,14 @@ export const cadBi = {
     recordedBy: "Recorded by / ದಾಖಲಿಸಿದವರು",
     noPaymentLog: "No payment log entries. / ಪಾವತಿ ಲಾಗ್ ನಮೂದುಗಳಿಲ್ಲ.",
     rangeOf: "{a}-{b} of {t} / {t} ರಲ್ಲಿ {a}-{b}",
+    settlementTitle: "Settlement / ಸೆಟಲ್‌ಮೆಂಟ್",
+    payoutModel: "Model / ಮಾದರಿ",
+    ruleVersion: "Rule / ನಿಯಮ",
+    gross: "Gross / ಒಟ್ಟು",
+    booking: "Booking / ಬುಕಿಂಗ್",
+    balance: "Balance / ಬ್ಯಾಲೆನ್ಸ್",
+    payout: "Payout / ಪೇಔಟ್",
+    platformFee: "Platform fee / ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಶುಲ್ಕ",
   },
 };
 

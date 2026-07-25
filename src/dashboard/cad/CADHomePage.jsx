@@ -22,7 +22,7 @@ import {
   DollarOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { getCadDashboardOverview } from "../../services/cad/cadWalletService.js";
 import { cadBi, cadBiFmt } from "./cadBilingual";
 

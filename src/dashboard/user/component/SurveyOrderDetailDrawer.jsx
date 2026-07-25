@@ -11,13 +11,17 @@ import {
   Typography,
   Upload,
   message,
+  Alert,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { Mic, Music, Square, Trash2, Upload as UploadIcon } from "lucide-react";
 import { uploadAudioToS3 } from "../../../services/upload/upload.service.js";
+import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import {
   getSketchUploadById,
   requestCadRevision,
+  initiateBalancePayment,
+  getCadDownload,
 } from "../../../services/surveyor/sketchUploadService.js";
 import {
   getAssignmentFeedback,
@@ -36,24 +40,23 @@ import {
   redirectToSketchCheckout,
 } from "../../../utils/sketchPaymentUtils.js";
 import {
+  formatBalancePayableRupees,
+  getCadDownloadUiAction,
+  normalizeCadDeliverableMeta,
+  cadDownloadDenialMessage,
+} from "../../../utils/cadDownloadEntitlement.js";
+import {
   hasUploadedFiles,
   normalizeFileList,
   normalizeSingleFile,
+  downloadRemoteFile,
 } from "../../../utils/sketchFileUtils.js";
+
+import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 
 const { Text } = Typography;
 const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg";
-
-const STATUS_DISPLAY = {
-  PAYMENT_PENDING: "Payment Pending",
-  PENDING: "Pending",
-  ASSIGNED: "Assigned",
-  CAD_DELIVERED: "CAD Delivered",
-  UNDER_REVIEW: "Under Review",
-  UNDER_REVISION: "Under Revision",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-};
 
 const STATUS_COLORS = {
   PAYMENT_PENDING: "gold",
@@ -121,6 +124,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   const timerRef = useRef(null);
   const streamRef = useRef(null);
   const [downloadingByKey, setDownloadingByKey] = useState({});
+  const [balancePaying, setBalancePaying] = useState(false);
+  const [cadDownloading, setCadDownloading] = useState(false);
 
   const [fbRating, setFbRating] = useState(0);
   const [fbRemarks, setFbRemarks] = useState("");
@@ -224,8 +229,13 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     [details?.singleUpload]
   );
   const cadDeliverableFiles = useMemo(
-    () => normalizeFileList(details?.cadDeliverable),
+    () => normalizeCadDeliverableMeta(details?.cadDeliverable),
     [details?.cadDeliverable]
+  );
+  const cadDownloadAction = useMemo(() => getCadDownloadUiAction(details), [details]);
+  const balancePayableRupees = useMemo(
+    () => formatBalancePayableRupees(details),
+    [details]
   );
   const audioFile = useMemo(() => normalizeSingleFile(details?.audio), [details?.audio]);
   const isSingleUploadMode =
@@ -284,7 +294,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       });
       message.success("Audio uploaded");
     } catch (error) {
-      message.error(error?.message || "Audio upload failed");
+      message.error(getUploadErrorMessage(error) || "Audio upload failed");
     } finally {
       setAudioUploading(false);
     }
@@ -391,6 +401,82 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     }
   };
 
+  const handlePayBalance = async () => {
+    if (!uploadId || balancePaying) return;
+    setBalancePaying(true);
+    try {
+      const res = await initiateBalancePayment(uploadId);
+      if (res?.data) setDetails(res.data);
+
+      const payment = res?.meta?.payment;
+      if (payment?.alreadyEntitled || payment?.requiresPayment === false) {
+        message.success("Download already unlocked");
+        const refreshed = await getSketchUploadById(uploadId);
+        if (refreshed?.success && refreshed?.data) setDetails(refreshed.data);
+        return;
+      }
+
+      if (
+        redirectToSketchCheckout(payment, uploadId, {
+          purpose: payment?.purpose || "CAD_BALANCE",
+        })
+      ) {
+        message.success("Redirecting to balance payment...");
+        return;
+      }
+
+      message.warning("Payment checkout URL was not returned. Please try again.");
+    } catch (error) {
+      message.error(error?.message || "Failed to start balance payment");
+    } finally {
+      setBalancePaying(false);
+    }
+  };
+
+  const handleCadDownload = async () => {
+    if (!uploadId || cadDownloading) return;
+    setCadDownloading(true);
+    try {
+      const res = await getCadDownload(uploadId);
+      const files = res?.data?.files;
+      if (!Array.isArray(files) || files.length === 0) {
+        throw new Error("No downloadable files returned");
+      }
+      if (res?.data?.downloadEntitlement) {
+        setDetails((prev) =>
+          prev
+            ? { ...prev, downloadEntitlement: res.data.downloadEntitlement }
+            : prev
+        );
+      }
+      for (const file of files) {
+        const url = file?.downloadUrl;
+        if (!url) continue;
+        await downloadRemoteFile(url, file.fileName || "cad-deliverable");
+      }
+      message.success(files.length > 1 ? "Downloads started" : "Download started");
+    } catch (error) {
+      const code = error?.code;
+      message.error(cadDownloadDenialMessage(code) || error?.message || "Download failed");
+      if (
+        code === "BALANCE_PAYMENT_REQUIRED" ||
+        code === "BALANCE_PAYMENT_PENDING" ||
+        code === "BALANCE_PAYMENT_FAILED" ||
+        code === "AMOUNT_MISMATCH" ||
+        code === "BALANCE_REFUNDED"
+      ) {
+        try {
+          const refreshed = await getSketchUploadById(uploadId);
+          if (refreshed?.success && refreshed?.data) setDetails(refreshed.data);
+        } catch {
+          // ignore refresh errors
+        }
+      }
+    } finally {
+      setCadDownloading(false);
+    }
+  };
+
   const handleFbAudioUpload = async (file) => {
     if (!file || !assignmentId) return false;
     if (file.size > AUDIO_MAX_SIZE_BYTES) {
@@ -413,7 +499,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       });
       message.success("Audio uploaded");
     } catch (error) {
-      message.error(error?.message || "Audio upload failed");
+      message.error(getUploadErrorMessage(error) || "Audio upload failed");
     } finally {
       setFbAudioUploading(false);
     }
@@ -563,8 +649,11 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
             <Descriptions.Item label="Application ID">{details.applicationId || "-"}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={STATUS_COLORS[details.status] || "default"}>
-                {STATUS_DISPLAY[details.status] || details.status || "-"}
+                {getSketchStatusLabel(details.status)}
               </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="SLA / deadline">
+              <SlaStatus entity={details} showPromise />
             </Descriptions.Item>
             <Descriptions.Item label="Status Note">{details.statusNote || "-"}</Descriptions.Item>
             <Descriptions.Item label="Survey Type">{details.surveyType || "-"}</Descriptions.Item>
@@ -691,25 +780,82 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
             <Card size="small" title="CAD Deliverables">
               <div className="space-y-3">
                 {cadDeliverableFiles.map((file, index) => (
-                  <div key={file.url || index} className="rounded-lg border border-line p-2 space-y-1">
-                    <p className="text-sm font-semibold">{file.fileName || `CAD Deliverable ${index + 1}`}</p>
+                  <div
+                    key={`${file.fileName || "cad"}-${index}`}
+                    className="rounded-lg border border-line p-2 space-y-1"
+                  >
+                    <p className="text-sm font-semibold">
+                      {file.fileName || `CAD Deliverable ${index + 1}`}
+                    </p>
                     <p className="text-xs text-fg-muted">
                       {file.mimeType || "Unknown"} - {formatFileSize(file.size)}
                     </p>
-                    <p className="text-xs text-fg-muted">
-                      Uploaded: {formatDate(file.uploadedAt)}
-                    </p>
-                    <FileViewDownloadButtons
-                      url={file.url}
-                      fileName={file.fileName || `cad-deliverable-${index + 1}`}
-                      viewLabel="View"
-                      downloadLabel="Download"
-                      downloadKey={file.url}
-                      downloadingByKey={downloadingByKey}
-                      setDownloadingByKey={setDownloadingByKey}
-                    />
+                    {file.uploadedAt ? (
+                      <p className="text-xs text-fg-muted">
+                        Uploaded: {formatDate(file.uploadedAt)}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
+
+                {cadDownloadAction === "download" && (
+                  <Button
+                    type="primary"
+                    loading={cadDownloading}
+                    onClick={handleCadDownload}
+                    block
+                  >
+                    Download CAD files
+                  </Button>
+                )}
+
+                {cadDownloadAction === "pay" && (
+                  <div className="space-y-2">
+                    <Alert
+                      type="info"
+                      showIcon
+                      message={`Pay ₹${Number(balancePayableRupees).toFixed(
+                        Number.isInteger(Number(balancePayableRupees)) ? 0 : 2
+                      )} to unlock CAD download`}
+                      description="CAD delivery alone does not unlock files. Complete the balance payment to download."
+                    />
+                    <Button
+                      type="primary"
+                      loading={balancePaying}
+                      onClick={handlePayBalance}
+                      block
+                    >
+                      Pay ₹
+                      {Number(balancePayableRupees).toFixed(
+                        Number.isInteger(Number(balancePayableRupees)) ? 0 : 2
+                      )}{" "}
+                      & download
+                    </Button>
+                  </div>
+                )}
+
+                {cadDownloadAction === "pending" && (
+                  <div className="space-y-2">
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="Balance payment pending"
+                      description="Complete PhonePe checkout, or retry if payment was interrupted."
+                    />
+                    <Button loading={balancePaying} onClick={handlePayBalance} block>
+                      Retry balance payment
+                    </Button>
+                  </div>
+                )}
+
+                {cadDownloadAction === "refunded" && (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="Download blocked"
+                    description="Balance payment was refunded. Contact support to resolve entitlement."
+                  />
+                )}
               </div>
             </Card>
           )}
@@ -725,7 +871,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
                   Revisions requested: <span className="font-semibold text-fg">{revisionCount}</span>
                 </p>
                 <p className="text-xs text-fg-muted">
-                  Currently you can request revision multiple times. After payment integration, only one free revision will be available and further revisions may be charged.
+                  You can request a revision here. If a paid revision is required, you will be redirected to checkout using the server-quoted amount.
                 </p>
                 <Input.TextArea
                   rows={3}

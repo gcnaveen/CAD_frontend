@@ -1,0 +1,18 @@
+{
+  "version": "M-03",
+  "description": "Frontend route prefix → allowed roles. Keep src/routes/routeRoleMap.js in sync with this file.",
+  "routes": {
+    "/superadmin": ["SUPER_ADMIN", "ADMIN"],
+    "/admin": ["SUPER_ADMIN", "ADMIN"],
+    "/dashboard/cad": ["CAD", "CAD_USER"],
+    "/cad": ["CAD", "CAD_USER"],
+    "/dashboard/user": ["SURVEYOR", "USER", "CUSTOMER"],
+    "/surveyor": ["SURVEYOR", "USER", "CUSTOMER"],
+    "/complete-profile": ["CAD", "CAD_USER"]
+  },
+  "notes": {
+    "unlistedAuthenticatedRoutes": "Token-only (any authenticated role): /payment/return, /payment-success, /payment-failure, /profile. API 401/403 remain the source of truth.",
+    "roleSource": "user.role from login payload stored in Redux/localStorage; never invent roles client-side.",
+    "matching": "Longest prefix wins: pathname === prefix or pathname.startsWith(prefix + '/')."
+  }
+}

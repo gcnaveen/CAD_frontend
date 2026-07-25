@@ -1,13 +1,13 @@
 // src/dashboard/user/pages/RequestsPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
 import {
   getSurveyorOrderStatusLabel,
   getSurveyorOrderStatusQuery,
+  getSurveyorOrderStatusStyle,
   matchesSurveyorOrderBucket,
   resolveSurveyorOrderCounts,
-  SURVEYOR_ORDER_STATUS_STYLES,
 } from "../../../utils/surveyorOrderStatus.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
@@ -233,7 +233,7 @@ const RequestsPage = () => {
                         <p className="text-xs font-bold text-fg-muted mt-0.5">{order.date}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap ${SURVEYOR_ORDER_STATUS_STYLES[order.status] || SURVEYOR_ORDER_STATUS_STYLES.Pending}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap ${getSurveyorOrderStatusStyle(order.apiStatus)}`}>
                           {order.status}
                         </span>
                         <ChevronRight className="w-4 h-4 text-fg-muted group-hover:text-[var(--user-accent)] transition-colors" />

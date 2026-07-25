@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "productionScan": "npm audit --omit=dev",
+    "acceptance": "Zero Critical and zero unaccepted High on productionScan. Full-tree Critical/High allowed only if listed here with owner + future expiry.",
+    "reviewCadence": "Monthly or on advisory for vite / vite-plugin-pwa / react-router"
+  },
+  "classification": {
+    "runtime": [
+      "@ant-design/icons",
+      "@reduxjs/toolkit",
+      "antd",
+      "axios",
+      "lucide-react",
+      "react",
+      "react-confetti",
+      "react-dom",
+      "react-redux",
+      "react-router",
+      "redux-persist"
+    ],
+    "devBuild": [
+      "@axe-core/playwright",
+      "@eslint/js",
+      "@playwright/test",
+      "@tailwindcss/vite",
+      "@types/node",
+      "@types/react",
+      "@types/react-dom",
+      "@vitejs/plugin-react",
+      "eslint",
+      "eslint-plugin-react-hooks",
+      "eslint-plugin-react-refresh",
+      "globals",
+      "jsdom",
+      "tailwindcss",
+      "typescript",
+      "vite",
+      "vite-plugin-pwa",
+      "vitest"
+    ],
+    "notes": [
+      "Runtime = packages shipped in the Vite production browser bundle (dependencies).",
+      "Dev/build = tooling used at install/build/lint time only (devDependencies); not browser attack surface for end users.",
+      "tailwindcss / @tailwindcss/vite are compile-time CSS tooling and live under devDependencies.",
+      "Abandoned sheetjs `xlsx` was unused in source and removed (prefer CSV or a maintained spreadsheet lib if export is needed later).",
+      "Migrated from react-router-dom@7 to react-router@8.3+ to clear High advisories affecting Framework/RSC paths.",
+      "Production SBOM is generated with `npm sbom --omit=dev` (no CycloneDX CLI dependency)."
+    ]
+  },
+  "exceptions": [
+    {
+      "id": "H03-EX-001",
+      "packages": [
+        "@babel/plugin-transform-modules-systemjs",
+        "workbox-build",
+        "vite-plugin-pwa"
+      ],
+      "severity": "high",
+      "cveOrAdvisory": "GHSA-fv7c-fp4j-7gwp (@babel/plugin-transform-modules-systemjs 7.12.0-7.29.0 generates arbitrary code when compiling malicious input). No fixed 7.x release; fixed in Babel 8.x only. Parent: vite-plugin-pwa → workbox-build → @babel/preset-env.",
+      "exploitability": "Dev/build only. Plugin runs during PWA/service-worker generation on developer/CI machines, not in the production browser bundle. Exploit requires feeding attacker-controlled JS through workbox-build's Babel pipeline.",
+      "compensatingControl": "Production SCA gate uses npm audit --omit=dev (must stay clean). Do not process untrusted source through workbox-build. Track workbox / vite-plugin-pwa release that moves to Babel 8, or drop PWA plugin if unused in deploy.",
+      "owner": "Engineering lead",
+      "expiry": "2026-10-25",
+      "status": "accepted"
+    }
+  ]
+}

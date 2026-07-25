@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { Badge, Button, App, Modal } from "antd";
 import { BellOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useNotifications } from "../../hooks/useNotifications.js";
 import NotificationList from "./NotificationList.jsx";
 import { resolveNotificationPath } from "./resolveNotificationPath.js";

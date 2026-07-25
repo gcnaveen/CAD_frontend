@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
@@ -113,7 +113,7 @@ export default function Footer() {
           <div style={{ gridColumn: "span 1" }}>
             <div style={{ marginBottom: "16px" }}>
               <img
-                src="/assets/logo.png"
+                src="/assets/logo.webp"
                 alt="North-cot"
                 style={{ height: "52px", width: "auto" }}
                 onError={(e) => {

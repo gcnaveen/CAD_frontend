@@ -88,6 +88,58 @@ export async function createUser(payload) {
   }
 }
 
+function unwrapEnrollmentPayload(body) {
+  const root = body?.data ?? body;
+  if (!root || typeof root !== "object") return {};
+  return root.invite ?? root.enrollment ?? root;
+}
+
+/**
+ * One-time enrollment invite for staff/operators (CAD, ADMIN).
+ * Does not set or return a password — user chooses credentials via the link (M-04).
+ * POST /api/users/enrollment-invite
+ *
+ * @param {{ role: string, email: string, firstName?: string, lastName?: string, cadCenter?: string }} payload
+ * @returns {Promise<{ enrollmentUrl: string, expiresAt?: string, email?: string, userId?: string }>}
+ */
+export async function createEnrollmentInvite(payload) {
+  try {
+    const { data } = await apiClient.post("/api/users/enrollment-invite", payload);
+    const invite = unwrapEnrollmentPayload(data);
+    const enrollmentUrl =
+      invite.enrollmentUrl ??
+      invite.inviteUrl ??
+      invite.url ??
+      invite.link ??
+      null;
+    if (!enrollmentUrl) {
+      throw new Error("Enrollment invite created but no link was returned");
+    }
+    return {
+      enrollmentUrl: String(enrollmentUrl),
+      expiresAt: invite.expiresAt ?? invite.expires ?? null,
+      email: invite.email ?? payload.email,
+      userId: invite.userId ?? invite.id ?? invite._id ?? null,
+    };
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to create enrollment invite"));
+  }
+}
+
+/**
+ * Complete enrollment with one-time token (set password).
+ * POST /api/auth/enrollment/complete
+ * @param {{ token: string, password: string }} payload
+ */
+export async function completeEnrollment(payload) {
+  try {
+    const { data } = await apiClient.post("/api/auth/enrollment/complete", payload);
+    return data?.data ?? data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to complete enrollment"));
+  }
+}
+
 /**
  * Get user by id
  * GET /api/users/:id

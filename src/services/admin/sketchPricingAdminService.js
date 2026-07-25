@@ -1,10 +1,10 @@
 import apiClient from "../apiClient.js";
+import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
 
 const BASE = "/api/admin/survey-sketch-pricing";
 
 function handleError(error, fallbackMessage) {
-  const message = error.response?.data?.message ?? error.message ?? fallbackMessage;
-  throw new Error(message);
+  throw new Error(getApiErrorMessage(error, fallbackMessage));
 }
 
 /**
@@ -37,6 +37,8 @@ const ADMIN_KEYS = [
   "sketchUploadDiscountRupees",
   "sketchRevisionPlanAmountRupees",
   "sketchRevisionDiscountRupees",
+  "sketchBalancePlanAmountRupees",
+  "sketchBalanceDiscountRupees",
 ];
 
 /**

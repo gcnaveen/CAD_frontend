@@ -1,6 +1,6 @@
 // Layout wrapper — uses <Outlet /> for nested routes
 import React, { useState, useEffect } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { Menu, X } from "lucide-react";
 import { logout } from "../../../features/auth/authSlice";
@@ -10,7 +10,7 @@ import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
 import { useUserDisplayName } from "../../../hooks/useUserDisplayName.js";
 
-const FALLBACK_LOGO = "/assets/logo.png";
+const FALLBACK_LOGO = "/assets/logo.webp";
 
 /* ─── Icons ─── */
 const HomeIcon = ({ active }) => (
@@ -111,7 +111,7 @@ const DashboardLayout = () => {
   const { userName, userInitial, displayName } = useUserDisplayName();
 
   const logoSrc =
-    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.png";
+    resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
 
   useEffect(() => {
     setMobileDrawerOpen(false);
@@ -146,7 +146,7 @@ const DashboardLayout = () => {
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 if (e.currentTarget.src.endsWith("logo.png")) return;
-                e.currentTarget.src = FALLBACK_LOGO;
+                e.currentTarget.src = "/assets/logo.png";
               }}
             />
           </div>

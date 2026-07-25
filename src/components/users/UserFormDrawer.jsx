@@ -1,12 +1,64 @@
 import React, { useEffect, useState } from "react";
-import { Drawer, Form, Input, Button, Space, Typography, Select, Spin, message } from "antd";
+import {
+  Drawer,
+  Form,
+  Input,
+  Button,
+  Space,
+  Typography,
+  Select,
+  Spin,
+  message,
+  Modal,
+} from "antd";
+import { CopyOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
-import { createUser, updateUser, getUserById } from "../../services/user/userService.js";
+import {
+  createUser,
+  createEnrollmentInvite,
+  updateUser,
+  getUserById,
+} from "../../services/user/userService.js";
 import { getActiveDistricts } from "../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../services/masters/talukaService.js";
 import { getCadCenters } from "../../services/masters/cadcenterservice.js";
 
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
+
+function showEnrollmentLinkModal({ email, enrollmentUrl, expiresAt }) {
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(enrollmentUrl);
+      message.success("Enrollment link copied");
+    } catch {
+      message.warning("Copy failed — select the link manually");
+    }
+  };
+
+  Modal.success({
+    title: "Enrollment invite created",
+    width: 520,
+    content: (
+      <div>
+        <Paragraph>
+          One-time enrollment link for <Text strong>{email}</Text>. Share out of band — the user
+          sets their own password. No default password is issued.
+        </Paragraph>
+        {expiresAt ? (
+          <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+            Expires: {new Date(expiresAt).toLocaleString()}
+          </Paragraph>
+        ) : null}
+        <Space.Compact style={{ width: "100%" }}>
+          <Input readOnly value={enrollmentUrl} />
+          <Button icon={<CopyOutlined />} onClick={copyLink}>
+            Copy
+          </Button>
+        </Space.Compact>
+      </div>
+    ),
+  });
+}
 
 const SURVEY_TYPE_OPTIONS = [
   { value: "LS", label: "Licensed Surveyor (LS)" },
@@ -261,24 +313,30 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
 
         await updateUser(userId, payload);
         message.success("User updated successfully");
+      } else if (isCad || isAdmin) {
+        // M-04: staff/operators get a one-time enrollment link (no admin-chosen password).
+        const invite = await createEnrollmentInvite({
+          role,
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName || undefined,
+          cadCenter: isCad ? values.cadCenter || undefined : undefined,
+        });
+        showEnrollmentLinkModal({
+          email: invite.email || values.email,
+          enrollmentUrl: invite.enrollmentUrl,
+          expiresAt: invite.expiresAt,
+        });
       } else {
-        // Add mode - prepare payload based on role
+        // Surveyor add mode still uses an explicit PIN (phone login).
         const payload = {
-          role: role,
+          role,
           firstName: values.firstName,
           lastName: values.lastName || undefined,
           password: values.password,
           status: "ACTIVE",
+          phone: values.phone,
         };
-
-        if (isSurveyor) {
-          payload.phone = values.phone;
-        } else if (isCad || isAdmin) {
-          payload.email = values.email;
-          if (isCad) {
-            payload.cadCenter = values.cadCenter || undefined;
-          }
-        }
 
         await createUser(payload);
         message.success("User created successfully");
@@ -393,8 +451,8 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
             </Form.Item>
           )}
 
-          {/* Password - only in add mode */}
-          {!isEditMode && (
+          {/* Password only for surveyor add — CAD/ADMIN use enrollment invite (M-04) */}
+          {!isEditMode && isSurveyor && (
             <>
               <Form.Item
                 name="password"
@@ -426,6 +484,13 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
                 <Input.Password placeholder="Confirm 4-digit password" size="large" inputMode="numeric" maxLength={4} />
               </Form.Item>
             </>
+          )}
+
+          {!isEditMode && (isCad || isAdmin) && (
+            <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+              A one-time enrollment link will be generated. The user sets their own password — no
+              default password is created.
+            </Paragraph>
           )}
 
           {/* CAD Center - for CAD role */}

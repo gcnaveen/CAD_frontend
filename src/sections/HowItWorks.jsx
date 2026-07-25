@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Upload, UserCheck, PenTool, Download } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
 

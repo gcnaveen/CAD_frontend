@@ -18,13 +18,11 @@ export default function AssignmentModal({
   errorText,
 }) {
   const [cadCenterId, setCadCenterId] = React.useState(initialValues?.cadCenterId ?? "");
-  const [dueDate, setDueDate] = React.useState(initialValues?.dueDate ?? "");
   const [notes, setNotes] = React.useState(initialValues?.notes ?? "");
   const [status, setStatus] = React.useState(initialValues?.status ?? "");
 
   React.useEffect(() => {
     setCadCenterId(initialValues?.cadCenterId ?? "");
-    setDueDate(initialValues?.dueDate ?? "");
     setNotes(initialValues?.notes ?? "");
     setStatus(initialValues?.status ?? "");
   }, [initialValues, open]);
@@ -45,13 +43,11 @@ export default function AssignmentModal({
     const payload = isEdit
       ? {
           status: status || undefined,
-          dueDate: dueDate || undefined,
           notes: notes || undefined,
         }
       : {
           surveyorSketchUploadId: sketchId,
           cadCenterId: cadCenterId || undefined,
-          dueDate: dueDate || undefined,
           notes: notes || undefined,
         };
     onSubmit?.(payload);
@@ -78,6 +74,9 @@ export default function AssignmentModal({
               ) : (
                 <>Uploaded by: <span className="font-semibold text-fg">{uploadedBy}</span></>
               )}
+            </div>
+            <div className="mt-1 text-xs text-fg-muted">
+              SLA deadline is set by the server on CAD assignment (48h). Client due dates are not sent.
             </div>
           </div>
 
@@ -135,16 +134,6 @@ export default function AssignmentModal({
             )}
 
             <div>
-              <label className="block text-sm font-medium text-fg">Due Date</label>
-              <input
-                type="date"
-                className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-fg">Notes</label>
               <textarea
                 className="mt-1 w-full resize-none rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus:border-accent"
@@ -178,4 +167,3 @@ export default function AssignmentModal({
     </div>
   );
 }
-

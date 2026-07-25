@@ -87,7 +87,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
       })
       .catch((err) => {
         message.error(err.message || "Failed to load talukas");
-        setTalukas((prev) => upsertEntity([], prefillEntities?.taluka));
+        setTalukas((_prev) => upsertEntity([], prefillEntities?.taluka));
       })
       .finally(() => setLoading((prev) => ({ ...prev, talukas: false })));
     // Clear downstream only when user actually changes district.
@@ -123,7 +123,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
       })
       .catch((err) => {
         message.error(err.message || "Failed to load hoblis");
-        setHoblis((prev) => upsertEntity([], prefillEntities?.hobli));
+        setHoblis((_prev) => upsertEntity([], prefillEntities?.hobli));
       })
       .finally(() => setLoading((prev) => ({ ...prev, hoblis: false })));
     const currentTalukaId = idFromValue(taluka);
@@ -157,7 +157,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
       })
       .catch((err) => {
         message.error(err.message || "Failed to load villages");
-        setVillages((prev) => upsertEntity([], prefillEntities?.village));
+        setVillages((_prev) => upsertEntity([], prefillEntities?.village));
       })
       .finally(() => setLoading((prev) => ({ ...prev, villages: false })));
     const currentHobliId = idFromValue(hobli);

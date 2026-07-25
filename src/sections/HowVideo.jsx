@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Play, CheckCircle, Pause } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
+import { FALLBACK_QC, getQcApprovedCopy } from "../utils/lifecycleQc.js";
+import { getQcRules } from "../services/public/businessRulesService.js";
 
 const QC_ICONS = [
   // Boundary lines — frame/box with corners
@@ -96,10 +98,30 @@ export default function HowVideo() {
   const [checksActive, setChecksActive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [qc, setQc] = useState(FALLBACK_QC);
+
+  useEffect(() => {
+    let cancelled = false;
+    getQcRules()
+      .then((rules) => {
+        if (!cancelled && rules) setQc(rules);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const features = (tr?.points || []).map((p, i) => ({
     ...p, number: i + 1, icon: QC_ICONS[i],
   }));
+
+  const subtitle = tr?.subtitle || getQcApprovedCopy(qc);
+  const qcStats = [
+    { value: String(qc.checkCount || qc.statValue || "10"), label: qc.statLabel || "Point QC checklist (11E)" },
+    { value: "Same", label: "Checklist for express" },
+    { value: qc.checklistId || "11E", label: "Approved QC standard" },
+  ];
 
   // Scroll reveal
   useEffect(() => {
@@ -280,7 +302,7 @@ export default function HowVideo() {
             fontSize: "clamp(14px, 1.1vw, 16px)", color: "rgba(255,255,255,0.5)",
             lineHeight: 1.8, maxWidth: "520px", margin: "0 auto",
           }}>
-            {tr?.subtitle}
+            {subtitle}
           </p>
         </div>
 
@@ -464,11 +486,7 @@ export default function HowVideo() {
             overflow: "hidden",
           }}
         >
-          {[
-            { value: "100%", label: "Drawings QC-checked" },
-            { value: "3-point", label: "Verification checklist" },
-            { value: "0", label: "Drawings skipped" },
-          ].map((item, i) => (
+          {qcStats.map((item, i) => (
             <div key={i} style={{
               flex: "1", minWidth: "160px",
               padding: "20px 24px", textAlign: "center",

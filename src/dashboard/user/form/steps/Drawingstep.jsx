@@ -6,6 +6,7 @@ import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingComput
 const { Text } = Typography;
 import { Mic, Square, Trash2, Upload as UploadIcon } from "lucide-react";
 import { uploadAudioToS3 } from "../../../../services/upload/upload.service.js";
+import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
 
@@ -97,7 +98,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       message.success("Audio uploaded");
       setAudioBlob(null);
       if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
-    } catch (e) { message.error(e.message || "Failed to upload audio"); }
+    } catch (e) { message.error(getUploadErrorMessage(e) || "Failed to upload audio"); }
     finally { setUpAudio(false); }
   };
 
@@ -113,8 +114,9 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       form.setFieldsValue({ audio: val });
       onAudioChange?.(val);
       message.success("Audio uploaded");
-    } catch (e) { message.error(e.message || "Failed to upload audio"); }
-    finally { setUpAudio(false); return false; }
+    } catch (e) { message.error(getUploadErrorMessage(e) || "Failed to upload audio"); }
+    finally { setUpAudio(false); }
+    return false;
   };
 
   const handleDeleteAudio = async () => {

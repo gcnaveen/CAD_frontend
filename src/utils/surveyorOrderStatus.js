@@ -1,30 +1,32 @@
-export const SURVEYOR_ORDER_STATUS_LABELS = {
-  PAYMENT_PENDING: "Payment Pending",
-  PENDING: "Pending",
-  ASSIGNED: "Assigned",
-  CAD_DELIVERED: "CAD Delivered",
-  UNDER_REVIEW: "Under Review",
-  UNDER_REVISION: "Under Revision",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-};
+import {
+  FALLBACK_LIFECYCLE_MACHINE,
+  canonicalizeSketchStatus,
+  getSketchStatusLabel,
+} from "./lifecycleQc.js";
 
+/**
+ * Surveyor-facing sketch status labels — from lifecycleMachine only (M-08).
+ * Do not invent names from PRD/handoff decks.
+ */
+export const SURVEYOR_ORDER_STATUS_LABELS = Object.freeze({
+  ...FALLBACK_LIFECYCLE_MACHINE.labels,
+});
+
+/** Pill styles keyed by canonical status code (not display label). */
 export const SURVEYOR_ORDER_STATUS_STYLES = {
-  "Payment Pending":
+  PAYMENT_PENDING:
     "border-line bg-[color-mix(in_srgb,var(--warning)_14%,var(--bg-secondary))] text-[var(--warning)]",
-  Pending:
+  PENDING:
     "border-line bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-[var(--user-accent)]",
-  Assigned:
+  ASSIGNED:
     "border-line bg-[color-mix(in_srgb,var(--cyan-accent)_12%,var(--bg-secondary))] text-[var(--cyan-accent)]",
-  "CAD Delivered":
+  CAD_DELIVERED:
     "border-line bg-[color-mix(in_srgb,var(--violet-accent)_12%,var(--bg-secondary))] text-[var(--violet-accent)]",
-  "Under Review":
-    "border-line bg-[color-mix(in_srgb,var(--accent-color)_12%,var(--bg-secondary))] text-accent",
-  "Under Revision":
+  UNDER_REVISION:
     "border-line bg-[color-mix(in_srgb,var(--warning)_12%,var(--bg-secondary))] text-[var(--warning)]",
-  Approved:
+  APPROVED:
     "border-line bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] text-success",
-  Rejected:
+  REJECTED:
     "border-line bg-[color-mix(in_srgb,var(--danger)_10%,var(--bg-secondary))] text-danger",
 };
 
@@ -56,12 +58,19 @@ export function getSurveyorOrderStatusQuery(tab) {
 }
 
 export function getSurveyorOrderStatusLabel(apiStatus) {
-  return SURVEYOR_ORDER_STATUS_LABELS[apiStatus] || apiStatus || "Pending";
+  return getSketchStatusLabel(apiStatus);
+}
+
+export function getSurveyorOrderStatusStyle(apiStatus) {
+  const code = canonicalizeSketchStatus(apiStatus);
+  return (
+    SURVEYOR_ORDER_STATUS_STYLES[code] || SURVEYOR_ORDER_STATUS_STYLES.PENDING
+  );
 }
 
 /** Returns tab bucket, or null when the status only appears under "all". */
 export function getSurveyorOrderBucket(apiStatus) {
-  const status = apiStatus === "UNDER_REVIEW" ? "UNDER_REVISION" : apiStatus;
+  const status = canonicalizeSketchStatus(apiStatus);
   if (COMPLETED_STATUSES.has(status)) return "completed";
   if (CANCELLED_STATUSES.has(status)) return "cancelled";
   if (ACTIVE_STATUSES.has(status)) return "active";
@@ -76,7 +85,7 @@ export function matchesSurveyorOrderBucket(apiStatus, tab) {
 /**
  * Resolve tab counts from API meta.counts.
  * Prefers byStatus so CAD_DELIVERED counts as completed even if the API
- * still buckets it under active.
+ * still buckets it under active. Legacy UNDER_REVIEW rolls into UNDER_REVISION.
  */
 export function resolveSurveyorOrderCounts(counts = {}) {
   const byStatus = counts?.byStatus;

@@ -10,60 +10,42 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
+import {
+  FALLBACK_LIFECYCLE_MACHINE,
+  getSketchStatusLabel,
+} from "../../../utils/lifecycleQc.js";
 
 const { Text } = Typography;
 
-const ORDER_STATUS_CONFIG = [
-  {
-    key: "PAYMENT_PENDING",
-    title: "Payment Pending",
-    icon: CreditCardOutlined,
-    color: "var(--warning)",
-    tagColor: "gold",
-  },
-  {
-    key: "PENDING",
-    title: "Pending Assignment",
-    icon: ClockCircleOutlined,
-    color: "var(--accent-color)",
-    tagColor: "blue",
-  },
-  {
-    key: "ASSIGNED",
-    title: "Assigned",
-    icon: UserSwitchOutlined,
-    color: "var(--cyan-accent)",
-    tagColor: "processing",
-  },
-  {
-    key: "CAD_DELIVERED",
-    title: "CAD Delivered",
-    icon: SendOutlined,
-    color: "var(--violet-accent)",
-    tagColor: "cyan",
-  },
-  {
-    key: "UNDER_REVISION",
-    title: "Under Revision",
-    icon: SyncOutlined,
-    color: "var(--warning)",
-    tagColor: "orange",
-  },
-  {
-    key: "APPROVED",
-    title: "Approved",
-    icon: CheckCircleOutlined,
-    color: "var(--success)",
-    tagColor: "success",
-  },
-  {
-    key: "REJECTED",
-    title: "Rejected",
-    icon: CloseCircleOutlined,
-    color: "var(--danger)",
-    tagColor: "error",
-  },
-];
+const STATUS_ICONS = {
+  PAYMENT_PENDING: CreditCardOutlined,
+  PENDING: ClockCircleOutlined,
+  ASSIGNED: UserSwitchOutlined,
+  CAD_DELIVERED: SendOutlined,
+  UNDER_REVISION: SyncOutlined,
+  APPROVED: CheckCircleOutlined,
+  REJECTED: CloseCircleOutlined,
+};
+
+const STATUS_COLORS = {
+  PAYMENT_PENDING: { color: "var(--warning)", tagColor: "gold" },
+  PENDING: { color: "var(--accent-color)", tagColor: "blue" },
+  ASSIGNED: { color: "var(--cyan-accent)", tagColor: "processing" },
+  CAD_DELIVERED: { color: "var(--violet-accent)", tagColor: "cyan" },
+  UNDER_REVISION: { color: "var(--warning)", tagColor: "orange" },
+  APPROVED: { color: "var(--success)", tagColor: "success" },
+  REJECTED: { color: "var(--danger)", tagColor: "error" },
+};
+
+const ORDER_STATUS_CONFIG = FALLBACK_LIFECYCLE_MACHINE.sketchStatuses.map(
+  ({ code }) => ({
+    key: code,
+    title: getSketchStatusLabel(code),
+    icon: STATUS_ICONS[code] || ClockCircleOutlined,
+    color: STATUS_COLORS[code]?.color || "var(--accent-color)",
+    tagColor: STATUS_COLORS[code]?.tagColor || "default",
+  })
+);
 
 const OrderStats = ({ orders, loading }) => {
   if (loading && !orders) {

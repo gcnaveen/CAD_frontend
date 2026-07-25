@@ -1,63 +1,39 @@
-// // src/routes/AppRoutes.jsx  — full replacement
-import { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import ProtectedRoute from "./ProtectedRoute";
+import RouteFallback from "./RouteFallback";
 import {
   getRedirectForRole,
   isAuthOnlyPath,
   resolveSessionToken,
 } from "../utils/authRedirect";
 
-// Public
+// Public critical path — keep homepage + login relatively eager for LCP / auth.
 import Homepage from "../pages/Homepage";
 import LoginPage from "../pages/LoginPage";
-import LoginPageEmail from "../pages/LoginPageEmail.jsx";
-import RegisterPage from "../pages/RegisterPage";
-import Cadregisterform from "../pages/form/Cadregisterform.jsx";
-import PaymentReturnPage from "../pages/PaymentReturnPage.jsx";
-import PaymentSuccessPage from "../pages/PaymentSuccessPage.jsx";
-import PaymentFailurePage from "../pages/PaymentFailurePage.jsx";
-import PrivacyPolicy from "../pages/PrivacyPolicy.jsx";
-import TermsandCondition from "../pages/TermsandCondition.jsx";
 
-// ─── User dashboard (nested via Outlet) ───
-import Home from "../dashboard/user/component/Home"; // your existing Home
-import UserUploadForm from "../dashboard/user/UserUploadForm";
-import TrackCurrentOrder from "../dashboard/user/TrackCurrentOrder";
-import OrderHistoryTable from "../dashboard/user/OrderHistoryTable";
+const LoginPageEmail = lazy(() => import("../pages/LoginPageEmail.jsx"));
+const EnrollmentPage = lazy(() => import("../pages/EnrollmentPage.jsx"));
+const RegisterPage = lazy(() => import("../pages/RegisterPage"));
+const Cadregisterform = lazy(() => import("../pages/form/Cadregisterform.jsx"));
+const PaymentReturnPage = lazy(() => import("../pages/PaymentReturnPage.jsx"));
+const PaymentSuccessPage = lazy(() => import("../pages/PaymentSuccessPage.jsx"));
+const PaymentFailurePage = lazy(() => import("../pages/PaymentFailurePage.jsx"));
+const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy.jsx"));
+const TermsandCondition = lazy(() => import("../pages/TermsandCondition.jsx"));
+const ForbiddenPage = lazy(() => import("../pages/ForbiddenPage.jsx"));
+const CompleteProfile = lazy(() => import("../dashboard/cad/CompleteProfile"));
+const EditProfile = lazy(() => import("../pages/Profile/EditProfile"));
 
-// Super-admin
-import SuperAdminLayout from "../dashboard/superadmin/layout/SuperAdminLayout";
-import SuperAdminHome from "../dashboard/superadmin/SuperAdminHome";
-import ViewAdminUsers from "../dashboard/superadmin/admin/ViewAdminUsers";
-import ViewCadCenters from "../dashboard/superadmin/cadcenters/ViewCadCenters";
-import ViewCurrentProject from "../dashboard/superadmin/projects/ViewCurrentProject";
-import ViewProjectHistory from "../dashboard/superadmin/projects/ViewProjectHistory";
-import ViewUserDetails from "../dashboard/superadmin/user/ViewUserDetails";
-import ViewCadUsers from "../dashboard/superadmin/cadusers/ViewCadUsers";
-import ViewDistricts from "../dashboard/superadmin/districts/ViewDistricts";
-import ViewTalukas from "../dashboard/superadmin/talukas/ViewTalukas";
-import ViewHoblis from "../dashboard/superadmin/hoblis/ViewHoblis";
-import ViewVillages from "../dashboard/superadmin/villages/ViewVillages";
-import ViewCadInterests from "../dashboard/superadmin/cadinterest/ViewCadInterests";
-import ViewSurveyDraftReports from "../dashboard/superadmin/drafts/ViewSurveyDraftReports.jsx";
-import AdminAssignmentsPage from "../pages/AdminAssignmentsPage.jsx";
-import SketchPricing from "../pages/admin/SketchPricing.jsx";
-import PayCadUser from "../dashboard/superadmin/cadwallet/PayCadUser.jsx";
+// Role shells — separate chunks; not loaded on login / public homepage (M-05).
+const SurveyorApp = lazy(() => import("./shells/SurveyorApp"));
+const CadApp = lazy(() => import("./shells/CadApp"));
+const AdminApp = lazy(() => import("./shells/AdminApp"));
 
-// CAD
-import CADLayout from "../dashboard/cad/layout/CADLayout";
-import CADHomePage from "../dashboard/cad/CADHomePage";
-import ViewCurrentOrders from "../dashboard/cad/orders/ViewCurrentOrders";
-import ViewAllOrders from "../dashboard/cad/orders/ViewAllOrders";
-import CadWalletPage from "../pages/cad/Wallet.jsx";
-import CompleteProfile from "../dashboard/cad/CompleteProfile";
-import EditProfile from "../pages/Profile/EditProfile";
-import DashboardLayout from "../dashboard/user/component/Dashboardlayout.jsx";
-import RequestsPage from "../dashboard/user/component/RequestsPage.jsx";
-import ProfilePage from "../dashboard/user/component/ProfilePage.jsx";
-import DraftsPage from "../dashboard/user/component/DraftsPage.jsx";
+function Lazy({ children }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
 
 /**
  * If token exists → never stay on login/register (covers browser Back + bfcache).
@@ -74,7 +50,6 @@ function useBlockAuthPagesWhenLoggedIn(token, role) {
     navigate(home, { replace: true });
   }, [token, home, location.pathname, navigate]);
 
-  // Browser Back can restore a cached login document; re-check immediately.
   useEffect(() => {
     const kickOffAuthPage = () => {
       if (!resolveSessionToken(token)) return;
@@ -94,25 +69,68 @@ function useBlockAuthPagesWhenLoggedIn(token, role) {
 export default function AppRoutes() {
   const reduxToken = useSelector((state) => state.auth?.token);
   const role = useSelector(
-    (state) => state.auth?.role ?? state.auth?.user?.role
+    (state) => state.auth?.role ?? state.auth?.user?.role,
   );
   const token = resolveSessionToken(reduxToken);
   const loggedInHome = getRedirectForRole(role);
 
   useBlockAuthPagesWhenLoggedIn(token, role);
 
-  // While logged in, auth routes never mount login UI — only a replace redirect.
   const guestOrRedirect = (Page) =>
     token ? <Navigate to={loggedInHome} replace /> : <Page />;
 
   return (
     <Routes>
-      {/* Public */}
       <Route path="/" element={<Homepage />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-and-conditions" element={<TermsandCondition />} />
+      <Route
+        path="/privacy-policy"
+        element={
+          <Lazy>
+            <PrivacyPolicy />
+          </Lazy>
+        }
+      />
+      <Route
+        path="/terms-and-conditions"
+        element={
+          <Lazy>
+            <TermsandCondition />
+          </Lazy>
+        }
+      />
+      <Route
+        path="/403"
+        element={
+          <Lazy>
+            <ForbiddenPage />
+          </Lazy>
+        }
+      />
       <Route path="/login" element={guestOrRedirect(LoginPage)} />
-      <Route path="/login-email" element={guestOrRedirect(LoginPageEmail)} />
+      <Route
+        path="/login-email"
+        element={
+          token ? (
+            <Navigate to={loggedInHome} replace />
+          ) : (
+            <Lazy>
+              <LoginPageEmail />
+            </Lazy>
+          )
+        }
+      />
+      <Route
+        path="/enroll"
+        element={
+          token ? (
+            <Navigate to={loggedInHome} replace />
+          ) : (
+            <Lazy>
+              <EnrollmentPage />
+            </Lazy>
+          )
+        }
+      />
       <Route
         path="/login/email"
         element={
@@ -123,16 +141,37 @@ export default function AppRoutes() {
           )
         }
       />
-      <Route path="/register" element={guestOrRedirect(RegisterPage)} />
+      <Route
+        path="/register"
+        element={
+          token ? (
+            <Navigate to={loggedInHome} replace />
+          ) : (
+            <Lazy>
+              <RegisterPage />
+            </Lazy>
+          )
+        }
+      />
       <Route
         path="/register/cad-operator"
-        element={guestOrRedirect(Cadregisterform)}
+        element={
+          token ? (
+            <Navigate to={loggedInHome} replace />
+          ) : (
+            <Lazy>
+              <Cadregisterform />
+            </Lazy>
+          )
+        }
       />
       <Route
         path="/payment/return"
         element={
           <ProtectedRoute>
-            <PaymentReturnPage />
+            <Lazy>
+              <PaymentReturnPage />
+            </Lazy>
           </ProtectedRoute>
         }
       />
@@ -140,7 +179,9 @@ export default function AppRoutes() {
         path="/payment-success"
         element={
           <ProtectedRoute>
-            <PaymentSuccessPage />
+            <Lazy>
+              <PaymentSuccessPage />
+            </Lazy>
           </ProtectedRoute>
         }
       />
@@ -148,7 +189,9 @@ export default function AppRoutes() {
         path="/payment-failure"
         element={
           <ProtectedRoute>
-            <PaymentFailurePage />
+            <Lazy>
+              <PaymentFailurePage />
+            </Lazy>
           </ProtectedRoute>
         }
       />
@@ -156,7 +199,9 @@ export default function AppRoutes() {
         path="/complete-profile"
         element={
           <ProtectedRoute>
-            <CompleteProfile />
+            <Lazy>
+              <CompleteProfile />
+            </Lazy>
           </ProtectedRoute>
         }
       />
@@ -164,56 +209,55 @@ export default function AppRoutes() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <EditProfile />
+            <Lazy>
+              <EditProfile />
+            </Lazy>
           </ProtectedRoute>
         }
       />
 
-      {/* Redirect legacy surveyor path */}
       <Route
         path="/surveyor/home"
         element={<Navigate to="/dashboard/user" replace />}
       />
-
-      {/* ─── User dashboard — all children render inside <Outlet /> ─── */}
       <Route
-        path="/dashboard/user"
+        path="/admin"
         element={
           <ProtectedRoute>
-            <DashboardLayout />
+            <Navigate to="/superadmin" replace />
           </ProtectedRoute>
         }
-      >
-        {/* /dashboard/user  → Home */}
-        <Route index element={<Home />} />
-
-        {/* /dashboard/user/requests */}
-        <Route path="requests" element={<RequestsPage />} />
-
-        {/* /dashboard/user/profile */}
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="drafts" element={<DraftsPage />} />
-
-        {/* existing sub-pages — still reachable, still inside the layout */}
-        <Route path="upload" element={<UserUploadForm />} />
-        <Route path="track-order" element={<TrackCurrentOrder />} />
-        <Route path="order-history" element={<OrderHistoryTable />} />
-      </Route>
-
-      {/* CAD */}
+      />
       <Route
-        path="/dashboard/cad"
+        path="/admin/*"
         element={
           <ProtectedRoute>
-            <CADLayout />
+            <Navigate to="/superadmin" replace />
           </ProtectedRoute>
         }
-      >
-        <Route index element={<CADHomePage />} />
-        <Route path="current-orders" element={<ViewCurrentOrders />} />
-        <Route path="order-history" element={<ViewAllOrders />} />
-        <Route path="wallet" element={<CadWalletPage />} />
-      </Route>
+      />
+
+      <Route
+        path="/dashboard/user/*"
+        element={
+          <ProtectedRoute>
+            <Lazy>
+              <SurveyorApp />
+            </Lazy>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard/cad/*"
+        element={
+          <ProtectedRoute>
+            <Lazy>
+              <CadApp />
+            </Lazy>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/cad/wallet"
@@ -224,33 +268,16 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Super-admin */}
       <Route
-        path="/superadmin"
+        path="/superadmin/*"
         element={
           <ProtectedRoute>
-            <SuperAdminLayout />
+            <Lazy>
+              <AdminApp />
+            </Lazy>
           </ProtectedRoute>
         }
-      >
-        <Route index element={<SuperAdminHome />} />
-        <Route path="home" element={<SuperAdminHome />} />
-        <Route path="admin-users" element={<ViewAdminUsers />} />
-        <Route path="cad-centers" element={<ViewCadCenters />} />
-        <Route path="cad-users" element={<ViewCadUsers />} />
-        <Route path="cad-interest" element={<ViewCadInterests />} />
-        <Route path="survey-draft-reports" element={<ViewSurveyDraftReports />} />
-        <Route path="assignments" element={<AdminAssignmentsPage />} />
-        <Route path="sketch-pricing" element={<SketchPricing />} />
-        <Route path="pay-cad-user" element={<PayCadUser />} />
-        <Route path="districts" element={<ViewDistricts />} />
-        <Route path="talukas" element={<ViewTalukas />} />
-        <Route path="hoblis" element={<ViewHoblis />} />
-        <Route path="villages" element={<ViewVillages />} />
-        <Route path="projects" element={<ViewCurrentProject />} />
-        <Route path="projects-history" element={<ViewProjectHistory />} />
-        <Route path="user-surveyor-details" element={<ViewUserDetails />} />
-      </Route>
+      />
     </Routes>
   );
 }

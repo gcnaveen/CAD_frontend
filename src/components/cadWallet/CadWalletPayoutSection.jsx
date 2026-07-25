@@ -18,6 +18,10 @@ import {
   markCadWalletEntryPaid,
   recordCadWalletEntryPayment,
 } from "../../services/admin/cadWalletAdminService.js";
+import {
+  mapLedgerSettlement,
+  resolveLedgerPayoutRupees,
+} from "../../utils/cadOperatorEarnings.js";
 
 const { Text } = Typography;
 
@@ -33,8 +37,11 @@ function entriesFromOrder(order) {
 
 function normalizeEntry(e) {
   const id = e?._id ?? e?.id;
-  const total =
-    Number(e?.totalAmountRupees ?? e?.totalRupees ?? e?.amountRupees ?? 0) || 0;
+  const settlement = mapLedgerSettlement(e);
+  const total = resolveLedgerPayoutRupees(
+    e,
+    Number(e?.totalAmountRupees ?? e?.totalRupees ?? e?.amountRupees ?? 0) || 0
+  );
   const paid = Number(e?.paidAmountRupees ?? e?.paidRupees ?? 0) || 0;
   const remaining =
     e?.remainingRupees != null
@@ -44,7 +51,7 @@ function normalizeEntry(e) {
   if (!Number.isFinite(paidPercent)) {
     paidPercent = total > 0 ? Math.min(100, Math.round((paid / total) * 1000) / 10) : 0;
   }
-  const status = String(e?.status ?? "PENDING").toUpperCase();
+  const status = String(e?.status ?? e?.balanceStatus ?? "PENDING").toUpperCase();
   return {
     id,
     kind: e?.kind ?? e?.type ?? "—",
@@ -56,6 +63,13 @@ function normalizeEntry(e) {
     paidPercent: Math.min(100, Math.max(0, paidPercent)),
     paymentLog: Array.isArray(e?.paymentLog) ? e.paymentLog : [],
     date: e?.createdAt ?? e?.updatedAt ?? e?.date,
+    pricingRuleVersion: settlement.pricingRuleVersion,
+    payoutModel: settlement.payoutModel,
+    grossPriceRupees: settlement.grossPriceRupees,
+    bookingRupees: settlement.bookingRupees,
+    balanceRupees: settlement.balanceRupees,
+    payoutRupees: settlement.payoutRupees,
+    platformFeeRupees: settlement.platformFeeRupees,
   };
 }
 
@@ -186,6 +200,39 @@ export default function CadWalletPayoutSection({
           expandable={{
             expandedRowRender: (row) => (
               <div style={{ padding: "8px 0" }}>
+                {(row.payoutModel ||
+                  row.pricingRuleVersion ||
+                  row.payoutRupees != null ||
+                  row.grossPriceRupees != null) && (
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong style={{ display: "block", marginBottom: 6 }}>
+                      Settlement
+                    </Text>
+                    <Text type="secondary" style={{ display: "block" }}>
+                      {[
+                        row.payoutModel ? `Model: ${row.payoutModel}` : null,
+                        row.pricingRuleVersion ? `Rule: ${row.pricingRuleVersion}` : null,
+                        row.grossPriceRupees != null
+                          ? `Gross: ${formatRs(row.grossPriceRupees)}`
+                          : null,
+                        row.bookingRupees != null
+                          ? `Booking: ${formatRs(row.bookingRupees)}`
+                          : null,
+                        row.balanceRupees != null
+                          ? `Balance: ${formatRs(row.balanceRupees)}`
+                          : null,
+                        row.payoutRupees != null
+                          ? `Payout: ${formatRs(row.payoutRupees)}`
+                          : null,
+                        row.platformFeeRupees != null
+                          ? `Platform fee: ${formatRs(row.platformFeeRupees)}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </Text>
+                  </div>
+                )}
                 <Text strong style={{ display: "block", marginBottom: 8 }}>
                   Payment log
                 </Text>
@@ -233,6 +280,19 @@ export default function CadWalletPayoutSection({
             { title: "Total amount (₹)", key: "tot", render: (_, r) => formatRs(r.totalRupees) },
             { title: "Paid amount (₹)", key: "paid", render: (_, r) => formatRs(r.paidRupees) },
             { title: "Remaining (₹)", key: "rem", render: (_, r) => formatRs(r.remainingRupees) },
+            {
+              title: "Model",
+              key: "model",
+              width: 90,
+              render: (_, r) =>
+                r.payoutModel ? (
+                  <Tag color={String(r.payoutModel).toUpperCase() === "FIXED" ? "blue" : "default"}>
+                    {String(r.payoutModel).toUpperCase()}
+                  </Tag>
+                ) : (
+                  "—"
+                ),
+            },
             { title: "Status", key: "st", width: 100, render: (_, r) => statusTag(r.status) },
             {
               title: "Paid %",

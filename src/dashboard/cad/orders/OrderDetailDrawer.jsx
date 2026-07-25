@@ -21,6 +21,7 @@ import {
   SoundOutlined,
 } from "@ant-design/icons";
 import { formatUserDisplayLabel } from "../../../services/assignmentApi";
+import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 import {
   downloadRemoteFile,
   hasUploadedFiles,
@@ -28,6 +29,9 @@ import {
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils";
 import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard";
+import { CAD_DELIVERABLE_ACCEPT } from "../../../services/upload/upload.constants.js";
+import { resolveCadDeliverableRole } from "../../../services/upload/cadDeliverable.utils.js";
+import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
 import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Text } = Typography;
@@ -40,19 +44,6 @@ const ASSIGNMENT_STATUS_TAG = {
   CANCELLED: { color: "red", text: cadBi.orders.assignmentStatus.CANCELLED },
   PENDING: { color: "default", text: cadBi.orders.assignmentStatus.PENDING },
   NEED_CHANGES: { color: "orange", text: cadBi.orders.assignmentStatus.NEED_CHANGES },
-};
-
-const SKETCH_STATUS_DISPLAY = {
-  PENDING: cadBi.drawer.sketchStatus.PENDING,
-  ASSIGNED: cadBi.drawer.sketchStatus.ASSIGNED,
-  UNDER_REVIEW: cadBi.drawer.sketchStatus.UNDER_REVIEW,
-  UNDER_REVISION: cadBi.drawer.sketchStatus.UNDER_REVISION,
-  APPROVED: cadBi.drawer.sketchStatus.APPROVED,
-  REJECTED: cadBi.drawer.sketchStatus.REJECTED,
-  IN_PROGRESS: cadBi.drawer.sketchStatus.IN_PROGRESS,
-  COMPLETED: cadBi.drawer.sketchStatus.COMPLETED,
-  ON_HOLD: cadBi.drawer.sketchStatus.ON_HOLD,
-  CANCELLED: cadBi.drawer.sketchStatus.CANCELLED,
 };
 
 const DOCUMENT_LABEL_KEYS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
@@ -160,8 +151,7 @@ const OrderDetailDrawer = ({
   const assignmentTag =
     ASSIGNMENT_STATUS_TAG[assignmentStatus] || ASSIGNMENT_STATUS_TAG.PENDING;
   const sketchStatus = sketch.status ? String(sketch.status).toUpperCase() : "";
-  const sketchStatusText =
-    SKETCH_STATUS_DISPLAY[sketchStatus] || sketch.status || "—";
+  const sketchStatusText = getSketchStatusLabel(sketchStatus) || sketch.status || "—";
 
   const showAssignmentNote = assignmentStatus === "NEED_CHANGES" && order.note;
   const sketchStatusNoteText = sketch.statusNote ?? order.sketchStatusNote;
@@ -170,8 +160,14 @@ const OrderDetailDrawer = ({
   const uploadProps = {
     name: "cadFile",
     multiple: true,
+    accept: CAD_DELIVERABLE_ACCEPT,
     fileList,
     beforeUpload: (file) => {
+      const role = resolveCadDeliverableRole(file);
+      if (!role) {
+        message.error(cadBi.drawer.invalidCadFileType);
+        return Upload.LIST_IGNORE;
+      }
       setFileList((prev) => [...prev, file]);
       return false;
     },
@@ -183,6 +179,13 @@ const OrderDetailDrawer = ({
   const handleUploadSubmit = async () => {
     if (fileList.length === 0) {
       message.warning(cadBi.drawer.selectFileWarn);
+      return;
+    }
+    const hasSource = fileList.some(
+      (f) => resolveCadDeliverableRole(f) === "source"
+    );
+    if (!hasSource) {
+      message.warning(cadBi.drawer.cadSourceRequired);
       return;
     }
     setSubmitting(true);
@@ -260,8 +263,8 @@ const OrderDetailDrawer = ({
             <Descriptions.Item label={cadBi.drawer.assignedAt}>
               {formatDate(order.orderDate)}
             </Descriptions.Item>
-            <Descriptions.Item label={cadBi.drawer.dueDate}>
-              {order.dueDate ? formatDate(order.dueDate) : "—"}
+            <Descriptions.Item label={cadBi.drawer.sla}>
+              <SlaStatus sla={order.sla} entity={order.rawAssignment} showPromise />
             </Descriptions.Item>
             <Descriptions.Item label={cadBi.drawer.assignmentStatus}>
               <Tag color={assignmentTag.color}>{assignmentTag.text}</Tag>
@@ -697,6 +700,12 @@ const OrderDetailDrawer = ({
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
             {cadBi.drawer.uploadCadHelp}
           </Text>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={cadBi.drawer.cadSourceHint}
+          />
           <Upload {...uploadProps} disabled={isUploading}>
             <Button icon={<UploadOutlined />} disabled={isUploading}>
               {cadBi.drawer.selectCadFiles}

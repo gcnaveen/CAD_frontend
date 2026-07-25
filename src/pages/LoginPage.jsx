@@ -1,5 +1,5 @@
 // import React, { useState } from "react";
-// import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router";
 // import { useDispatch } from "react-redux";
 // import { setCredentials } from "../features/auth/authSlice";
 // import { userLogin } from "../services/user/userService";
@@ -92,7 +92,7 @@
 //       <div className="relative w-full max-w-md">
 //         <div className="text-center mb-8">
 //           <img
-//             src="/assets/logo.png"
+//             src="/assets/logo.webp"
 //             alt="Logo"
 //             className="h-34 sm:h-26 w-auto mx-auto mb-6 object-contain"
 //           />
@@ -244,8 +244,8 @@
 // };
 
 // export default LoginPage;
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../features/auth/authSlice";
 import {
@@ -259,7 +259,6 @@ import {
   defaultOtpExpiresAt,
 } from "../hooks/useOtpCountdown.js";
 import { formatOtpSendError } from "../utils/otpErrorMessage.js";
-import { getOtpDeliveryWindowNote } from "../utils/otpDeliveryWindow.js";
 import { Eye, EyeOff, ArrowRight, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -302,9 +301,10 @@ export default function LoginPage() {
   const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const forgotOtpSecondsLeft = useOtpCountdown(forgotOtpExpiresAt);
-  const forgotOtpDeliveryNote = getOtpDeliveryWindowNote();
   const [forgotMessage, setForgotMessage] = useState({ type: "", text: "" });
   const [forgotErrors, setForgotErrors] = useState({});
+  const errorSummaryRef = useRef(null);
+  const forgotErrorSummaryRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -312,16 +312,32 @@ export default function LoginPage() {
     setTimeout(() => setMounted(true), 60);
   }, []);
 
+  const announceFieldErrors = (nextErrors) => {
+    setErrors(nextErrors);
+    requestAnimationFrame(() => errorSummaryRef.current?.focus());
+  };
+
+  const announceForgotErrors = (nextErrors) => {
+    setForgotErrors(nextErrors);
+    requestAnimationFrame(() => forgotErrorSummaryRef.current?.focus());
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
     setErrors({});
     if (!/^\d{10}$/.test(phone.replace(/\D/g, "").slice(0, 10))) {
-      setErrors({ phone: "Phone number must be exactly 10 digits" });
+      announceFieldErrors({ phone: "Phone number must be exactly 10 digits" });
       return;
     }
-    if (!password) { setErrors({ password: "Password is required" }); return; }
-    if (!/^\d{4}$/.test(password)) { setErrors({ password: "Password must be exactly 4 digits" }); return; }
+    if (!password) {
+      announceFieldErrors({ password: "Password is required" });
+      return;
+    }
+    if (!/^\d{4}$/.test(password)) {
+      announceFieldErrors({ password: "Password must be exactly 4 digits" });
+      return;
+    }
     setIsLoading(true);
     try {
       const payload = { phone: phone.replace(/\D/g, "").slice(0, 10), password };
@@ -337,6 +353,7 @@ export default function LoginPage() {
       navigate(getRedirectForRole(role), { replace: true });
     } catch (err) {
       setMessage({ type: "error", text: err?.message ?? "Login failed. Please try again." });
+      requestAnimationFrame(() => errorSummaryRef.current?.focus());
     } finally {
       setIsLoading(false);
     }
@@ -359,7 +376,7 @@ export default function LoginPage() {
     setForgotMessage({ type: "", text: "" });
 
     if (!/^\d{10}$/.test(cleanedPhone)) {
-      setForgotErrors({ phone: "Please enter a valid 10-digit phone number" });
+      announceForgotErrors({ phone: "Please enter a valid 10-digit phone number" });
       return;
     }
 
@@ -395,7 +412,7 @@ export default function LoginPage() {
     if (!/^\d{6}$/.test(cleanedOtp)) nextErrors.otp = "OTP must be exactly 6 digits";
     if (!/^\d{4}$/.test(cleanedPassword)) nextErrors.password = "Password must be exactly 4 digits";
     if (Object.keys(nextErrors).length) {
-      setForgotErrors(nextErrors);
+      announceForgotErrors(nextErrors);
       return;
     }
 
@@ -494,7 +511,8 @@ export default function LoginPage() {
           backdrop-filter: blur(4px);
         }
         .lp-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 55%, transparent); }
-        .lp-input:focus {
+        .lp-input:focus,
+        .lp-input:focus-visible {
           border-color: color-mix(in srgb, var(--brand-gold) 65%, var(--border-color));
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold) 18%, transparent);
           background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
@@ -538,6 +556,18 @@ export default function LoginPage() {
         }
         .submit-btn:hover::before { opacity: 1; }
         .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .submit-btn:focus-visible,
+        .mode-toggle-btn:focus-visible,
+        .auth-input-eye:focus-visible,
+        a:focus-visible,
+        button:focus-visible {
+          outline: 2px solid var(--brand-gold);
+          outline-offset: 2px;
+        }
+        .auth-error-summary:focus {
+          outline: 2px solid var(--danger);
+          outline-offset: 2px;
+        }
         .mode-toggle-btn {
           background: none;
           border: none;
@@ -675,7 +705,7 @@ export default function LoginPage() {
               overflow: "hidden",
             }}>
               <img
-                src="/assets/logo.png"
+                src="/assets/logo.webp"
                 alt="North-cot"
                 style={{ width: "80px", height: "80px", objectFit: "contain" }}
                 onError={(e) => {
@@ -739,62 +769,166 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} noValidate>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
+              {(Object.keys(errors).length > 0 || message.type === "error") && (
+                <div
+                  ref={errorSummaryRef}
+                  id="login-error-summary"
+                  className="auth-error-summary"
+                  role="alert"
+                  aria-live="assertive"
+                  tabIndex={-1}
+                  style={{
+                    padding: "11px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(192,57,43,0.08)",
+                    border: "1px solid rgba(192,57,43,0.25)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "color-mix(in srgb, var(--danger) 88%, #000)",
+                  }}
+                >
+                  {message.type === "error" && message.text ? (
+                    <p style={{ margin: 0 }}>{message.text}</p>
+                  ) : (
+                    <>
+                      <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Please fix the following:</p>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {errors.phone && (
+                          <li><a href="#login-phone" style={{ color: "inherit" }}>{errors.phone}</a></li>
+                        )}
+                        {errors.password && (
+                          <li><a href="#login-password" style={{ color: "inherit" }}>{errors.password}</a></li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {message.type === "success" && message.text && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="auth-message auth-message--success"
+                  style={{
+                    padding: "11px 14px", borderRadius: "10px",
+                    background: "rgba(42,110,42,0.08)",
+                    border: "1px solid rgba(42,110,42,0.25)",
+                    fontSize: "13px", fontWeight: 500,
+                    color: "var(--success)",
+                  }}
+                >
+                  {message.text}
+                </div>
+              )}
+
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
+                <label
+                  htmlFor="login-phone"
+                  style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                >
                   Phone Number
                 </label>
-                <div className="auth-phone-row" style={{ display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden", border: "1.5px solid rgba(213,200,178,0.8)", background: "rgba(255,255,255,0.6)", transition: "border-color 0.2s, box-shadow 0.2s" }}
-                  onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.7)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)"; }}
-                  onBlurCapture={e => { e.currentTarget.style.borderColor = "rgba(213,200,178,0.8)"; e.currentTarget.style.boxShadow = "none"; }}
+                <div
+                  className="auth-phone-row"
+                  style={{
+                    display: "flex", gap: 0, borderRadius: "12px", overflow: "hidden",
+                    border: `1.5px solid ${errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,0.8)"}`,
+                    background: "rgba(255,255,255,0.6)",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                  onFocusCapture={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(201,168,76,0.7)";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)";
+                  }}
+                  onBlurCapture={(e) => {
+                    e.currentTarget.style.borderColor = errors.phone ? "rgba(220,80,60,.6)" : "rgba(213,200,178,0.8)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 >
-                  <span style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "0 14px", fontSize: "14px", fontWeight: 700,
-                    color: "var(--brand-gold-muted)", background: "rgba(201,168,76,0.08)",
-                    borderRight: "1.5px solid rgba(213,200,178,0.7)",
-                    minWidth: "54px", flexShrink: 0,
-                  }}>
+                  <span
+                    id="login-phone-country"
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 14px", fontSize: "14px", fontWeight: 700,
+                      color: "var(--brand-gold-muted)", background: "rgba(201,168,76,0.08)",
+                      borderRight: "1.5px solid rgba(213,200,178,0.7)",
+                      minWidth: "54px", flexShrink: 0,
+                    }}
+                  >
                     +91
                   </span>
                   <input
+                    id="login-phone"
+                    name="phone"
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="Please enter your phone number"
+                    placeholder="10-digit mobile number"
                     inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    aria-required="true"
+                    aria-invalid={errors.phone ? "true" : "false"}
+                    aria-describedby={[
+                      "login-phone-country",
+                      "login-phone-hint",
+                      errors.phone ? "login-phone-error" : null,
+                    ].filter(Boolean).join(" ")}
+                    disabled={isLoading}
                     style={{
                       flex: 1, background: "transparent", border: "none", outline: "none",
                       padding: "13px 14px", fontSize: "14.5px", color: "var(--text-primary)",
                     }}
                   />
                 </div>
-                {errors.phone && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.phone}</p>}
+                <p id="login-phone-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                  Indian mobile number without country code
+                </p>
+                {errors.phone && (
+                  <p id="login-phone-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>
+                    {errors.phone}
+                  </p>
+                )}
               </div>
 
               {/* Password */}
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}>
+                <label
+                  htmlFor="login-password"
+                  style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                >
                   Password
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="Enter 4-digit password"
+                    placeholder="••••"
                     className={`lp-input${errors.password ? " error" : ""}`}
                     style={{ paddingRight: "46px" }}
                     inputMode="numeric"
                     maxLength={4}
+                    autoComplete="current-password"
+                    aria-required="true"
+                    aria-invalid={errors.password ? "true" : "false"}
+                    aria-describedby={[
+                      "login-password-hint",
+                      errors.password ? "login-password-error" : null,
+                    ].filter(Boolean).join(" ")}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((p) => !p)}
-                    tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
                     style={{
                       position: "absolute", right: "13px", top: "50%", transform: "translateY(-50%)",
                       background: "none", border: "none", cursor: "pointer",
@@ -802,13 +936,21 @@ export default function LoginPage() {
                       transition: "color 0.2s ease",
                     }}
                     className="auth-input-eye"
-                    onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(100,90,70,0.5)"; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(100,90,70,0.5)"; }}
+                    disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    {showPassword ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
                   </button>
                 </div>
-                {errors.password && <p style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>{errors.password}</p>}
+                <p id="login-password-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                  4-digit numeric password
+                </p>
+                {errors.password && (
+                  <p id="login-password-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", marginTop: "5px" }}>
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-6px" }}>
@@ -817,93 +959,200 @@ export default function LoginPage() {
                   onClick={handleOpenForgotPassword}
                   className="mode-toggle-btn"
                   style={{ fontSize: "12px" }}
+                  aria-expanded={showForgotPassword}
+                  aria-controls="forgot-password-panel"
                 >
                   Forgot Password?
                 </button>
               </div>
 
               {showForgotPassword && (
-                <div style={{
-                  border: "1px solid rgba(213,200,178,0.75)",
-                  borderRadius: "12px",
-                  padding: "14px",
-                  background: "rgba(255,255,255,0.52)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}>
-                  <p style={{ margin: 0, fontSize: "12px", color: "var(--homepage-body-text)", fontWeight: 600 }}>
+                <div
+                  id="forgot-password-panel"
+                  role="region"
+                  aria-label="Forgot password"
+                  style={{
+                    border: "1px solid rgba(213,200,178,0.75)",
+                    borderRadius: "12px",
+                    padding: "14px",
+                    background: "rgba(255,255,255,0.52)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <p id="forgot-step-heading" style={{ margin: 0, fontSize: "12px", color: "var(--homepage-body-text)", fontWeight: 600 }}>
                     {forgotStep === 1 ? "Forgot Password - Step 1: Send OTP" : "Forgot Password - Step 2: Verify OTP"}
                   </p>
 
-                  <input
-                    type="tel"
-                    value={forgotPhone}
-                    onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="Phone number (10 digits)"
-                    className={`lp-input${forgotErrors.phone ? " error" : ""}`}
-                    maxLength={10}
-                  />
-                  {forgotErrors.phone && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.phone}</p>}
+                  {(Object.keys(forgotErrors).length > 0 || forgotMessage.type === "error") && (
+                    <div
+                      ref={forgotErrorSummaryRef}
+                      id="forgot-error-summary"
+                      className="auth-error-summary"
+                      role="alert"
+                      aria-live="assertive"
+                      tabIndex={-1}
+                      style={{
+                        padding: "9px 11px",
+                        borderRadius: "8px",
+                        background: "rgba(192,57,43,0.08)",
+                        border: "1px solid rgba(192,57,43,0.25)",
+                        fontSize: "12px",
+                        color: "color-mix(in srgb, var(--danger) 88%, #000)",
+                      }}
+                    >
+                      {forgotMessage.type === "error" && forgotMessage.text
+                        ? forgotMessage.text
+                        : Object.values(forgotErrors).join(". ")}
+                    </div>
+                  )}
 
-                  {/* {forgotOtpDeliveryNote && (
-                    <p style={{ fontSize: "12px", color: "rgba(154,112,32,0.85)", margin: 0, lineHeight: 1.5, padding: "9px 11px", borderRadius: "8px", background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)" }}>
-                      {forgotOtpDeliveryNote}
-                    </p>
-                  )} */}
+                  <div>
+                    <label
+                      htmlFor="forgot-phone"
+                      style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                    >
+                      Phone Number
+                    </label>
+                    <input
+                      id="forgot-phone"
+                      name="forgot-phone"
+                      type="tel"
+                      value={forgotPhone}
+                      onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="10-digit mobile number"
+                      className={`lp-input${forgotErrors.phone ? " error" : ""}`}
+                      maxLength={10}
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      aria-required="true"
+                      aria-invalid={forgotErrors.phone ? "true" : "false"}
+                      aria-describedby={forgotErrors.phone ? "forgot-phone-error" : undefined}
+                      disabled={forgotLoading}
+                    />
+                    {forgotErrors.phone && (
+                      <p id="forgot-phone-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
+                        {forgotErrors.phone}
+                      </p>
+                    )}
+                  </div>
 
                   {forgotStep === 2 && (
                     <>
-                      <input
-                        type="text"
-                        value={forgotOtp}
-                        onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="Enter 6-digit OTP"
-                        className={`lp-input${forgotErrors.otp ? " error" : ""}`}
-                        inputMode="numeric"
-                        maxLength={6}
-                      />
-                      {forgotErrors.otp && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.otp}</p>}
-                      {forgotOtpSecondsLeft > 0 && (
-                        <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", margin: 0 }}>
-                          OTP expires in <strong>{formatOtpCountdown(forgotOtpSecondsLeft)}</strong>
+                      <div>
+                        <label
+                          htmlFor="forgot-otp"
+                          style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                        >
+                          One-time code (OTP)
+                        </label>
+                        <input
+                          id="forgot-otp"
+                          name="otp"
+                          type="text"
+                          value={forgotOtp}
+                          onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          placeholder="6-digit code"
+                          className={`lp-input${forgotErrors.otp ? " error" : ""}`}
+                          inputMode="numeric"
+                          maxLength={6}
+                          autoComplete="one-time-code"
+                          aria-required="true"
+                          aria-invalid={forgotErrors.otp ? "true" : "false"}
+                          aria-describedby={[
+                            "forgot-otp-hint",
+                            forgotErrors.otp ? "forgot-otp-error" : null,
+                            forgotOtpSecondsLeft === 0 ? "forgot-otp-expired" : null,
+                          ].filter(Boolean).join(" ")}
+                          disabled={forgotLoading}
+                        />
+                        <p id="forgot-otp-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                          Enter the 6-digit code sent to your phone
                         </p>
-                      )}
-                      {forgotOtpSecondsLeft === 0 && (
-                        <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>
-                          OTP expired. Send a new OTP to continue.
-                        </p>
-                      )}
+                        {forgotErrors.otp && (
+                          <p id="forgot-otp-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
+                            {forgotErrors.otp}
+                          </p>
+                        )}
+                        {forgotOtpSecondsLeft > 0 && (
+                          <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", margin: "5px 0 0" }} aria-live="polite">
+                            OTP expires in <strong>{formatOtpCountdown(forgotOtpSecondsLeft)}</strong>
+                          </p>
+                        )}
+                        {forgotOtpSecondsLeft === 0 && (
+                          <p id="forgot-otp-expired" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
+                            OTP expired. Send a new OTP to continue.
+                          </p>
+                        )}
+                      </div>
 
-                      <input
-                        type="password"
-                        value={forgotNewPassword}
-                        onChange={(e) => setForgotNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        placeholder="New 4-digit password"
-                        className={`lp-input${forgotErrors.password ? " error" : ""}`}
-                        inputMode="numeric"
-                        maxLength={4}
-                      />
-                      {forgotErrors.password && <p style={{ fontSize: "12px", color: "var(--danger)", margin: 0 }}>{forgotErrors.password}</p>}
+                      <div>
+                        <label
+                          htmlFor="forgot-new-password"
+                          style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
+                        >
+                          New Password
+                        </label>
+                        <input
+                          id="forgot-new-password"
+                          name="new-password"
+                          type="password"
+                          value={forgotNewPassword}
+                          onChange={(e) => setForgotNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          placeholder="••••"
+                          className={`lp-input${forgotErrors.password ? " error" : ""}`}
+                          inputMode="numeric"
+                          maxLength={4}
+                          autoComplete="new-password"
+                          aria-required="true"
+                          aria-invalid={forgotErrors.password ? "true" : "false"}
+                          aria-describedby={[
+                            "forgot-new-password-hint",
+                            forgotErrors.password ? "forgot-new-password-error" : null,
+                          ].filter(Boolean).join(" ")}
+                          disabled={forgotLoading}
+                        />
+                        <p id="forgot-new-password-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
+                          New 4-digit numeric password
+                        </p>
+                        {forgotErrors.password && (
+                          <p id="forgot-new-password-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
+                            {forgotErrors.password}
+                          </p>
+                        )}
+                      </div>
                     </>
                   )}
 
-                  {forgotMessage.text && (
-                    <div style={{
-                      padding: "9px 11px",
-                      borderRadius: "8px",
-                      background: forgotMessage.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
-                      border: `1px solid ${forgotMessage.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
-                      fontSize: "12px",
-                      color: forgotMessage.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
-                    }}>
+                  {forgotMessage.type === "success" && forgotMessage.text && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      style={{
+                        padding: "9px 11px",
+                        borderRadius: "8px",
+                        background: "rgba(42,110,42,0.08)",
+                        border: "1px solid rgba(42,110,42,0.25)",
+                        fontSize: "12px",
+                        color: "var(--success)",
+                      }}
+                    >
                       {forgotMessage.text}
                     </div>
                   )}
 
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {forgotStep === 1 ? (
-                      <button type="button" className="submit-btn" disabled={forgotLoading} onClick={handleForgotPasswordStart} style={{ padding: "10px", fontSize: "13px" }}>
+                      <button
+                        type="button"
+                        className="submit-btn"
+                        disabled={forgotLoading}
+                        aria-busy={forgotLoading}
+                        aria-describedby={forgotLoading ? "forgot-loading-status" : undefined}
+                        onClick={handleForgotPasswordStart}
+                        style={{ padding: "10px", fontSize: "13px" }}
+                      >
                         {forgotLoading ? "Sending OTP..." : "Send OTP"}
                       </button>
                     ) : (
@@ -912,6 +1161,8 @@ export default function LoginPage() {
                           type="button"
                           className="submit-btn"
                           disabled={forgotLoading || forgotOtpSecondsLeft === 0}
+                          aria-busy={forgotLoading}
+                          title={forgotOtpSecondsLeft === 0 ? "OTP expired — resend a new code first" : undefined}
                           onClick={handleForgotPasswordReset}
                           style={{ padding: "10px", fontSize: "13px", flex: 1 }}
                         >
@@ -921,12 +1172,17 @@ export default function LoginPage() {
                           type="button"
                           className="submit-btn"
                           disabled={forgotLoading}
+                          aria-busy={forgotLoading}
                           onClick={handleForgotPasswordStart}
                           style={{ padding: "10px", fontSize: "13px", flex: 1 }}
                         >
                           {forgotLoading ? "Sending..." : "Resend OTP"}
                         </button>
                       </>
+                    )}
+
+                    {forgotLoading && (
+                      <span id="forgot-loading-status" className="sr-only">Please wait</span>
                     )}
 
                     <button
@@ -957,27 +1213,23 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Message */}
-              {message.text && (
-                <div
-                  className={message.type === "success" ? "auth-message auth-message--success" : "auth-message auth-message--error"}
-                  style={{
-                    padding: "11px 14px", borderRadius: "10px",
-                    background: message.type === "success" ? "rgba(42,110,42,0.08)" : "rgba(192,57,43,0.08)",
-                    border: `1px solid ${message.type === "success" ? "rgba(42,110,42,0.25)" : "rgba(192,57,43,0.25)"}`,
-                    fontSize: "13px", fontWeight: 500,
-                    color: message.type === "success" ? "var(--success)" : "color-mix(in srgb, var(--danger) 88%, #000)",
-                  }}
-                >
-                  {message.text}
-                </div>
+              {isLoading && (
+                <p id="login-submit-status" className="sr-only" aria-live="polite">
+                  Signing in, please wait
+                </p>
               )}
 
               {/* Submit */}
-              <button type="submit" className="submit-btn" disabled={isLoading}>
+              <button
+                type="submit"
+                className="submit-btn"
+                disabled={isLoading}
+                aria-busy={isLoading}
+                aria-describedby={isLoading ? "login-submit-status" : undefined}
+              >
                 {isLoading ? (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }} aria-hidden="true">
                       <path d="M21 12a9 9 0 11-6.219-8.56"/>
                     </svg>
                     Signing in…
@@ -985,7 +1237,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     Login
-                    <ArrowRight size={16} />
+                    <ArrowRight size={16} aria-hidden="true" />
                   </>
                 )}
               </button>
@@ -994,11 +1246,11 @@ export default function LoginPage() {
               <p className="auth-footer-line" style={{ textAlign: "center", fontSize: "13px", color: "var(--homepage-body-text)", margin: 0 }}>
                 Don't have an account?{" "}
                 <a href="/register" style={{
-                  color: "var(--brand-gold-muted)", fontWeight: 700, textDecoration: "none",
+                  color: "var(--brand-gold-muted)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: "2px",
                   transition: "color 0.2s ease",
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--brand-gold)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
                 >
                   Register here
                 </a>
@@ -1012,8 +1264,8 @@ export default function LoginPage() {
           display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
           marginTop: "20px",
         }}>
-          <Shield size={12} color="rgba(154,112,32,0.5)" />
-          <span className="auth-below-muted" style={{ fontSize: "11px", color: "rgba(154,112,32,0.5)", fontWeight: 500, letterSpacing: "0.04em" }}>
+          <Shield size={12} color="var(--homepage-label)" aria-hidden="true" />
+          <span className="auth-below-muted" style={{ fontSize: "11px", color: "var(--homepage-label)", fontWeight: 500, letterSpacing: "0.04em" }}>
             Protected by industry-standard encryption
           </span>
         </div>
