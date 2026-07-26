@@ -18,6 +18,8 @@ import { Mic, Music, Square, Trash2, Upload as UploadIcon } from "lucide-react";
 import {
   uploadAudioToS3,
   toVoiceNoteFile,
+  pickVoiceRecorderMimeType,
+  buildVoiceNoteBlob,
 } from "../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import {
@@ -325,10 +327,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      let mimeType = "audio/webm";
-      if (!MediaRecorder.isTypeSupported("audio/webm")) {
-        mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
-      }
+      const mimeType = pickVoiceRecorderMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks = [];
 
@@ -336,7 +335,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
         if (event.data.size > 0) chunks.push(event.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        const blob = buildVoiceNoteBlob(chunks, recorder, mimeType);
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         if (streamRef.current) {
@@ -373,7 +372,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   const uploadRecordedAudio = async () => {
     if (!audioBlob) return;
     // H-10: base MIME only (no ;codecs=) for audio/webm presign + S3 PUT
-    await handleAudioUpload(toVoiceNoteFile(audioBlob));
+    await handleAudioUpload(await toVoiceNoteFile(audioBlob));
   };
 
   const handleRequestRevision = async () => {
@@ -537,10 +536,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       fbStreamRef.current = stream;
-      let mimeType = "audio/webm";
-      if (!MediaRecorder.isTypeSupported("audio/webm")) {
-        mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
-      }
+      const mimeType = pickVoiceRecorderMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks = [];
 
@@ -548,7 +544,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
         if (event.data.size > 0) chunks.push(event.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        const blob = buildVoiceNoteBlob(chunks, recorder, mimeType);
         setFbAudioBlob(blob);
         setFbAudioUrl(URL.createObjectURL(blob));
         if (fbStreamRef.current) {
@@ -584,7 +580,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
 
   const uploadFbRecordedAudio = async () => {
     if (!fbAudioBlob || !assignmentId) return;
-    const file = toVoiceNoteFile(fbAudioBlob);
+    const file = await toVoiceNoteFile(fbAudioBlob);
     await handleFbAudioUpload(file);
   };
 

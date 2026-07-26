@@ -123,7 +123,12 @@ export function getUploadErrorMessage(err) {
     );
   }
   if (status === 400) {
-    return apiMessage || "Invalid file type, extension, or size.";
+    return (
+      apiMessage ||
+      (code === "FILE_QUARANTINED"
+        ? "This recording failed security checks (file type mismatch). Re-record and try again."
+        : "Invalid file type, extension, or size.")
+    );
   }
 
   return apiMessage || "Upload failed";
