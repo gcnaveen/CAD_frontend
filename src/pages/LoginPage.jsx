@@ -253,6 +253,7 @@ import {
   surveyorForgotPasswordStart,
   surveyorForgotPasswordReset,
 } from "../services/user/userService";
+import { extractAccessToken } from "../utils/authToken.js";
 import {
   useOtpCountdown,
   formatOtpCountdown,
@@ -344,10 +345,10 @@ export default function LoginPage() {
       const response = await userLogin(payload);
       const body = response?.data ?? response;
       const data = body?.data ?? body;
-      const token = data?.token ?? body?.token;
+      const token = extractAccessToken(data) ?? extractAccessToken(body);
       const userPayload = data?.user ?? data;
       const user = userPayload ?? (data?.name != null || data?.email != null ? data : null);
-      dispatch(setCredentials({ token, user }));
+      dispatch(setCredentials({ token, accessToken: token, user }));
       const role = user?.role ?? data?.role ?? body?.role;
       setMessage({ type: "success", text: "Login successful. Redirecting…" });
       navigate(getRedirectForRole(role), { replace: true });
@@ -424,7 +425,7 @@ export default function LoginPage() {
         otp: cleanedOtp,
         password: cleanedPassword,
       });
-      const token = result?.token;
+      const token = extractAccessToken(result);
       const user = result?.user;
       setShowForgotPassword(false);
       setForgotStep(1);
@@ -432,7 +433,7 @@ export default function LoginPage() {
       setForgotOtpExpiresAt(null);
       setForgotNewPassword("");
       if (token) {
-        dispatch(setCredentials({ token, user }));
+        dispatch(setCredentials({ token, accessToken: token, user }));
         setMessage({ type: "success", text: "Password reset successful. Redirecting…" });
         navigate(getRedirectForRole(user?.role), { replace: true });
       } else {

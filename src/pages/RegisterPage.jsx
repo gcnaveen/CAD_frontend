@@ -7,6 +7,7 @@ import {
   surveyorComplete,
 } from "../services/auth/authService.js";
 import { setCredentials } from "../features/auth/authSlice";
+import { extractAccessToken } from "../utils/authToken.js";
 import { getActiveDistricts } from "../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../services/masters/talukaService.js";
 import {
@@ -204,10 +205,10 @@ export default function RegisterPage() {
     setIsSubmitting(true); setMessage({ type: "", text: "" });
     try {
       const result = await surveyorComplete(payload);
-      const token = result?.token;
+      const token = extractAccessToken(result);
       const user = result?.user;
       if (token) {
-        dispatch(setCredentials({ token, user }));
+        dispatch(setCredentials({ token, accessToken: token, user }));
         setMessage({ type: "success", text: "Registration successful. Redirecting…" });
         setTimeout(() => navigate(getRedirectForRole(user?.role), { replace: true }), 1200);
       } else {

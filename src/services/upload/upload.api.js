@@ -1,10 +1,12 @@
 import apiClient from "../apiClient";
+import { getStoredAccessToken } from "../../utils/authToken.js";
+import { UploadAuthRequiredError } from "./upload.errors.js";
 
 const UPLOAD_BASE = "/api/upload";
 
 /**
- * H-07: upload endpoints require Bearer when UPLOAD_REQUIRE_AUTH=true.
- * Uses apiClient so Authorization is attached from localStorage token.
+ * H-07 / H-10: upload endpoints require Bearer when UPLOAD_REQUIRE_AUTH=true.
+ * Uses apiClient interceptor + explicit Authorization so accessToken is never dropped.
  */
 
 function unwrap(data) {
@@ -12,24 +14,61 @@ function unwrap(data) {
 }
 
 /**
- * Get presigned URL for image upload.
+ * Axios config that always sends Authorization: Bearer <accessToken>.
+ * @returns {{ headers: { Authorization: string } }}
+ */
+function bearerConfig() {
+  const token = getStoredAccessToken();
+  if (!token) {
+    throw new UploadAuthRequiredError();
+  }
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+}
+
+/**
+ * Get presigned URL for image upload (H-10: Bearer required).
  * POST /api/upload/image
- * @param {{ fileName: string, contentType: string, entityId: string, fileSizeBytes: number }} payload
- * @returns {Promise<{ uploadUrl: string, fileUrl: string, key: string }>}
+ * @param {{
+ *   fileName: string,
+ *   contentType?: string,
+ *   fileSizeBytes: number,
+ *   entityId?: string,
+ *   files?: Array<{ fileName: string, contentType?: string, fileSizeBytes: number }>,
+ * }} payload
+ * @returns {Promise<{ signedUploadUrl?: string, uploadUrl?: string, uploadHeaders?: Record<string, string>, fileUrl: string, key: string }>}
  */
 export async function getImagePresignedUrl(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/image`, payload);
+  const { data } = await apiClient.post(
+    `${UPLOAD_BASE}/image`,
+    payload,
+    bearerConfig()
+  );
   return unwrap(data);
 }
 
 /**
- * Get presigned URL for audio upload.
+ * Get presigned URL for audio upload (H-10: Bearer required).
  * POST /api/upload/audio
- * @param {{ fileName: string, contentType: string, entityId: string, fileSizeBytes: number }} payload
- * @returns {Promise<{ uploadUrl: string, fileUrl: string, key: string }>}
+ * Prefer base MIME without `;codecs=` (e.g. audio/webm).
+ * @param {{
+ *   fileName: string,
+ *   contentType?: string,
+ *   fileSizeBytes: number,
+ *   entityId?: string,
+ *   files?: Array<{ fileName: string, contentType?: string, fileSizeBytes: number }>,
+ * }} payload
+ * @returns {Promise<{ signedUploadUrl?: string, uploadUrl?: string, uploadHeaders?: Record<string, string>, fileUrl: string, key: string }>}
  */
 export async function getAudioPresignedUrl(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/audio`, payload);
+  const { data } = await apiClient.post(
+    `${UPLOAD_BASE}/audio`,
+    payload,
+    bearerConfig()
+  );
   return unwrap(data);
 }
 
@@ -55,7 +94,8 @@ export async function getAudioPresignedUrl(payload) {
 export async function getCadDeliverablePresignedUrl(payload) {
   const { data } = await apiClient.post(
     `${UPLOAD_BASE}/cad-deliverable`,
-    payload
+    payload,
+    bearerConfig()
   );
   return unwrap(data);
 }
@@ -67,7 +107,8 @@ export async function getCadDeliverablePresignedUrl(payload) {
 export async function startCadDeliverableMultipart(payload) {
   const { data } = await apiClient.post(
     `${UPLOAD_BASE}/cad-deliverable/multipart/start`,
-    payload
+    payload,
+    bearerConfig()
   );
   return unwrap(data);
 }
@@ -79,7 +120,8 @@ export async function startCadDeliverableMultipart(payload) {
 export async function getCadDeliverableMultipartPart(payload) {
   const { data } = await apiClient.post(
     `${UPLOAD_BASE}/cad-deliverable/multipart/part`,
-    payload
+    payload,
+    bearerConfig()
   );
   return unwrap(data);
 }
@@ -91,19 +133,25 @@ export async function getCadDeliverableMultipartPart(payload) {
 export async function completeCadDeliverableMultipart(payload) {
   const { data } = await apiClient.post(
     `${UPLOAD_BASE}/cad-deliverable/multipart/complete`,
-    payload
+    payload,
+    bearerConfig()
   );
   return unwrap(data);
 }
 
 /**
- * Confirm upload after successful S3 PUT (H-07 scanning / finalize).
+ * Confirm upload after successful S3 PUT (H-10 / H-07 scanning / finalize).
+ * Requires the same Bearer JWT as presign. Do not attach fileUrl until this succeeds.
  * POST /api/upload/confirm
  * @param {{ key: string, contentType: string, fileName: string, fileSizeBytes?: number }} payload
  * @returns {Promise<{ confirmed?: boolean, sha256?: string, [key: string]: unknown }>}
  */
 export async function confirmUpload(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/confirm`, payload);
+  const { data } = await apiClient.post(
+    `${UPLOAD_BASE}/confirm`,
+    payload,
+    bearerConfig()
+  );
   return unwrap(data);
 }
 
@@ -114,6 +162,10 @@ export async function confirmUpload(payload) {
  * @returns {Promise<unknown>}
  */
 export async function deleteUploadedFile(payload) {
-  const { data } = await apiClient.post(`${UPLOAD_BASE}/delete`, payload);
+  const { data } = await apiClient.post(
+    `${UPLOAD_BASE}/delete`,
+    payload,
+    bearerConfig()
+  );
   return data;
 }
