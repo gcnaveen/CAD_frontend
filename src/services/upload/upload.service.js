@@ -43,6 +43,8 @@ export function normalizeUploadContentType(mime) {
     return "audio/mp4";
   }
   if (base === "audio/mp3") return "audio/mpeg";
+  // Browsers sometimes emit the non-standard image/jpg
+  if (base === "image/jpg") return "image/jpeg";
   return base || "application/octet-stream";
 }
 
@@ -118,11 +120,85 @@ export function sniffAudioContentType(header) {
 }
 
 /**
- * Resolve voice-note MIME from magic bytes first, then blob.type.
- * @param {Blob} blob
- * @returns {Promise<string>}
+ * Sniff image (and PDF) container from magic bytes.
+ * Catches PNG/WebP/GIF renamed to .jpg — backend confirm quarantines those mismatches.
+ * @param {ArrayBuffer | Uint8Array} header
+ * @returns {string | null} normalized content type or null if unknown
  */
-export async function resolveVoiceNoteContentType(blob) {
+export function sniffImageContentType(header) {
+  const bytes =
+    header instanceof Uint8Array ? header : new Uint8Array(header || []);
+  if (bytes.length < 3) return null;
+
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+
+  // GIF87a / GIF89a
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return "image/gif";
+  }
+
+  // WEBP: RIFF....WEBP
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+
+  // PDF: %PDF
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  ) {
+    return "application/pdf";
+  }
+
+  return null;
+}
+
+/**
+ * Resolve image MIME from magic bytes first.
+ * Declared File.type / extension are only used when bytes cannot be read.
+ * @param {Blob | File} blob
+ * @returns {Promise<{ contentType: string, fromSniff: boolean }>}
+ */
+export async function resolveImageContentType(blob) {
   try {
     let buf;
     if (typeof blob?.arrayBuffer === "function") {
@@ -130,14 +206,81 @@ export async function resolveVoiceNoteContentType(blob) {
     } else {
       buf = await new Response(blob).arrayBuffer();
     }
-    // Only need the header
-    const header = buf.byteLength > 256 ? buf.slice(0, 256) : buf;
-    const sniffed = sniffAudioContentType(header);
-    if (sniffed) return sniffed;
+    const header = buf.byteLength > 64 ? buf.slice(0, 64) : buf;
+    const sniffed = sniffImageContentType(header);
+    if (sniffed) return { contentType: sniffed, fromSniff: true };
+    // Bytes were readable but did not match any known image/PDF signature.
+    return { contentType: null, fromSniff: true };
   } catch {
-    /* ignore sniff errors */
+    /* ignore sniff errors — fall through to declared type */
   }
-  return normalizeUploadContentType(blob?.type || "audio/webm");
+
+  const declared = normalizeUploadContentType(blob?.type || "");
+  if (declared.startsWith("image/")) {
+    return { contentType: declared, fromSniff: false };
+  }
+
+  const name = String(blob?.name || "");
+  const ext = name.includes(".")
+    ? name.slice(name.lastIndexOf(".") + 1).toLowerCase()
+    : "";
+  if (ext === "jpg" || ext === "jpeg") {
+    return { contentType: "image/jpeg", fromSniff: false };
+  }
+  if (ext === "png") return { contentType: "image/png", fromSniff: false };
+  if (ext === "gif") return { contentType: "image/gif", fromSniff: false };
+  if (ext === "webp") return { contentType: "image/webp", fromSniff: false };
+  if (ext === "pdf") return { contentType: "application/pdf", fromSniff: false };
+
+  return { contentType: declared || "application/octet-stream", fromSniff: false };
+}
+
+/**
+ * Build an image File with MIME/extension matching real container bytes.
+ * Prevents FILE_QUARANTINED "MIME/extension mismatch with file bytes" on confirm.
+ * @param {Blob | File} blob
+ * @param {string} [fileName]
+ * @returns {Promise<File>}
+ */
+export async function toUploadImageFile(blob, fileName) {
+  if (!blob || !blob.size) {
+    throw new Error("Image file is empty. Choose another file and try again.");
+  }
+
+  const { contentType, fromSniff } = await resolveImageContentType(blob);
+
+  if (contentType === "application/pdf") {
+    throw new Error(
+      "PDF cannot be uploaded as an image. Convert to JPG/PNG or use a supported document upload."
+    );
+  }
+
+  if (!contentType || !contentType.startsWith("image/")) {
+    throw new Error(
+      fromSniff
+        ? "This file's contents are not a supported image (JPEG, PNG, GIF, or WebP). The name/extension may be wrong — re-export or pick another file."
+        : "This file's contents are not a supported image (JPEG, PNG, GIF, or WebP). Re-export or pick another file."
+    );
+  }
+
+  // Only allowlisted image MIME types for /api/upload/image
+  const allowed = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ]);
+  if (!allowed.has(contentType)) {
+    throw new Error(
+      `Unsupported image type (${contentType}). Use JPEG, PNG, GIF, or WebP.`
+    );
+  }
+
+  const name = ensureUploadFileName(
+    fileName || blob?.name || `image-${Date.now()}`,
+    contentType
+  );
+  return new File([blob], name, { type: contentType });
 }
 
 /**
@@ -155,16 +298,45 @@ export function ensureUploadFileName(fileName, contentType) {
   const currentExt = (match?.[2] || "").slice(1).toLowerCase();
 
   const audioExts = new Set(["webm", "m4a", "mp4", "ogg", "wav", "mp3", "mpeg"]);
+  const imageExts = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+
   if (!currentExt) return `${base}.${wantExt}`;
   if (ct.startsWith("audio/") && audioExts.has(currentExt) && currentExt !== wantExt) {
     // .mp4 container for AAC → prefer .m4a
     if (wantExt === "m4a" && currentExt === "mp4") return `${base}.m4a`;
     return `${base}.${wantExt}`;
   }
-  if (ct.startsWith("image/") && currentExt && currentExt !== wantExt) {
-    return `${base}.${wantExt}`;
+  if (ct.startsWith("image/") && imageExts.has(currentExt)) {
+    // jpeg ↔ jpg are equivalent; otherwise rewrite to sniffed ext
+    if (wantExt === "jpg" && (currentExt === "jpg" || currentExt === "jpeg")) {
+      return `${base}.jpg`;
+    }
+    if (currentExt !== wantExt) return `${base}.${wantExt}`;
+    return `${base}.${currentExt === "jpeg" ? "jpg" : currentExt}`;
   }
   return currentExt ? `${base}.${currentExt}` : `${base}.${wantExt}`;
+}
+
+/**
+ * Resolve voice-note MIME from magic bytes first, then blob.type.
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+export async function resolveVoiceNoteContentType(blob) {
+  try {
+    let buf;
+    if (typeof blob?.arrayBuffer === "function") {
+      buf = await blob.arrayBuffer();
+    } else {
+      buf = await new Response(blob).arrayBuffer();
+    }
+    const header = buf.byteLength > 256 ? buf.slice(0, 256) : buf;
+    const sniffed = sniffAudioContentType(header);
+    if (sniffed) return sniffed;
+  } catch {
+    /* ignore sniff errors */
+  }
+  return normalizeUploadContentType(blob?.type || "audio/webm");
 }
 
 /**
@@ -469,6 +641,8 @@ function normalizePresignResponse(presign) {
 
 /**
  * Upload image to S3 via backend presigned URL, then confirm (H-10).
+ * Re-aligns MIME/extension to magic bytes so confirm does not FILE_QUARANTINED
+ * when a PNG/WebP is renamed to .jpg (or browser File.type is wrong).
  * Requires Bearer JWT. Attach returned fileUrl/key only after this resolves
  * (objects are private until confirm succeeds).
  * @param {File} file - Image file
@@ -477,17 +651,18 @@ function normalizePresignResponse(presign) {
  */
 export async function uploadImageToS3(file, entityId) {
   assertUploadAuth();
-  const payload = buildPresignPayload(file, entityId);
+  const aligned = await toUploadImageFile(file, file?.name);
+  const payload = buildPresignPayload(aligned, entityId);
   const { uploadUrl, fileUrl, key, uploadHeaders } = normalizePresignResponse(
     await getImagePresignedUrl(payload)
   );
-  const putHeaders = buildS3PutHeaders(file, uploadHeaders);
-  await putFileToS3(uploadUrl, file, uploadHeaders);
+  const putHeaders = buildS3PutHeaders(aligned, uploadHeaders);
+  await putFileToS3(uploadUrl, aligned, uploadHeaders);
   const confirmed = await confirmUploadedFile({
     key,
     contentType: contentTypeFromPutHeaders(putHeaders, payload.contentType),
     fileName: payload.fileName,
-    fileSizeBytes: payload.fileSizeBytes,
+    fileSizeBytes: aligned.size || payload.fileSizeBytes,
   });
   return { fileUrl: confirmed.fileUrl || fileUrl, key: confirmed.key || key };
 }

@@ -11,6 +11,11 @@ import {
 } from "../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
+import {
+  createLocalPreviewUrl,
+  revokeLocalPreviewUrl,
+  resolvePreviewUrl,
+} from "../../../utils/localFilePreview.js";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -300,22 +305,22 @@ const UploadSurvey = ({
 
       const { fileUrl, key } = await uploadAudioToS3(audioFile, village);
 
+      // Keep local blob URL so playback works while S3 objects remain private (H-10).
+      const previewUrl = audioUrl || createLocalPreviewUrl(audioFile);
       const audioValue = {
         fileUrl,
         key,
         fileName: audioFile.name,
         mimeType: audioFile.type,
         size: audioFile.size,
+        previewUrl: previewUrl || undefined,
       };
       form.setFieldsValue({ audio: audioValue });
       onAudioChange?.(audioValue);
 
       message.success("Audio uploaded successfully");
       setAudioBlob(null);
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-        setAudioUrl(null);
-      }
+      setAudioUrl(null);
     } catch (error) {
       console.error("Failed to upload audio:", error);
       message.error(getUploadErrorMessage(error) || "Failed to upload audio");
@@ -338,9 +343,10 @@ const UploadSurvey = ({
       }
     }
 
+    revokeLocalPreviewUrl(audioData?.previewUrl);
     setAudioBlob(null);
     if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
+      revokeLocalPreviewUrl(audioUrl);
       setAudioUrl(null);
     }
     setRecordingTime(0);
@@ -406,12 +412,14 @@ const UploadSurvey = ({
 
       const { fileUrl, key } = await uploadAudioToS3(actualFile, village);
 
+      const previewUrl = createLocalPreviewUrl(actualFile);
       const audioValue = {
         fileUrl,
         key,
         fileName: actualFile.name,
         mimeType: actualFile.type,
         size: actualFile.size,
+        previewUrl: previewUrl || undefined,
       };
       form.setFieldsValue({ audio: audioValue });
       onAudioChange?.(audioValue);
@@ -676,8 +684,8 @@ const UploadSurvey = ({
                     Remove
                   </Button>
                 </div>
-                {audioField.fileUrl && (
-                  <audio controls src={audioField.fileUrl} className="w-full" />
+                {resolvePreviewUrl(audioField) && (
+                  <audio controls src={resolvePreviewUrl(audioField)} className="w-full" />
                 )}
               </div>
             )}

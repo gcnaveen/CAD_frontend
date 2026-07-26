@@ -5,7 +5,9 @@ import {
   normalizeUploadContentType,
   ensureUploadFileName,
   toVoiceNoteFile,
+  toUploadImageFile,
   sniffAudioContentType,
+  sniffImageContentType,
   extensionForContentType,
 } from "./upload.service.js";
 import { getUploadErrorMessage } from "./upload.errors.js";
@@ -26,8 +28,86 @@ describe("normalizeUploadContentType (H-10 voice MIME)", () => {
     expect(normalizeUploadContentType("video/mp4")).toBe("audio/mp4");
   });
 
-  it("keeps image MIME base type", () => {
-    expect(normalizeUploadContentType("image/png")).toBe("image/png");
+  it("maps image/jpg → image/jpeg", () => {
+    expect(normalizeUploadContentType("image/jpg")).toBe("image/jpeg");
+  });
+});
+
+describe("sniffImageContentType", () => {
+  it("detects JPEG SOI marker", () => {
+    const header = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
+    expect(sniffImageContentType(header)).toBe("image/jpeg");
+  });
+
+  it("detects PNG signature", () => {
+    const header = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    expect(sniffImageContentType(header)).toBe("image/png");
+  });
+
+  it("detects WEBP RIFF header", () => {
+    const header = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
+    ]);
+    expect(sniffImageContentType(header)).toBe("image/webp");
+  });
+});
+
+describe("toUploadImageFile", () => {
+  it("aligns filename + MIME from sniffed PNG bytes (even if named .jpg)", async () => {
+    const pngBytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4,
+    ]);
+    expect(sniffImageContentType(pngBytes)).toBe("image/png");
+    expect(ensureUploadFileName("th.jpg", "image/png")).toBe("th.png");
+
+    const blob = {
+      size: pngBytes.length,
+      type: "image/jpeg",
+      name: "th.jpg",
+      arrayBuffer: async () => pngBytes.buffer.slice(
+        pngBytes.byteOffset,
+        pngBytes.byteOffset + pngBytes.byteLength
+      ),
+    };
+    const aligned = await toUploadImageFile(blob, "th.jpg");
+    expect(aligned.type).toBe("image/png");
+    expect(aligned.name).toBe("th.png");
+  });
+
+  it("rejects unrecognized bytes claiming to be jpeg", async () => {
+    const junk = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07]);
+    expect(sniffImageContentType(junk)).toBeNull();
+    const blob = {
+      size: junk.length,
+      type: "image/jpeg",
+      name: "th.jpg",
+      arrayBuffer: async () => junk.buffer.slice(
+        junk.byteOffset,
+        junk.byteOffset + junk.byteLength
+      ),
+    };
+    await expect(toUploadImageFile(blob, "th.jpg")).rejects.toThrow(/supported image/i);
+  });
+
+  it("keeps matching jpeg bytes + .jpg", async () => {
+    const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+    expect(sniffImageContentType(jpegBytes)).toBe("image/jpeg");
+    expect(ensureUploadFileName("th.jpg", "image/jpeg")).toBe("th.jpg");
+
+    const blob = {
+      size: jpegBytes.length,
+      type: "image/jpeg",
+      name: "th.jpg",
+      arrayBuffer: async () => jpegBytes.buffer.slice(
+        jpegBytes.byteOffset,
+        jpegBytes.byteOffset + jpegBytes.byteLength
+      ),
+    };
+    const aligned = await toUploadImageFile(blob, "th.jpg");
+    expect(aligned.type).toBe("image/jpeg");
+    expect(aligned.name).toBe("th.jpg");
   });
 });
 

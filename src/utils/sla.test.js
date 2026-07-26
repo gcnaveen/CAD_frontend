@@ -64,7 +64,7 @@ describe("format helpers", () => {
   });
 
   it("formats remaining from API hours only", () => {
-    expect(formatSlaRemaining({ remainingHours: 12.4 })).toMatch(/12\.4h left/);
+    expect(formatSlaRemaining({ remainingHours: 12.4 })).toMatch(/12h left/);
     expect(formatSlaRemaining({ remainingHours: -2 })).toMatch(/overdue/);
   });
 

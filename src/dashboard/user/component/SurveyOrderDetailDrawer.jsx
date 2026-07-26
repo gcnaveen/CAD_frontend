@@ -36,6 +36,11 @@ import {
   resolveAssignmentIdFromEntity,
 } from "../../../services/assignmentApi.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
+import {
+  createLocalPreviewUrl,
+  revokeLocalPreviewUrl,
+  resolvePreviewUrl,
+} from "../../../utils/localFilePreview.js";
 import FileViewDownloadButtons from "../../../components/files/FileViewDownloadButtons.jsx";
 import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard.jsx";
 import SketchPaymentRetryButton from "../../../components/payments/SketchPaymentRetryButton.jsx";
@@ -291,12 +296,17 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     setAudioUploading(true);
     try {
       const result = await uploadAudioToS3(file, String(uploadId));
+      // Keep local blob for playback — remote fileUrl may be private (H-10).
+      const previewUrl = audioUrl || createLocalPreviewUrl(file);
       setRevisionAudio({
         url: result?.fileUrl,
         fileName: file.name,
         mimeType: file.type,
         size: file.size,
+        previewUrl: previewUrl || undefined,
       });
+      setAudioBlob(null);
+      setAudioUrl(null);
       message.success("Audio uploaded");
     } catch (error) {
       message.error(getUploadErrorMessage(error) || "Audio upload failed");
@@ -310,11 +320,12 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   const clearAudioSelection = () => {
+    revokeLocalPreviewUrl(revisionAudio?.previewUrl);
     setRevisionAudio(null);
     setAudioBlob(null);
     setRecordingTime(0);
     if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
+      revokeLocalPreviewUrl(audioUrl);
       setAudioUrl(null);
     }
   };
@@ -387,7 +398,14 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     try {
       const payload = {};
       if (remarks) payload.remarks = remarks;
-      if (revisionAudio?.url) payload.audio = revisionAudio;
+      if (revisionAudio?.url) {
+        payload.audio = {
+          url: revisionAudio.url,
+          fileName: revisionAudio.fileName,
+          mimeType: revisionAudio.mimeType,
+          size: revisionAudio.size,
+        };
+      }
 
       const revisionRes = await requestCadRevision(uploadId, payload);
       const payment = revisionRes?.meta?.payment;
@@ -404,6 +422,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
         setDetails(res.data);
       }
       setRevisionRemarks("");
+      revokeLocalPreviewUrl(revisionAudio?.previewUrl);
       setRevisionAudio(null);
     } catch (error) {
       const msg = error?.response?.data?.message || error?.message || "Failed to request revision";
@@ -498,17 +517,16 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     setFbAudioUploading(true);
     try {
       const result = await uploadAudioToS3(file, String(assignmentId));
+      const previewUrl = fbAudioUrl || createLocalPreviewUrl(file);
       setFbAudio({
         url: result?.fileUrl,
         fileName: file.name,
         mimeType: file.type,
         size: file.size,
+        previewUrl: previewUrl || undefined,
       });
       setFbAudioBlob(null);
-      setFbAudioUrl((prevUrl) => {
-        if (prevUrl) URL.revokeObjectURL(prevUrl);
-        return null;
-      });
+      setFbAudioUrl(null);
       message.success("Audio uploaded");
     } catch (error) {
       message.error(getUploadErrorMessage(error) || "Audio upload failed");
@@ -519,11 +537,12 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   };
 
   const clearFbAudioSelection = () => {
+    revokeLocalPreviewUrl(fbAudio?.previewUrl);
     setFbAudio(null);
     setFbAudioBlob(null);
     setFbRecordingTime(0);
     setFbAudioUrl((prevUrl) => {
-      if (prevUrl) URL.revokeObjectURL(prevUrl);
+      revokeLocalPreviewUrl(prevUrl);
       return null;
     });
   };
@@ -997,8 +1016,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
                           <Trash2 className="w-3 h-3" /> Remove
                         </button>
                       </div>
-                      {revisionAudio.url && (
-                        <audio controls src={revisionAudio.url} className="w-full rounded-lg" />
+                      {resolvePreviewUrl(revisionAudio) && (
+                        <audio controls src={resolvePreviewUrl(revisionAudio)} className="w-full rounded-lg" />
                       )}
                     </div>
                   )}
@@ -1130,8 +1149,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
                           <Trash2 className="w-3 h-3" /> Remove
                         </button>
                       </div>
-                      {fbAudio.url && (
-                        <audio controls src={fbAudio.url} className="w-full rounded-lg" />
+                      {resolvePreviewUrl(fbAudio) && (
+                        <audio controls src={resolvePreviewUrl(fbAudio)} className="w-full rounded-lg" />
                       )}
                     </div>
                   )}

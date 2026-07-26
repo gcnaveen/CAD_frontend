@@ -66,13 +66,29 @@ for (const name of REQUIRED) {
   }
 
   if (name === "content-security-policy") {
-    const need = ["frame-ancestors 'none'", "object-src 'none'", "script-src"];
+    const need = [
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      "script-src",
+      "media-src 'self' blob:",
+    ];
     for (const token of need) {
       if (!normalize(actual).includes(normalize(token))) {
         mismatches.push(`${name}: missing directive/token "${token}"`);
       }
     }
     continue;
+  }
+
+  // Voice notes: HTML host must allow mic for same origin — never microphone=()
+  if (name === "permissions-policy") {
+    const n = normalize(actual);
+    if (n.includes("microphone=()") && !n.includes("microphone=(self)")) {
+      mismatches.push(
+        `${name}: microphone=() blocks MediaRecorder — use microphone=(self) on the HTML host`
+      );
+      continue;
+    }
   }
 
   if (normalize(actual) !== normalize(expected[expectKey])) {

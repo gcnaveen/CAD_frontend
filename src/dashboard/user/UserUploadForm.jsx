@@ -12,6 +12,7 @@ import {
   computeSketchSubmitAmountRupees,
 } from "../../utils/sketchPricingCompute.js";
 import { redirectToSketchCheckout } from "../../utils/sketchPaymentUtils.js";
+import { revokeLocalPreviewUrl } from "../../utils/localFilePreview.js";
 
 /** Same truthiness as Ant Design Checkbox (avoids missing +₹200 on superimpose). */
 function isGoogleSuperimposeSelected(form, values) {
@@ -34,7 +35,16 @@ const DOCUMENT_FIELDS      = ["moolaTippani", "hissaTippani", "atlas", "rrPakkab
 const MAIN_DOCUMENT_FIELDS = ["moolaTippani", "atlas", "rrPakkabook"];
 const DOCUMENT_TYPE_KEYS   = ["is_originaltippani","is_hissatippani","is_atlas","is_rrpakkabook","is_akarabandu","is_kharabuttar","is_mulapatra"];
 
-function toUrl(doc) { if (!doc) return null; if (typeof doc === "string") return doc; return doc.url || doc.fileUrl || doc.fileURL || null; }
+function toUrl(doc) {
+  if (!doc) return null;
+  if (typeof doc === "string") return doc.startsWith("blob:") ? null : doc;
+  // Prefer remote fileUrl; ignore session-only blob preview URLs for API payloads.
+  const remote = doc.fileUrl || doc.fileURL;
+  if (typeof remote === "string" && remote && !remote.startsWith("blob:")) return remote;
+  const url = doc.url;
+  if (typeof url === "string" && url && !url.startsWith("blob:")) return url;
+  return null;
+}
 /** Draft/API may send a single file object, a URL string, or an array of file objects. */
 function toMeta(doc) {
   if (!doc) return null;
@@ -136,6 +146,7 @@ const UserUploadForm = ({
   const [step,          setStep]          = useState(0);
   const [loading,       setLoading]       = useState(false);
   const [stepLoading,   setStepLoading]   = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
   const [draftSaving,   setDraftSaving]   = useState(false);
   const [draftLoading,  setDraftLoading]  = useState(false);
   const [draftId,       setDraftId]       = useState(null);
@@ -230,7 +241,10 @@ const UserUploadForm = ({
 
   /* ── Navigation ── */
   const goNext = async () => {
-    if (stepLoading) return;
+    if (stepLoading || fileUploading) {
+      if (fileUploading) message.warning("Please wait for the upload to finish");
+      return;
+    }
 
     const proceed = async () => {
       try {
@@ -297,6 +311,7 @@ const UserUploadForm = ({
   };
 
   const resetFormState = () => {
+    revokeLocalPreviewUrl(audioData?.previewUrl);
     form.resetFields();
     setDraftId(null);
     setAudioData(null);
@@ -306,6 +321,7 @@ const UserUploadForm = ({
     setUploadPricing(null);
     setRevisionPricing(null);
     setSketchPricingError(null);
+    setFileUploading(false);
     setStep(0);
   };
 
@@ -663,7 +679,13 @@ const UserUploadForm = ({
 
   const STEP_CONTENT = [
     <LocationStep  key={0} form={form} prefillEntities={prefillEntities} onLocationLabelsChange={setLocationLabels} />,
-    <DrawingStep   key={1} form={form} onAudioChange={setAudioData} audioData={audioData} />,
+    <DrawingStep
+      key={1}
+      form={form}
+      onAudioChange={setAudioData}
+      audioData={audioData}
+      onUploadingChange={setFileUploading}
+    />,
     <DocumentsStep
       key={2}
       form={form}
@@ -673,6 +695,7 @@ const UserUploadForm = ({
       onOtherDocumentUpload={handleOtherUpload}
       onOtherDocumentRemove={handleOtherRemove}
       onClearUploads={handleClearUploads}
+      onUploadingChange={setFileUploading}
     />,
     <ReviewStep
       key={3}
@@ -716,7 +739,7 @@ const UserUploadForm = ({
                 <button
                 type="button"
                 onClick={handleSaveDraft}
-                  disabled={draftSaving || draftLoading}
+                  disabled={draftSaving || draftLoading || fileUploading}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-fg font-bold text-xs transition-colors disabled:opacity-60"
               >
                 <SaveIcon />
@@ -778,10 +801,12 @@ const UserUploadForm = ({
                 <button
                   type="button"
                   onClick={goNext}
-                  disabled={stepLoading}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors"
+                  disabled={stepLoading || fileUploading}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
                 >
-                  {stepLoading ? (
+                  {fileUploading ? (
+                    <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Uploading…</>
+                  ) : stepLoading ? (
                     <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving...</>
                   ) : (
                     <>Continue <ArrowRight /></>
@@ -794,6 +819,7 @@ const UserUploadForm = ({
                   disabled={
                     loading ||
                     externalLoading ||
+                    fileUploading ||
                     (step === 3 && (sketchPricingLoading || !sketchPricingReady))
                   }
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"

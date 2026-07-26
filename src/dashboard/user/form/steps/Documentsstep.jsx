@@ -1,5 +1,5 @@
 // src/dashboard/user/form/steps/DocumentsStep.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, Upload, Checkbox, Input, message, Modal } from "antd";
 import { Upload as UploadIcon } from "lucide-react";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
@@ -9,6 +9,11 @@ import {
 } from "../../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
+import {
+  createLocalPreviewUrl,
+  revokeLocalPreviewUrl,
+  resolvePreviewUrl,
+} from "../../../../utils/localFilePreview.js";
 
 const UPLOAD_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -52,12 +57,19 @@ const DocumentsStep = ({
   onOtherDocumentUpload,
   onOtherDocumentRemove,
   onClearUploads,
+  onUploadingChange,
 }) => {
   const [uploading, setUploading] = useState({});
   const [enabled, setEnabled] = useState({});
   const [otherDocName, setOtherDocName] = useState("");
   const uploadMode = Form.useWatch("uploadMode", form) ?? "normal";
   const hasDocumentsAnswer = Form.useWatch("hasDocuments", form);
+  const isBusyUploading = Object.values(uploading).some(Boolean);
+
+  useEffect(() => {
+    onUploadingChange?.(isBusyUploading);
+    return () => onUploadingChange?.(false);
+  }, [isBusyUploading, onUploadingChange]);
 
   const NORMAL_DOC_FIELDS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
   const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
@@ -129,6 +141,8 @@ const DocumentsStep = ({
           ...f,
           fileUrl: p.fileUrl || p.url,
           url: p.url || p.fileUrl,
+          previewUrl: p.previewUrl || f.previewUrl,
+          thumbUrl: p.thumbUrl || f.thumbUrl || p.previewUrl,
           key: p.key,
           fileName: p.fileName ?? f.name,
           mimeType: p.mimeType ?? f.type,
@@ -145,14 +159,24 @@ const DocumentsStep = ({
     const maxSize = isAudio(file) ? AUDIO_MAX_SIZE_BYTES : MAX_FILE_SIZE;
     if (file.size > maxSize) { message.error(`Max ${maxSize / 1024 / 1024}MB`); return false; }
     setUploading((p) => ({ ...p, [fieldName]: true }));
+    let localPreview = null;
     try {
       const actual = fileObj instanceof File ? fileObj : file;
+      localPreview = createLocalPreviewUrl(actual);
       // H-10: JWT + fileSizeBytes + confirm; FILE_QUARANTINED throws (do not attach URL)
       const { fileUrl, key } = isAudio(actual)
         ? await uploadAudioToS3(actual, villageId)
         : await uploadImageToS3(actual, villageId);
       const uid = file.uid || `upload-${Date.now()}`;
-      const meta = { fileUrl, fileName: file.name || actual.name, mimeType: file.type || actual.type, size: file.size || actual.size };
+      const mimeType = file.type || actual.type;
+      const isImage = typeof mimeType === "string" && mimeType.startsWith("image/");
+      const meta = {
+        fileUrl,
+        fileName: file.name || actual.name,
+        mimeType,
+        size: file.size || actual.size,
+        previewUrl: localPreview || undefined,
+      };
       const cur = form.getFieldValue(fieldName) || [];
       const attachOtherName = fieldName === "other_documents" && typeof otherDocName === "string" && otherDocName.trim();
       form.setFieldValue(fieldName, [
@@ -160,8 +184,11 @@ const DocumentsStep = ({
         {
           uid,
           name: file.name || actual.name,
+          // Keep remote fileUrl/url for draft+submit; local previewUrl/thumbUrl for View.
           url: fileUrl,
           fileUrl,
+          previewUrl: localPreview || undefined,
+          thumbUrl: isImage ? (localPreview || undefined) : undefined,
           key,
           fileName: meta.fileName,
           mimeType: meta.mimeType,
@@ -175,7 +202,10 @@ const DocumentsStep = ({
       if (fieldName === "other_documents") onOtherDocumentUpload?.(uid, meta);
       else onDocumentUpload?.(fieldName, meta);
       message.success("Uploaded successfully");
-    } catch (e) { message.error(getUploadErrorMessage(e)); }
+    } catch (e) {
+      revokeLocalPreviewUrl(localPreview);
+      message.error(getUploadErrorMessage(e));
+    }
     finally { setUploading((p) => ({ ...p, [fieldName]: false })); }
     return false;
   };
@@ -186,6 +216,10 @@ const DocumentsStep = ({
     const target = existing || file;
     if (fieldName === "other_documents") onOtherDocumentRemove?.(file.uid || target?.uid);
     else onDocumentRemove?.(fieldName);
+    revokeLocalPreviewUrl(target?.previewUrl);
+    if (target?.thumbUrl && target.thumbUrl !== target?.previewUrl) {
+      revokeLocalPreviewUrl(target.thumbUrl);
+    }
     if (target?.fileUrl || target?.key) {
       try { await deleteUploadedFile(target.fileUrl ? { fileUrl: target.fileUrl } : { key: target.key }); }
       catch { /* silent */ }
@@ -193,7 +227,8 @@ const DocumentsStep = ({
     return true;
   };
 
-  const openInNewTab = (url) => {
+  const openInNewTab = (fileOrUrl) => {
+    const url = typeof fileOrUrl === "string" ? fileOrUrl : resolvePreviewUrl(fileOrUrl);
     if (!url || typeof url !== "string") return;
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -205,6 +240,12 @@ const DocumentsStep = ({
 
   const clearField = (fieldName) => {
     const list = form.getFieldValue(fieldName) || [];
+    if (Array.isArray(list)) {
+      list.forEach((f) => {
+        revokeLocalPreviewUrl(f?.previewUrl);
+        if (f?.thumbUrl && f.thumbUrl !== f?.previewUrl) revokeLocalPreviewUrl(f.thumbUrl);
+      });
+    }
     if (fieldName === "other_documents") {
       if (Array.isArray(list) && list.length) {
         list.forEach((f) => onOtherDocumentRemove?.(f?.uid));
@@ -224,7 +265,19 @@ const DocumentsStep = ({
   };
 
   return (
-    <div>
+    <div className="relative">
+      {isBusyUploading && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_srgb,var(--bg-primary)_72%,transparent)] backdrop-blur-[1px]"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--user-accent)] border-t-transparent animate-spin" />
+          <p className="text-sm font-extrabold text-fg">Uploading file…</p>
+          <p className="text-xs font-semibold text-fg-muted">Please wait — do not continue yet</p>
+        </div>
+      )}
+
       <SectionHeader
         titleKn="ದಾಖಲೆಗಳು"
         titleEn="Documents"
@@ -312,7 +365,7 @@ const DocumentsStep = ({
               listType="picture-card"
               maxCount={1}
               accept={UPLOAD_ACCEPT}
-              disabled={uploadMode !== "single" || Boolean(uploading.singleUpload)}
+              disabled={uploadMode !== "single" || Boolean(uploading.singleUpload) || isBusyUploading}
               beforeUpload={(f) => uploadMode === "single" ? handleUpload(f, "singleUpload") : false}
               onRemove={(f) => handleRemove(f, "singleUpload")}
               className={`upload-area-full ${uploadMode !== "single" ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -391,7 +444,7 @@ const DocumentsStep = ({
                   const canUpload = !disabledRow && checked && !uploading[fieldName] && (isOther ? true : !hasFile);
 
                   const first = Array.isArray(list) ? list[0] : null;
-                  const firstUrl = first?.fileUrl || first?.url;
+                  const firstPreview = resolvePreviewUrl(first);
                   const firstName = first?.fileName || first?.name;
 
                   return (
@@ -401,7 +454,7 @@ const DocumentsStep = ({
                         <div className="flex items-start gap-3 sm:w-[240px] shrink-0">
                           <Checkbox
                             checked={checked}
-                            disabled={disabledRow}
+                            disabled={disabledRow || isBusyUploading}
                             onChange={(e) => toggleEnabled(fieldName, e.target.checked)}
                           />
                           <div className="min-w-0">
@@ -416,10 +469,10 @@ const DocumentsStep = ({
                             <div className="text-xs font-bold text-fg-muted">Select the checkbox to enable upload</div>
                           ) : !isOther && hasFile ? (
                             <div className="flex items-center gap-2 min-w-0 w-full">
-                              {isImageUrl(first) && firstUrl ? (
+                              {isImageUrl(first) && firstPreview ? (
                                 <div className="w-10 h-10 rounded-xl overflow-hidden border border-line bg-surface-2 shrink-0">
                                   <img
-                                    src={firstUrl}
+                                    src={firstPreview}
                                     alt={firstName || "Uploaded"}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
@@ -453,16 +506,16 @@ const DocumentsStep = ({
                                 maxCount={maxCount}
                                 listType="text"
                                 showUploadList={false}
-                                disabled={!canUpload}
+                                disabled={!canUpload || isBusyUploading}
                                 beforeUpload={(f) => uploadMode === "normal" ? handleUpload(f, fieldName) : false}
                                 onRemove={(f) => handleRemove(f, fieldName)}
                                 className="w-full"
                               >
                                 <button
                                   type="button"
-                                  disabled={!canUpload}
+                                  disabled={!canUpload || isBusyUploading}
                                   className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 text-sm font-extrabold flex items-center justify-center gap-2 transition-colors ${
-                                    canUpload
+                                    canUpload && !isBusyUploading
                                       ? "border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)] hover:opacity-90"
                                       : "border-line bg-surface text-fg-muted cursor-not-allowed"
                                   }`}
@@ -484,7 +537,7 @@ const DocumentsStep = ({
                                 value={otherDocName}
                                 onChange={(e) => setOtherDocName(e.target.value)}
                                 placeholder="Enter custom document name (optional)"
-                                disabled={disabledRow}
+                                disabled={disabledRow || isBusyUploading}
                                 className="rounded-xl"
                               />
                             </div>
@@ -494,38 +547,18 @@ const DocumentsStep = ({
                           {isOther && hasFile && (
                             <div className="mt-2 space-y-2">
                               {list.map((f) => {
-                                const url = f?.fileUrl || f?.url;
-                                const displayName = f?.fileName || f?.name || "file";
+                                const preview = resolvePreviewUrl(f);
+                                const displayName = f?.otherDocName
+                                  ? `${f.otherDocName} — ${f?.fileName || f?.name || "file"}`
+                                  : (f?.fileName || f?.name || "file");
                                 return (
                                   <div key={f.uid || displayName} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2">
-                                    {/* <div className="min-w-0 flex items-center gap-2">
-                                      {isImageUrl(f) && url ? (
-                                        <div className="w-9 h-9 rounded-xl overflow-hidden border border-line bg-surface shrink-0">
-                                          <img
-                                            src={url}
-                                            alt={displayName}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <div className="w-9 h-9 rounded-xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
-                                          <UploadIcon className="w-4 h-4 text-[var(--user-accent)]" />
-                                        </div>
-                                      )}
-                                      <div className="min-w-0">
-                                        <p className="text-sm font-bold text-fg truncate">
-                                          {label ? `${label} — ${displayName}` : displayName}
-                                        </p>
-                                        <p className="text-xs text-fg-muted font-semibold truncate">{f?.mimeType || f?.type || ""}</p>
-                                      </div>
-                                    </div> */}
                                     <div className="flex items-center gap-2 min-w-0 w-full">
-                                      {isImageUrl(first) && firstUrl ? (
+                                      {isImageUrl(f) && preview ? (
                                         <div className="w-10 h-10 rounded-xl overflow-hidden border border-line bg-surface-2 shrink-0">
                                           <img
-                                            src={firstUrl}
-                                            alt={firstName || "Uploaded"}
+                                            src={preview}
+                                            alt={displayName}
                                             className="w-full h-full object-cover"
                                             loading="lazy"
                                           />
@@ -537,32 +570,33 @@ const DocumentsStep = ({
                                       )}
 
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-fg truncate" title={firstName}>
-                                          {firstName || "Uploaded file"}
+                                        <p className="text-sm font-bold text-fg truncate" title={displayName}>
+                                          {displayName}
                                         </p>
                                         <p className="text-xs text-fg-muted font-semibold truncate">
-                                          {first?.mimeType || first?.type || ""}
+                                          {f?.mimeType || f?.type || ""}
                                         </p>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                       <button
                                         type="button"
-                                        disabled={!url}
-                                        onClick={() => openInNewTab(url)}
+                                        disabled={!preview}
+                                        onClick={() => openInNewTab(f)}
                                         className="px-3 py-1.5 rounded-lg border border-line bg-surface text-fg font-bold text-xs disabled:opacity-60"
                                       >
                                         View
                                       </button>
                                       <button
                                         type="button"
+                                        disabled={isBusyUploading}
                                         onClick={async () => {
                                           const ok = await handleRemove(f, fieldName);
                                           if (ok) {
                                             form.setFieldValue(fieldName, (form.getFieldValue(fieldName) || []).filter((x) => x.uid !== f.uid));
                                           }
                                         }}
-                                        className="px-3 py-1.5 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] text-danger font-bold text-xs"
+                                        className="px-3 py-1.5 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] text-danger font-bold text-xs disabled:opacity-60"
                                       >
                                         Delete
                                       </button>
@@ -579,15 +613,15 @@ const DocumentsStep = ({
                           <div className="flex gap-2 sm:justify-end shrink-0 w-full sm:w-auto">
                             <button
                               type="button"
-                              disabled={!firstUrl}
-                              onClick={() => openInNewTab(firstUrl)}
+                              disabled={!firstPreview}
+                              onClick={() => openInNewTab(first)}
                               className="flex-1 sm:flex-none px-3 py-2 rounded-xl border border-line bg-surface text-fg font-extrabold text-xs disabled:opacity-60"
                             >
                               View
                             </button>
                             <button
                               type="button"
-                              disabled={!hasFile}
+                              disabled={!hasFile || isBusyUploading}
                               onClick={async () => {
                                 if (!first) return;
                                 const ok = await handleRemove(first, fieldName);

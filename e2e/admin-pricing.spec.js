@@ -36,15 +36,18 @@ test.describe("Admin sketch pricing journey", () => {
     const uploadPlan = page.locator("#sketchUploadPlanAmountRupees").or(
       page.getByLabel("Plan amount (₹)").first()
     );
+    await uploadPlan.click();
     await uploadPlan.fill("150");
-    await expect(page.getByText("Upload payable").locator("..")).toContainText("150");
+    await uploadPlan.blur();
+
+    // Preview row: label + amount live in adjacent columns of the same Row.
+    await expect(page.getByText(/₹\s*150(\.00)?/)).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect(page.getByText(/Sketch pricing updated|No changes to save/i)).toBeVisible({
       timeout: 10_000,
     });
 
-    // If save succeeded with a patch, body should include the changed plan field
     if (patchedBody) {
       expect(patchedBody.sketchUploadPlanAmountRupees).toBe(150);
     }
