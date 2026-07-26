@@ -157,6 +157,7 @@ export default function CompleteProfile() {
   }, [form, formVersion, currentStep, uploading, submitting]);
 
   const isCurrentStepValid = () => {
+    if (Object.values(uploading).some(Boolean)) return false;
     const values = form.getFieldsValue(true);
     const fields = STEP_FIELD_MAP[currentStep] || [];
 
@@ -597,17 +598,22 @@ export default function CompleteProfile() {
               {cadBi.profile.back}
             </Button>
             {currentStep < 5 ? (
-              <Button type="primary" onClick={handleNext} disabled={!isCurrentStepValid()}>
-                {cadBi.profile.next}
+              <Button
+                type="primary"
+                onClick={handleNext}
+                disabled={!isCurrentStepValid()}
+                loading={Object.values(uploading).some(Boolean)}
+              >
+                {Object.values(uploading).some(Boolean) ? "Uploading…" : cadBi.profile.next}
               </Button>
             ) : (
               <Button
                 type="primary"
-                loading={submitting}
+                loading={submitting || Object.values(uploading).some(Boolean)}
                 onClick={handleSubmit}
-                disabled={!isFormReadyForSubmit || submitting}
+                disabled={!isFormReadyForSubmit || submitting || Object.values(uploading).some(Boolean)}
               >
-                {cadBi.profile.submitProfile}
+                {Object.values(uploading).some(Boolean) ? "Uploading…" : cadBi.profile.submitProfile}
               </Button>
             )}
           </Space>

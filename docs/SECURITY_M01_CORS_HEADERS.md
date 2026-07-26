@@ -59,9 +59,23 @@ Canonical values live in [`security/m01-headers.json`](../security/m01-headers.j
 | `Content-Security-Policy` | App policy; `script-src 'self'` (no inline scripts — theme boot is `/theme-init.js`); `frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | Disables unused camera/mic/geo/payment/sensors |
+| `Permissions-Policy` | Disable unused sensors; **`microphone=(self)`** for voice notes (never `microphone=()` on the HTML host) |
 | `X-Frame-Options` | `DENY` (defense in depth with CSP) |
 | `Strict-Transport-Security` | Keep / reinforce (audit already saw HSTS) |
+
+### Critical: voice notes / MediaRecorder
+
+Live sites that copy the **API** `Permissions-Policy` (which correctly uses `microphone=()` on JSON responses) onto the **React document** will block `getUserMedia` even on HTTPS (“microphone access not given”).
+
+On the static host only:
+
+```http
+Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=(), interest-cohort=()
+```
+
+Keep CSP `media-src 'self' blob:` so recorded blobs can play back. Redeploy the static site after changing headers, then hard-refresh and allow the browser mic prompt.
+
+Do **not** copy the API Permissions-Policy onto the React document host. Do **not** rely on the API CSP for the React app document.
 
 ### Where they are wired
 
@@ -90,6 +104,7 @@ Edit **only** [`security/m01-headers.json`](../security/m01-headers.json), then 
 - [ ] App still loads after a header scan (`npm run build && npm run preview`, then `npm run check:headers`)
 - [ ] Unapproved origin cannot call the API from a browser (OPTIONS probe above)
 - [ ] Deployed site returns the M-01 headers: `npm run check:headers -- https://app.yourdomain.com`
+- [ ] Voice notes work: document `Permissions-Policy` has `microphone=(self)` (not `microphone=()`); hard-refresh after redeploy
 
 ```bash
 npm run build

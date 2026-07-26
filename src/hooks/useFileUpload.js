@@ -3,6 +3,7 @@ import {
   uploadImageToS3,
   uploadAudioToS3,
   deleteFileFromS3,
+  normalizeUploadContentType,
 } from "../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../services/upload/upload.errors.js";
 import {
@@ -22,7 +23,8 @@ const getErrorMessage = (err) => getUploadErrorMessage(err) || "Something went w
  * @returns {{ valid: boolean, error?: string }}
  */
 function validateImage(file) {
-  if (!IMAGE_MIME_TYPES.includes(file.type)) {
+  const mime = normalizeUploadContentType(file.type);
+  if (!IMAGE_MIME_TYPES.includes(mime)) {
     return {
       valid: false,
       error: `Invalid image type. Allowed: JPEG, JPG, PNG, GIF, WebP. Got: ${file.type || "unknown"}.`,
@@ -43,7 +45,8 @@ function validateImage(file) {
  * @returns {{ valid: boolean, error?: string }}
  */
 function validateAudio(file) {
-  if (!AUDIO_MIME_TYPES.includes(file.type)) {
+  const mime = normalizeUploadContentType(file.type);
+  if (!AUDIO_MIME_TYPES.includes(mime)) {
     return {
       valid: false,
       error: `Invalid audio type. Allowed: MPEG, MP3, WAV, WebM, OGG, M4A. Got: ${file.type || "unknown"}.`,

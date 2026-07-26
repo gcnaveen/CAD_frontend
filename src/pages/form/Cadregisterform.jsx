@@ -40,7 +40,11 @@ function digitsOnly(s) {
 }
 
 const publicApiClient = axios.create({
-  baseURL: API_BASE_URL || "",
+  baseURL:
+    (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "") ||
+    API_BASE_URL ||
+    "",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -149,6 +153,7 @@ export default function Cadregisterform() {
   };
 
   const goNext = () => {
+    if (isResumeUploading) return;
     if (!validateStep(step)) return;
     if (step < STEPS.length) setStep(step + 1);
   };
@@ -673,16 +678,18 @@ export default function Cadregisterform() {
               <button
                 type="button"
                 onClick={goNext}
+                disabled={isResumeUploading}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border-0 py-3.5 text-[15px] font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98] sm:w-auto sm:min-w-[160px]"
                 style={{
                   background: "rgba(244, 239, 230, 0.96)",
                   color: "#0f2418",
-                  cursor: "pointer",
+                  cursor: isResumeUploading ? "not-allowed" : "pointer",
+                  opacity: isResumeUploading ? 0.85 : 1,
                   boxShadow: "0 10px 32px rgba(0,0,0,0.22)",
                 }}
               >
-                Continue
-                <ArrowRight size={18} />
+                {isResumeUploading ? "Uploading…" : "Continue"}
+                {!isResumeUploading && <ArrowRight size={18} />}
               </button>
             ) : (
               <button

@@ -11,27 +11,31 @@ test.describe("CAD deliver journey", () => {
 
     await stubApi(page, (path, method) => {
       if (path.includes("/api/cad/assignments") && method === "GET") {
+        // ViewCurrentOrders expects response.data to be an array (or data.data).
         return {
           success: true,
-          data: {
-            items: [
-              {
-                _id: "asg-1",
-                id: "asg-1",
-                assignmentId: "asg-1",
-                status: "IN_PROGRESS",
-                isAccepted: true,
-                acceptedAt: new Date().toISOString(),
-                sketchUploadId: "sk-1",
+          data: [
+            {
+              _id: "asg-1",
+              id: "asg-1",
+              assignmentId: "asg-1",
+              status: "IN_PROGRESS",
+              isAccepted: true,
+              acceptedAt: new Date().toISOString(),
+              surveyorSketchUpload: {
+                _id: "sk-1",
                 applicationId: "APP-E2E-1",
-                assignedAt: new Date().toISOString(),
-                dueDate: new Date(Date.now() + 86400000).toISOString(),
-                customerName: "Surveyor One",
-                phone: "9876543210",
+                surveyorName: "Surveyor One",
+                status: "IN_PROGRESS",
+                documents: {},
+                cadDeliverable: [],
               },
-            ],
-            meta: { page: 1, limit: 10, total: 1 },
-          },
+              assignedAt: new Date().toISOString(),
+              dueDate: new Date(Date.now() + 86400000).toISOString(),
+              notes: "E2E assignment",
+            },
+          ],
+          meta: { page: 1, limit: 10, total: 1 },
         };
       }
       if (path.includes("/api/cad/sketch-uploads/") && method === "GET") {
@@ -39,9 +43,11 @@ test.describe("CAD deliver journey", () => {
           success: true,
           data: {
             _id: "sk-1",
+            applicationId: "APP-E2E-1",
             status: "IN_PROGRESS",
             documents: {},
             cadDeliverable: [],
+            surveyorName: "Surveyor One",
           },
         };
       }
@@ -69,14 +75,13 @@ test.describe("CAD deliver journey", () => {
     });
 
     await page.goto("/dashboard/cad/current-orders");
-    await expect(page.getByText(/View Current Projects/i)).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(page.getByText(/APP-E2E-1|Surveyor One|asg-1/i).first()).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: /View Current Projects/i })
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/APP-E2E-1/i).first()).toBeVisible({
       timeout: 15_000,
     });
 
-    // Open details → CAD deliver upload panel
     const viewBtn = page.getByRole("button", { name: /View Details/i }).first();
     if (await viewBtn.isVisible().catch(() => false)) {
       await viewBtn.click();

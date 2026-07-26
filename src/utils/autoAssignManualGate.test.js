@@ -8,7 +8,7 @@ import {
   normalizeManualAssignGate,
   parseManualAssignBlocked,
   resolveManualAssignUi,
-} from "../../utils/autoAssignManualGate.js";
+} from "./autoAssignManualGate.js";
 
 describe("normalizeAssignmentFlow", () => {
   it("reads autoAssignEnabled, policy, exceptionQueueTotal, manualAssignHint", () => {

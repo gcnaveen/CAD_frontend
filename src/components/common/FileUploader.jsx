@@ -2,6 +2,11 @@ import React, { useState, useRef } from "react";
 import { useFileUpload } from "../../hooks/useFileUpload.js";
 import { IMAGE_MAX_SIZE_LABEL, AUDIO_MAX_SIZE_LABEL } from "../../services/upload/upload.constants.js";
 import { X, ImageIcon, Music } from "lucide-react";
+import {
+  createLocalPreviewUrl,
+  revokeLocalPreviewUrl,
+  resolvePreviewUrl,
+} from "../../utils/localFilePreview.js";
 
 /**
  * Example reusable file uploader: image + audio, preview, loader, delete.
@@ -26,8 +31,13 @@ export default function FileUploader({ entityId = "example-entity" }) {
     const file = e.target.files?.[0];
     if (!file) return;
     clearError();
+    const previewUrl = createLocalPreviewUrl(file);
     const result = await uploadImage(file, entityId);
-    if (result) setImageResult(result);
+    if (result) {
+      setImageResult({ ...result, previewUrl: previewUrl || undefined });
+    } else {
+      revokeLocalPreviewUrl(previewUrl);
+    }
     e.target.value = "";
   };
 
@@ -35,25 +45,47 @@ export default function FileUploader({ entityId = "example-entity" }) {
     const file = e.target.files?.[0];
     if (!file) return;
     clearError();
+    const previewUrl = createLocalPreviewUrl(file);
     const result = await uploadAudio(file, entityId);
-    if (result) setAudioResult(result);
+    if (result) {
+      setAudioResult({ ...result, previewUrl: previewUrl || undefined, fileName: file.name });
+    } else {
+      revokeLocalPreviewUrl(previewUrl);
+    }
     e.target.value = "";
   };
 
   const handleRemoveImage = async () => {
     if (!imageResult?.fileUrl) return;
     const ok = await deleteFile(imageResult.fileUrl);
-    if (ok) setImageResult(null);
+    if (ok) {
+      revokeLocalPreviewUrl(imageResult.previewUrl);
+      setImageResult(null);
+    }
   };
 
   const handleRemoveAudio = async () => {
     if (!audioResult?.fileUrl) return;
     const ok = await deleteFile(audioResult.fileUrl);
-    if (ok) setAudioResult(null);
+    if (ok) {
+      revokeLocalPreviewUrl(audioResult.previewUrl);
+      setAudioResult(null);
+    }
   };
 
   return (
-    <div className="theme-animate-surface space-y-6 rounded-xl border border-line bg-surface p-4 shadow-sm sm:p-5">
+    <div className="theme-animate-surface space-y-6 rounded-xl border border-line bg-surface p-4 shadow-sm sm:p-5 relative">
+      {loading && (
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-[color-mix(in_srgb,var(--bg-primary)_72%,transparent)]"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-line border-t-fg-muted" />
+          <p className="text-sm font-semibold text-fg">Uploading…</p>
+        </div>
+      )}
+
       <h3 className="text-base font-semibold text-fg">File upload (example)</h3>
 
       {error && (
@@ -101,7 +133,7 @@ export default function FileUploader({ entityId = "example-entity" }) {
           {imageResult && (
             <div className="relative inline-block">
               <img
-                src={imageResult.fileUrl}
+                src={resolvePreviewUrl(imageResult)}
                 alt="Upload preview"
                 className="h-20 w-20 rounded-lg border border-line object-cover"
               />
@@ -145,20 +177,25 @@ export default function FileUploader({ entityId = "example-entity" }) {
             {audioResult ? "Change audio" : "Choose audio"}
           </button>
           {audioResult && (
-            <div className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
-              <Music className="h-4 w-4 text-fg-muted" />
-              <span className="truncate text-sm text-fg" title={audioResult.fileUrl}>
-                {audioResult.fileUrl.split("/").pop() || "Audio file"}
-              </span>
-              <button
-                type="button"
-                onClick={handleRemoveAudio}
-                disabled={loading}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-danger hover:bg-[color-mix(in_srgb,var(--danger)_12%,var(--bg-secondary))] disabled:opacity-50"
-                aria-label="Remove audio"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+            <div className="flex w-full max-w-md flex-col gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Music className="h-4 w-4 text-fg-muted" />
+                <span className="truncate text-sm text-fg" title={audioResult.fileName || audioResult.fileUrl}>
+                  {audioResult.fileName || audioResult.fileUrl?.split("/").pop() || "Audio file"}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveAudio}
+                  disabled={loading}
+                  className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-danger hover:bg-[color-mix(in_srgb,var(--danger)_12%,var(--bg-secondary))] disabled:opacity-50"
+                  aria-label="Remove audio"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {resolvePreviewUrl(audioResult) && (
+                <audio controls src={resolvePreviewUrl(audioResult)} className="w-full" preload="metadata" />
+              )}
             </div>
           )}
         </div>
