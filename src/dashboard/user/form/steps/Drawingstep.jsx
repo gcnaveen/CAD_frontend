@@ -8,13 +8,15 @@ import { Mic, Square, Trash2, Upload as UploadIcon } from "lucide-react";
 import {
   uploadAudioToS3,
   toVoiceNoteFile,
+  pickVoiceRecorderMimeType,
+  buildVoiceNoteBlob,
 } from "../../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
 
 const { TextArea } = Input;
-const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg";
+const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,.webm";
 
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-6">
@@ -65,15 +67,12 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       }
       const stream   = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      let mime = "audio/webm";
-      if (!MediaRecorder.isTypeSupported("audio/webm")) {
-        mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
-      }
+      const mime     = pickVoiceRecorderMimeType();
       const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       const chunks   = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mime || "audio/webm" });
+        const blob = buildVoiceNoteBlob(chunks, recorder, mime);
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
@@ -107,7 +106,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
     if (!villageId) { message.warning("Please select village first"); return; }
     setUpAudio(true);
     try {
-      const file = toVoiceNoteFile(audioBlob);
+      const file = await toVoiceNoteFile(audioBlob);
       const { fileUrl, key } = await uploadAudioToS3(file, villageId);
       const val = { fileUrl, key, fileName: file.name, mimeType: file.type, size: file.size };
       form.setFieldsValue({ audio: val });

@@ -6,6 +6,8 @@ import {
   uploadImageToS3,
   uploadAudioToS3,
   toVoiceNoteFile,
+  pickVoiceRecorderMimeType,
+  buildVoiceNoteBlob,
 } from "../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
@@ -14,7 +16,7 @@ const { TextArea } = Input;
 const { Text } = Typography;
 
 const UPLOAD_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
-const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg";
+const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,.webm";
 const UPLOAD_MAX_COUNT = 1;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const OTHER_DOCS_MAX_COUNT = 10; // Allow multiple files for other_documents
@@ -218,22 +220,11 @@ const UploadSurvey = ({
   // Start recording
   const startRecording = async () => {
     try {
-      // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Determine supported MIME type
-      let mimeType = "audio/webm";
-      if (!MediaRecorder.isTypeSupported("audio/webm")) {
-        mimeType = "audio/mp4";
-        if (!MediaRecorder.isTypeSupported("audio/mp4")) {
-          mimeType = ""; // Browser will choose default
-        }
-      }
-
-      const recorder = new MediaRecorder(stream, {
-        mimeType: mimeType || undefined,
-      });
+      const mimeType = pickVoiceRecorderMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       const chunks = [];
       recorder.ondataavailable = (event) => {
@@ -243,7 +234,7 @@ const UploadSurvey = ({
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        const blob = buildVoiceNoteBlob(chunks, recorder, mimeType);
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
@@ -305,7 +296,7 @@ const UploadSurvey = ({
 
     try {
       // H-10: base MIME only (no ;codecs=) — prefer voice.webm / audio/webm
-      const audioFile = toVoiceNoteFile(audioBlob);
+      const audioFile = await toVoiceNoteFile(audioBlob);
 
       const { fileUrl, key } = await uploadAudioToS3(audioFile, village);
 
