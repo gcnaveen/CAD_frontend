@@ -1,4 +1,4 @@
-import { TOKEN_KEY } from "../services/apiClient";
+import { getStoredAccessToken } from "./authToken.js";
 
 /** Paths that must not be reachable while a session token exists. */
 export const AUTH_ONLY_PATHS = new Set([
@@ -28,9 +28,5 @@ export function isAuthOnlyPath(pathname = "") {
 /** Prefer Redux token; fall back to localStorage (same source API uses). */
 export function resolveSessionToken(reduxToken) {
   if (reduxToken) return reduxToken;
-  try {
-    return localStorage.getItem(TOKEN_KEY) || null;
-  } catch {
-    return null;
-  }
+  return getStoredAccessToken();
 }

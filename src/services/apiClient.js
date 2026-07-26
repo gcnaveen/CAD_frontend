@@ -4,23 +4,31 @@ import {
   getCorrelationId,
   newCorrelationId,
 } from "../utils/correlationId.js";
+import {
+  TOKEN_KEY,
+  USER_KEY,
+  getStoredAccessToken,
+} from "../utils/authToken.js";
 
-// For serverless Lambda backend: Set VITE_API_BASE_URL to your API Gateway URL
-// Example: https://abc123.execute-api.us-east-1.amazonaws.com
+// Prefer VITE_API_BASE_URL when set; otherwise config.js stage API Gateway URL.
 // The baseURL should NOT include /api - endpoints already have /api prefix
-const baseURL = API_BASE_URL || "";
+const baseURL =
+  (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "") ||
+  API_BASE_URL ||
+  "";
 
 const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 const apiClient = axios.create({
   baseURL,
+  // Required for HttpOnly refresh cookies (M-02); backend CORS must allow-list origin (no *)
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-export const TOKEN_KEY = "token";
-export const USER_KEY = "user";
+export { TOKEN_KEY, USER_KEY };
 
 let storeRef = null;
 export function setAxiosStore(store) {
@@ -37,21 +45,34 @@ function attachCorrelationId(error) {
   return error;
 }
 
+function setRequestHeader(headers, name, value) {
+  if (!headers) return;
+  if (typeof headers.set === "function") {
+    headers.set(name, value);
+    return;
+  }
+  headers[name] = value;
+}
+
 // Request interceptor: auth + optional correlation id on mutating calls (M-07)
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredAccessToken();
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      setRequestHeader(config.headers, "Authorization", `Bearer ${token}`);
     }
 
     const method = String(config.method || "get").toLowerCase();
     if (MUTATING_METHODS.has(method)) {
       const existing =
         config.headers?.["X-Correlation-Id"] ||
-        config.headers?.["x-correlation-id"];
+        config.headers?.["x-correlation-id"] ||
+        (typeof config.headers?.get === "function"
+          ? config.headers.get("X-Correlation-Id") ||
+            config.headers.get("x-correlation-id")
+          : null);
       const cid = existing ? String(existing) : newCorrelationId();
-      config.headers["X-Correlation-Id"] = cid;
+      setRequestHeader(config.headers, "X-Correlation-Id", cid);
       config.correlationId = cid;
     }
 

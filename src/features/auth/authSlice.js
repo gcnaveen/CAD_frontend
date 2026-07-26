@@ -1,5 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { TOKEN_KEY, USER_KEY } from "../../config/axiosInstance";
+import {
+  TOKEN_KEY,
+  USER_KEY,
+  extractAccessToken,
+  storeAccessToken,
+} from "../../utils/authToken.js";
 
 const loadUser = () => {
   try {
@@ -23,15 +28,19 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { token, user } = action.payload;
-      state.token = token ?? state.token;
+      const { token, accessToken, user } = action.payload || {};
+      const nextToken =
+        extractAccessToken({ token, accessToken }) ||
+        extractAccessToken(action.payload) ||
+        state.token;
+      if (nextToken) {
+        state.token = nextToken;
+        storeAccessToken(nextToken);
+      }
       if (user) {
         state.user = user;
         state.role = user.role ?? null;
         localStorage.setItem(USER_KEY, JSON.stringify(user));
-      }
-      if (state.token) {
-        localStorage.setItem(TOKEN_KEY, state.token);
       }
     },
     logout: (state) => {

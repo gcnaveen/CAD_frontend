@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../features/auth/authSlice";
 import { staffLogin } from "../services/auth/authService.js";
+import { extractAccessToken } from "../utils/authToken.js";
 import { Eye, EyeOff, ArrowRight, Mail, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -84,11 +85,11 @@ export default function LoginPageEmail() {
 
       const body = response?.data ?? response;
       const data = body?.data ?? body;
-      const token = data?.token ?? body?.token;
+      const token = extractAccessToken(data) ?? extractAccessToken(body);
       const userPayload = data?.user ?? data;
       const user = userPayload ?? (data?.name != null || data?.email != null ? data : null);
 
-      dispatch(setCredentials({ token, user }));
+      dispatch(setCredentials({ token, accessToken: token, user }));
       const role = user?.role ?? data?.role ?? body?.role;
       setMessage({ type: "success", text: "Login successful. Redirecting..." });
       navigate(getRedirectForRole(role), { replace: true });
