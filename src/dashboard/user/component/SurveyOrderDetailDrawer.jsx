@@ -15,7 +15,10 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { Mic, Music, Square, Trash2, Upload as UploadIcon } from "lucide-react";
-import { uploadAudioToS3 } from "../../../services/upload/upload.service.js";
+import {
+  uploadAudioToS3,
+  toVoiceNoteFile,
+} from "../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import {
   getSketchUploadById,
@@ -316,10 +319,17 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
 
   const startRecording = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        message.error("Microphone is not supported in this browser.");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-      const recorder = new MediaRecorder(stream, { mimeType: mimeType || undefined });
+      let mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported("audio/webm")) {
+        mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
+      }
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks = [];
 
       recorder.ondataavailable = (event) => {
@@ -340,8 +350,13 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       setIsRecording(true);
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime((prev) => prev + 1), 1000);
-    } catch {
-      message.error("Failed to access microphone. Check permissions.");
+    } catch (err) {
+      const blocked = err?.name === "NotAllowedError" || err?.name === "SecurityError";
+      message.error(
+        blocked
+          ? "Microphone blocked. Allow mic for this site, then hard-refresh (Ctrl+Shift+R)."
+          : "Failed to access microphone. Check permissions."
+      );
     }
   };
 
@@ -357,10 +372,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
 
   const uploadRecordedAudio = async () => {
     if (!audioBlob) return;
-    const file = new File([audioBlob], `audio-${Date.now()}.webm`, {
-      type: audioBlob.type || "audio/webm",
-    });
-    await handleAudioUpload(file);
+    // H-10: base MIME only (no ;codecs=) for audio/webm presign + S3 PUT
+    await handleAudioUpload(toVoiceNoteFile(audioBlob));
   };
 
   const handleRequestRevision = async () => {
@@ -518,10 +531,17 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
 
   const startFbRecording = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        message.error("Microphone is not supported in this browser.");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       fbStreamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-      const recorder = new MediaRecorder(stream, { mimeType: mimeType || undefined });
+      let mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported("audio/webm")) {
+        mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
+      }
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks = [];
 
       recorder.ondataavailable = (event) => {
@@ -542,8 +562,13 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
       setFbIsRecording(true);
       setFbRecordingTime(0);
       fbTimerRef.current = setInterval(() => setFbRecordingTime((prev) => prev + 1), 1000);
-    } catch {
-      message.error("Failed to access microphone. Check permissions.");
+    } catch (err) {
+      const blocked = err?.name === "NotAllowedError" || err?.name === "SecurityError";
+      message.error(
+        blocked
+          ? "Microphone blocked. Allow mic for this site, then hard-refresh (Ctrl+Shift+R)."
+          : "Failed to access microphone. Check permissions."
+      );
     }
   };
 
@@ -559,9 +584,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
 
   const uploadFbRecordedAudio = async () => {
     if (!fbAudioBlob || !assignmentId) return;
-    const file = new File([fbAudioBlob], `audio-${Date.now()}.webm`, {
-      type: fbAudioBlob.type || "audio/webm",
-    });
+    const file = toVoiceNoteFile(fbAudioBlob);
     await handleFbAudioUpload(file);
   };
 

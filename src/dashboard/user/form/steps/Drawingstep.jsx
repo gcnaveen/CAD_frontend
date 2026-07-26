@@ -5,7 +5,10 @@ import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingComput
 
 const { Text } = Typography;
 import { Mic, Square, Trash2, Upload as UploadIcon } from "lucide-react";
-import { uploadAudioToS3 } from "../../../../services/upload/upload.service.js";
+import {
+  uploadAudioToS3,
+  toVoiceNoteFile,
+} from "../../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constants.js";
@@ -56,10 +59,17 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
 
   const startRecording = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        message.error("Microphone is not supported in this browser.");
+        return;
+      }
       const stream   = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mime     = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-      const recorder = new MediaRecorder(stream, { mimeType: mime || undefined });
+      let mime = "audio/webm";
+      if (!MediaRecorder.isTypeSupported("audio/webm")) {
+        mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
+      }
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       const chunks   = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
@@ -73,7 +83,14 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
       setIsRecording(true);
       setRecTime(0);
       timerRef.current = setInterval(() => setRecTime((p) => p + 1), 1000);
-    } catch { message.error("Failed to access microphone. Check permissions."); }
+    } catch (err) {
+      const blocked = err?.name === "NotAllowedError" || err?.name === "SecurityError";
+      message.error(
+        blocked
+          ? "Microphone blocked. Allow mic for this site, then hard-refresh (Ctrl+Shift+R)."
+          : "Failed to access microphone. Check permissions."
+      );
+    }
   };
 
   const stopRecording = () => {
@@ -90,7 +107,7 @@ const DrawingStep = ({ form, onAudioChange, audioData }) => {
     if (!villageId) { message.warning("Please select village first"); return; }
     setUpAudio(true);
     try {
-      const file = new File([audioBlob], `audio-${Date.now()}.webm`, { type: audioBlob.type });
+      const file = toVoiceNoteFile(audioBlob);
       const { fileUrl, key } = await uploadAudioToS3(file, villageId);
       const val = { fileUrl, key, fileName: file.name, mimeType: file.type, size: file.size };
       form.setFieldsValue({ audio: val });

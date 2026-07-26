@@ -5,6 +5,7 @@ import { deleteUploadedFile } from "../../../services/upload/upload.api.js";
 import {
   uploadImageToS3,
   uploadAudioToS3,
+  toVoiceNoteFile,
 } from "../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../services/upload/upload.errors.js";
 import { AUDIO_MAX_SIZE_BYTES } from "../../../services/upload/upload.constants.js";
@@ -266,7 +267,12 @@ const UploadSurvey = ({
       }, 1000);
     } catch (error) {
       console.error("Failed to start recording:", error);
-      message.error("Failed to access microphone. Please check permissions.");
+      const blocked = error?.name === "NotAllowedError" || error?.name === "SecurityError";
+      message.error(
+        blocked
+          ? "Microphone blocked. Allow mic for this site, then hard-refresh (Ctrl+Shift+R)."
+          : "Failed to access microphone. Please check permissions."
+      );
     }
   };
 
@@ -298,10 +304,8 @@ const UploadSurvey = ({
     setUploadingAudio(true);
 
     try {
-      const mimeType = audioBlob.type || "audio/webm";
-      const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, {
-        type: mimeType,
-      });
+      // H-10: base MIME only (no ;codecs=) — prefer voice.webm / audio/webm
+      const audioFile = toVoiceNoteFile(audioBlob);
 
       const { fileUrl, key } = await uploadAudioToS3(audioFile, village);
 

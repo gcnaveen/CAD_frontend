@@ -3,9 +3,19 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Modern field Chrome / WebView — drop legacy polyfill weight (M-05).
 const BUILD_TARGET = ["es2020", "chrome90", "safari14", "firefox90"];
+
+const m01Headers = JSON.parse(
+  readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "security", "m01-headers.json"),
+    "utf8"
+  )
+);
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -51,8 +61,25 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         // Keep large hero video out of precache; logos/webm still optional via runtime.
-        globPatterns: ["**/*.{js,css,html,ico,svg,woff2,webp}"],
+        // Do not precache HTML: cached document Responses retain stale
+        // Permissions-Policy and can block getUserMedia after header deploys.
+        globPatterns: ["**/*.{js,css,ico,svg,woff2,webp}"],
         globIgnores: ["**/hero-*.{mp4,webm}", "**/herobgvideofinal.mp4"],
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-pages-v2",
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 32,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+            },
+          },
+        ],
       },
     }),
     mode === "analyze" &&
@@ -63,6 +90,10 @@ export default defineConfig(({ mode }) => ({
         open: false,
       }),
   ].filter(Boolean),
+  // M-01: mirror HTML-site headers on `vite preview` for npm run check:headers
+  preview: {
+    headers: m01Headers,
+  },
   build: {
     target: BUILD_TARGET,
     cssTarget: "chrome90",
