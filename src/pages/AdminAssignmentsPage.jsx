@@ -17,6 +17,7 @@ import {
 import {
   enrichAdminAssignmentTableRows,
   extractUploadsListResponse,
+  mapAdminAssignmentTableRows,
 } from "../services/admin/adminAssignmentsTableService.js";
 import {
   loadManualAssignGates,
@@ -75,8 +76,15 @@ export default function AdminAssignmentsPage() {
   const [feedbackSketch, setFeedbackSketch] = React.useState(null);
   const [feedbackLoading, setFeedbackLoading] = React.useState(false);
   const [pageError, setPageError] = React.useState("");
+  const [tableError, setTableError] = React.useState("");
   const [slaExtendOpen, setSlaExtendOpen] = React.useState(false);
   const [slaExtendAssignmentId, setSlaExtendAssignmentId] = React.useState(null);
+  const cadUsersRef = React.useRef(cadUsers);
+  const tableRequestIdRef = React.useRef(0);
+
+  React.useEffect(() => {
+    cadUsersRef.current = cadUsers;
+  }, [cadUsers]);
 
   const applyFlow = React.useCallback((flowRaw) => {
     const flow = normalizeAssignmentFlow(flowRaw);
@@ -94,7 +102,7 @@ export default function AdminAssignmentsPage() {
       const [flow, st, users] = await Promise.all([
         getAssignmentFlow(),
         getSurveySketchStatuses(),
-        cadUsers.length ? Promise.resolve(cadUsers) : getCadUsers(),
+        cadUsersRef.current.length ? Promise.resolve(cadUsersRef.current) : getCadUsers(),
       ]);
       applyFlow(flow);
       setStatuses(normalizeStatuses(st));
@@ -109,53 +117,71 @@ export default function AdminAssignmentsPage() {
             }
           : null
       );
-      if (!cadUsers.length && users?.length) setCadUsers(users);
+      if (!cadUsersRef.current.length && users?.length) setCadUsers(users);
     } catch (err) {
       if (err?.status === 403) setPageError("No permission");
       else setPageError(err?.message || "Failed to load assignment module");
     }
-  }, [allowed, cadUsers.length, applyFlow]);
+  }, [allowed, applyFlow]);
 
   const loadTable = React.useCallback(async () => {
     if (!allowed) return;
+    const requestId = ++tableRequestIdRef.current;
     setTableLoading(true);
     setGatesLoading(true);
-    setPageError("");
+    setTableError("");
     try {
       const resp = await getSurveySketchUploads(statusFilter, page, limit);
+      if (requestId !== tableRequestIdRef.current) return;
+
       const { uploads, meta: serverMeta } = extractUploadsListResponse(resp);
       setMeta(serverMeta);
 
-      let users = cadUsers;
+      let users = cadUsersRef.current;
       if (!users.length) {
         users = await getCadUsers();
+        if (requestId !== tableRequestIdRef.current) return;
         setCadUsers(users);
       }
 
-      const enriched = await enrichAdminAssignmentTableRows(uploads, users);
-      setRows(enriched);
+      // Paint rows immediately — never block Loading on N+1 enrichment.
+      const mapped = mapAdminAssignmentTableRows(uploads, users);
+      setRows(mapped);
+      setTableLoading(false);
 
-      const pendingIds = enriched
+      const pendingIds = mapped
         .filter((row) => canonicalizeSketchStatus(row?.status) === "PENDING")
         .map((row) => row?._id ?? row?.id)
         .filter(Boolean);
 
       if (pendingIds.length) {
         const gates = await loadManualAssignGates(pendingIds);
+        if (requestId !== tableRequestIdRef.current) return;
         setManualGates(gates);
       } else {
         setManualGates({});
       }
+
+      // Optional background enrich (feedback labels) — ignore failures / stale.
+      enrichAdminAssignmentTableRows(mapped, users)
+        .then((enriched) => {
+          if (requestId !== tableRequestIdRef.current) return;
+          setRows(enriched);
+        })
+        .catch(() => {});
     } catch (err) {
-      if (err?.status === 403) setPageError("No permission");
-      else setPageError(err?.message || "Failed to load sketches");
+      if (requestId !== tableRequestIdRef.current) return;
+      if (err?.status === 403) setTableError("No permission");
+      else setTableError(err?.message || "Failed to load sketches");
       setRows([]);
       setManualGates({});
-    } finally {
       setTableLoading(false);
-      setGatesLoading(false);
+    } finally {
+      if (requestId === tableRequestIdRef.current) {
+        setGatesLoading(false);
+      }
     }
-  }, [allowed, statusFilter, page, limit, cadUsers]);
+  }, [allowed, statusFilter, page, limit]);
 
   React.useEffect(() => {
     loadTop();
@@ -346,6 +372,20 @@ export default function AdminAssignmentsPage() {
         </div>
       ) : null}
 
+      {tableError ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-danger">{tableError}</div>
+          <button
+            type="button"
+            onClick={() => loadTable()}
+            disabled={tableLoading}
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <AssignmentFlowToggle
         value={autoAssignEnabled}
         loading={flowLoading}
@@ -436,6 +476,8 @@ export default function AdminAssignmentsPage() {
       <SketchTable
         rows={rows}
         loading={tableLoading}
+        errorText={tableError}
+        onRetry={() => loadTable()}
         autoAssignEnabled={autoAssignEnabled}
         manualGates={manualGates}
         gatesLoading={gatesLoading}
