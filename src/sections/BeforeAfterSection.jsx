@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
+import { BEFORE_AFTER_ASSET_CARDS } from "../constants/beforeAfterAssets";
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -107,32 +108,7 @@ export default function BeforeAfterSection() {
   const sectionRef = useRef(null);
 
   const cards = useMemo(() => {
-    const fallbackCards = [
-      {
-        key: "residential",
-        title: "Residential Plot",
-        caption:
-          "A residential survey plot in Tumkur district — Tippani to clean AutoCAD boundary drawing.",
-        afterSrc: "/assets/beforeafter/residential-before-CncuHBCP.jpg",
-        beforeSrc: "/assets/beforeafter/residential-after-B4Pd_a8V.jpg",
-      },
-      {
-        key: "partition",
-        title: "Partition (Land Partition)",
-        caption:
-          "Partitioning a survey parcel — from hand-drawn notes to accurate AutoCAD layout.",
-          afterSrc: "/assets/beforeafter/partition-before-DSD_eS2c.jpg",
-          beforeSrc: "/assets/beforeafter/partition-after-C94SAZFl.jpg",
-      },
-      {
-        key: "agricultural",
-        title: "Agricultural Land",
-        caption:
-          "Agricultural survey documents — Tippani to professional AutoCAD drawing.",
-          afterSrc: "/assets/beforeafter/agricultural-before-B1go6cYC.jpg",
-          beforeSrc: "/assets/beforeafter/agricultural-after-B8JTnCQA.jpg",
-      },
-    ];
+    const fallbackCards = BEFORE_AFTER_ASSET_CARDS.map((c) => ({ ...c }));
 
     const beforeAfterCards = tr?.cards;
     if (!beforeAfterCards) return fallbackCards;
