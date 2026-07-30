@@ -134,7 +134,27 @@ async function attachFeedbackToRow(row) {
 
 /**
  * Enrich list rows with assignment id, CAD user label, and feedback for admin table.
+ * Prefer sync path (`mapAdminAssignmentTableRows`) for list render — this async enrich
+ * is optional / background only (N+1 detail lookups can hang the Loading UI).
  */
+export function mapAdminAssignmentTableRows(rows, cadUsers = []) {
+  if (!Array.isArray(rows) || !rows.length) return [];
+  const cadUserById = buildCadUserLookupMap(cadUsers);
+  return rows.map((row) => {
+    const assignmentId = resolveAssignmentIdFromEntity(row);
+    const uploadId = row?._id ?? row?.id;
+    return {
+      ...row,
+      assignmentId:
+        assignmentId && String(assignmentId) !== String(uploadId || "")
+          ? String(assignmentId)
+          : row.assignmentId ?? null,
+      assignedCadUserLabel: resolveAssignedCadUserLabel(row, cadUserById),
+      feedback: extractFeedbackFromEntity(row) || row.feedback || null,
+    };
+  });
+}
+
 export async function enrichAdminAssignmentTableRows(rows, cadUsers = []) {
   if (!Array.isArray(rows) || !rows.length) return [];
 

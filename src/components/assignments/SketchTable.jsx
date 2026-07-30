@@ -62,6 +62,8 @@ function slaRowBg(sla) {
 export default function SketchTable({
   rows,
   loading,
+  errorText = "",
+  onRetry,
   autoAssignEnabled,
   manualGates = {},
   gatesLoading = false,
@@ -94,6 +96,23 @@ export default function SketchTable({
               <tr>
                 <td className="px-4 py-6 text-fg-muted" colSpan={colCount}>
                   Loading…
+                </td>
+              </tr>
+            ) : errorText ? (
+              <tr>
+                <td className="px-4 py-6" colSpan={colCount}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-danger">{errorText}</div>
+                    {typeof onRetry === "function" ? (
+                      <button
+                        type="button"
+                        onClick={onRetry}
+                        className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2"
+                      >
+                        Retry
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : rows?.length ? (
