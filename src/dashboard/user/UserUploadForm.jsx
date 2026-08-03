@@ -7,14 +7,14 @@ import { useSelector } from "react-redux";
 import { createSketchUpload, getSurveyorSketchPricing } from "../../services/surveyor/sketchUploadService.js";
 import { createDraft, getDraftById, updateDraft } from "../../services/draftApi.js";
 import {
-  FALLBACK_SURVEYOR_SKETCH_PRICING,
   buildSketchCheckoutBreakdown,
   computeSketchSubmitAmountRupees,
 } from "../../utils/sketchPricingCompute.js";
 import { redirectToSketchCheckout } from "../../utils/sketchPaymentUtils.js";
 import { revokeLocalPreviewUrl } from "../../utils/localFilePreview.js";
+import { normalizeRoleKey, ROLES } from "../../constants/roles.js";
 
-/** Same truthiness as Ant Design Checkbox (avoids missing +₹200 on superimpose). */
+/** Same truthiness as Ant Design Checkbox (avoids missing superimpose add-on on submit). */
 function isGoogleSuperimposeSelected(form, values) {
   const a = form.getFieldValue("googleSuperimpose");
   const b = values?.googleSuperimpose;
@@ -167,24 +167,25 @@ const UserUploadForm = ({
     return r === "1" || r === "true";
   }, [searchParams]);
   const isPublicSurveyorCategory = useMemo(() => {
-    const role = String(authUser?.role || "").toUpperCase();
+    const role = normalizeRoleKey(authUser?.role);
     const category = String(authUser?.surveyorProfile?.category || "").toUpperCase();
-    return role === "SURVEYOR" && category === "PUBLIC";
+    return role === ROLES.SURVEYOR && category === "PUBLIC";
   }, [authUser]);
 
   const googleSuperimpose = Form.useWatch("googleSuperimpose", form) ?? false;
 
   const [uploadPricing, setUploadPricing] = useState(null);
   const [revisionPricing, setRevisionPricing] = useState(null);
+  const [superimposeAddOnRupees, setSuperimposeAddOnRupees] = useState(0);
+  const [pricingGstAmountRupees, setPricingGstAmountRupees] = useState(0);
+  const [pricingGstPercent, setPricingGstPercent] = useState(null);
   const [sketchPricingLoading, setSketchPricingLoading] = useState(false);
   const [sketchPricingError, setSketchPricingError] = useState(null);
+  const [pricingNonce, setPricingNonce] = useState(0);
 
   const sketchPricingReady = uploadPricing !== null && revisionPricing !== null;
 
   useEffect(() => {
-    if (step !== 3) return;
-    if (sketchPricingReady) return;
-
     let cancelled = false;
     (async () => {
       setSketchPricingLoading(true);
@@ -194,11 +195,22 @@ const UserUploadForm = ({
         if (cancelled) return;
         setUploadPricing(data.upload);
         setRevisionPricing(data.revision);
+        setSuperimposeAddOnRupees(Number(data.superimposeAddOnRupees) || 0);
+        setPricingGstAmountRupees(Number(data.gstAmountRupees) || 0);
+        setPricingGstPercent(
+          data.gstPercent != null && Number.isFinite(Number(data.gstPercent))
+            ? Number(data.gstPercent)
+            : null
+        );
       } catch (e) {
         if (cancelled) return;
-        setSketchPricingError(e?.message || "Failed to load pricing");
-        setUploadPricing({ ...FALLBACK_SURVEYOR_SKETCH_PRICING.upload });
-        setRevisionPricing({ ...FALLBACK_SURVEYOR_SKETCH_PRICING.revision });
+        // PRICE-01 — never invent client prices; surface error and leave tiers null.
+        setSketchPricingError(e?.message || "Failed to load pricing from server");
+        setUploadPricing(null);
+        setRevisionPricing(null);
+        setSuperimposeAddOnRupees(0);
+        setPricingGstAmountRupees(0);
+        setPricingGstPercent(null);
       } finally {
         if (!cancelled) setSketchPricingLoading(false);
       }
@@ -206,7 +218,9 @@ const UserUploadForm = ({
     return () => {
       cancelled = true;
     };
-  }, [step, sketchPricingReady]);
+  }, [pricingNonce]);
+
+  const retrySketchPricing = () => setPricingNonce((n) => n + 1);
 
   const sketchPricingBreakdown = useMemo(() => {
     if (!sketchPricingReady) return null;
@@ -215,8 +229,20 @@ const UserUploadForm = ({
       revision: revisionPricing,
       isRevision,
       isGoogleSuperimpose: Boolean(googleSuperimpose),
+      superimposeAddOnRupees,
+      gstAmountRupees: pricingGstAmountRupees,
+      gstPercent: pricingGstPercent,
     });
-  }, [sketchPricingReady, uploadPricing, revisionPricing, isRevision, googleSuperimpose]);
+  }, [
+    sketchPricingReady,
+    uploadPricing,
+    revisionPricing,
+    isRevision,
+    googleSuperimpose,
+    superimposeAddOnRupees,
+    pricingGstAmountRupees,
+    pricingGstPercent,
+  ]);
 
   /** Single source for submit + review total; recalculates when tier, revision mode, or superimpose toggles. */
   const finalAmount = useMemo(() => {
@@ -226,8 +252,17 @@ const UserUploadForm = ({
       revisionTier: revisionPricing,
       isRevision,
       isGoogleSuperimpose: Boolean(googleSuperimpose),
+      superimposeAddOnRupees,
+      gstAmountRupees: pricingGstAmountRupees,
     });
-  }, [googleSuperimpose, uploadPricing, revisionPricing, isRevision]);
+  }, [
+    googleSuperimpose,
+    uploadPricing,
+    revisionPricing,
+    isRevision,
+    superimposeAddOnRupees,
+    pricingGstAmountRupees,
+  ]);
 
   /* ── Draft handlers ── */
   const handleDocumentUpload  = (field, data) => setUploadedDocs((p) => ({ ...p, [field]: data }));
@@ -320,6 +355,7 @@ const UserUploadForm = ({
     setLocationLabels({});
     setUploadPricing(null);
     setRevisionPricing(null);
+    setSuperimposeAddOnRupees(0);
     setSketchPricingError(null);
     setFileUploading(false);
     setStep(0);
@@ -685,6 +721,7 @@ const UserUploadForm = ({
       onAudioChange={setAudioData}
       audioData={audioData}
       onUploadingChange={setFileUploading}
+      superimposeAddOnRupees={superimposeAddOnRupees}
     />,
     <DocumentsStep
       key={2}
@@ -709,6 +746,7 @@ const UserUploadForm = ({
       checkoutFinalRupees={
         step === 3 && sketchPricingReady && !sketchPricingLoading ? finalAmount : null
       }
+      onRetryPricing={step === 3 ? retrySketchPricing : null}
     />,
   ];
 

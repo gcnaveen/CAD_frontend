@@ -1,28 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
-  BEFORE_AFTER_ASSET_CARDS,
-  assertBeforeAfterAssetMapping,
+  BEFORE_AFTER_ASSETS,
+  buildBeforeAfterCards,
+  isAfterAssetSrc,
+  isBeforeAssetSrc,
 } from "./beforeAfterAssets.js";
 
-describe("Before/After asset mapping (public marketing)", () => {
-  it("maps beforeSrc to *-before-* and afterSrc to *-after-* (not swapped)", () => {
-    expect(() => assertBeforeAfterAssetMapping()).not.toThrow();
-    for (const card of BEFORE_AFTER_ASSET_CARDS) {
-      expect(card.beforeSrc).toMatch(/-before-/i);
-      expect(card.afterSrc).toMatch(/-after-/i);
-      expect(card.beforeSrc).not.toMatch(/-after-/i);
-      expect(card.afterSrc).not.toMatch(/-before-/i);
+describe("beforeAfterAssets filename contract", () => {
+  it("maps beforeSrc to *-before-* and afterSrc to *-after-* (no swap)", () => {
+    expect(BEFORE_AFTER_ASSETS.length).toBeGreaterThanOrEqual(1);
+
+    for (const card of BEFORE_AFTER_ASSETS) {
+      expect(isBeforeAssetSrc(card.beforeSrc), `${card.key} beforeSrc`).toBe(
+        true
+      );
+      expect(isAfterAssetSrc(card.afterSrc), `${card.key} afterSrc`).toBe(true);
+
+      // Fail loudly if someone swaps the two paths.
+      expect(isAfterAssetSrc(card.beforeSrc), `${card.key} before must not be after`).toBe(
+        false
+      );
+      expect(isBeforeAssetSrc(card.afterSrc), `${card.key} after must not be before`).toBe(
+        false
+      );
     }
   });
 
-  it("rejects a swapped mapping", () => {
-    const swapped = [
-      {
-        key: "residential",
-        beforeSrc: "/assets/beforeafter/residential-after-B4Pd_a8V.jpg",
-        afterSrc: "/assets/beforeafter/residential-before-CncuHBCP.jpg",
-      },
-    ];
-    expect(() => assertBeforeAfterAssetMapping(swapped)).toThrow(/beforeSrc|Swapped/i);
+  it("buildBeforeAfterCards preserves asset paths from the catalog", () => {
+    const cards = buildBeforeAfterCards(null);
+    expect(cards).toHaveLength(BEFORE_AFTER_ASSETS.length);
+    cards.forEach((card, i) => {
+      expect(card.beforeSrc).toBe(BEFORE_AFTER_ASSETS[i].beforeSrc);
+      expect(card.afterSrc).toBe(BEFORE_AFTER_ASSETS[i].afterSrc);
+      expect(isBeforeAssetSrc(card.beforeSrc)).toBe(true);
+      expect(isAfterAssetSrc(card.afterSrc)).toBe(true);
+    });
   });
 });

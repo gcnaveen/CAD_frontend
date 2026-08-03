@@ -10,26 +10,32 @@ export default function FAQ() {
   const tr = translations[lang]?.faq;
   const items = tr?.items?.length ? tr.items : DEFAULT_ITEMS;
   const [openIndex, setOpenIndex] = useState(0);
+  const [prevLang, setPrevLang] = useState(lang);
   const sectionRef = useRef(null);
   const baseId = useId();
 
-  useEffect(() => {
+  // Reset open item when language changes (adjust state during render).
+  if (lang !== prevLang) {
+    setPrevLang(lang);
     setOpenIndex(0);
-  }, [lang]);
+  }
 
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
     const els = section.querySelectorAll(".faq-reveal");
+    const timers = [];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0)";
-            }, Number(el.dataset.delay || 0));
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0)";
+              }, Number(el.dataset.delay || 0)),
+            );
             observer.unobserve(el);
           }
         });
@@ -42,7 +48,10 @@ export default function FAQ() {
       el.style.transition = "opacity 0.55s ease, transform 0.55s ease";
       observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang, items.length]);
 
   if (!items.length) return null;

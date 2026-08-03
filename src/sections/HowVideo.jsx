@@ -128,15 +128,18 @@ export default function HowVideo() {
     const section = sectionRef.current;
     if (!section) return;
     const items = section.querySelectorAll(".qc-reveal");
+    const timers = [];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0) scale(1)";
-            }, Number(el.dataset.delay || 0));
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0) scale(1)";
+              }, Number(el.dataset.delay || 0)),
+            );
             observer.unobserve(el);
           }
         });
@@ -154,15 +157,19 @@ export default function HowVideo() {
     const triggerObs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setChecksActive(true), 600);
-          setTimeout(() => setScanning(true), 900);
+          timers.push(setTimeout(() => setChecksActive(true), 600));
+          timers.push(setTimeout(() => setScanning(true), 900));
           triggerObs.disconnect();
         }
       },
       { threshold: 0.3 }
     );
     if (section) triggerObs.observe(section);
-    return () => { observer.disconnect(); triggerObs.disconnect(); };
+    return () => {
+      observer.disconnect();
+      triggerObs.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang]);
 
   return (
@@ -328,8 +335,12 @@ export default function HowVideo() {
             }}>
               {/* Placeholder image / video frame */}
               <img
-                src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=500&fit=crop"
+                src="/assets/how-video-cover.webp"
                 alt="CAD drawing quality review"
+                width={800}
+                height={500}
+                loading="lazy"
+                decoding="async"
                 style={{
                   width: "100%", height: "100%", objectFit: "cover",
                   opacity: 0.55,

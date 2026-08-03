@@ -20,7 +20,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
-import { ROLES } from "../../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../constants/roles.js";
 import {
   getCadWallet,
   getCadWalletTransactions,
@@ -35,15 +35,6 @@ import {
 } from "../../utils/cadOperatorEarnings.js";
 
 const { Title, Text } = Typography;
-
-function getStoredRole() {
-  try {
-    const u = localStorage.getItem("user");
-    return u ? JSON.parse(u)?.role : null;
-  } catch {
-    return null;
-  }
-}
 
 function statusTag(status) {
   const s = String(status || "").toUpperCase();
@@ -102,7 +93,10 @@ const formatDt = (d) => {
 export default function CadWalletPage() {
   const navigate = useNavigate();
   const roleFromStore = useSelector((s) => s.auth?.role);
-  const role = roleFromStore || getStoredRole();
+  const userRoleFromStore = useSelector((s) => s.auth?.user?.role);
+  const role = normalizeRoleKey(
+    resolveStoredUserRole(roleFromStore, userRoleFromStore)
+  );
   const allowed = role === ROLES.CAD || role === ROLES.CAD_USER;
 
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -298,6 +292,7 @@ export default function CadWalletPage() {
                     pagination={false}
                     rowKey={(_, i) => `${record.key}-log-${i}`}
                     dataSource={record.paymentLog}
+                    scroll={{ x: "max-content" }}
                     columns={[
                       {
                         title: cadBi.wallet.amount,

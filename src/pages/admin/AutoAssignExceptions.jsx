@@ -33,13 +33,14 @@ import {
   retryAutoAssign,
 } from "../../services/admin/autoAssignAdminService.js";
 import AssignmentModal from "../../components/assignments/AssignmentModal.jsx";
+import { getAutoAssignExceptionStatusLabel } from "../../utils/displayLabels.js";
 
 const { Title, Text, Paragraph } = Typography;
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All (PENDING_RETRY + EXCEPTION)" },
-  { value: "PENDING_RETRY", label: "PENDING_RETRY" },
-  { value: "EXCEPTION", label: "EXCEPTION" },
+  { value: "", label: "All (Pending retry + Exception)" },
+  { value: "PENDING_RETRY", label: "Pending retry" },
+  { value: "EXCEPTION", label: "Exception" },
 ];
 
 function statusTagColor(status) {
@@ -56,7 +57,7 @@ export default function AutoAssignExceptions() {
   const roleKey = normalizeRoleKey(resolveStoredUserRole(roleFromStore, userRoleFromStore));
   const allowed = roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN;
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
@@ -105,14 +106,14 @@ export default function AutoAssignExceptions() {
     load();
   }, [load]);
 
-  const ensureCadUsers = async () => {
+  const ensureCadUsers = useCallback(async () => {
     if (cadUsers.length) return cadUsers;
     const users = await getCadUsers();
     setCadUsers(users);
     return users;
-  };
+  }, [cadUsers]);
 
-  const onRetry = async (row) => {
+  const onRetry = useCallback(async (row) => {
     const uploadId = row?.uploadId;
     if (!uploadId) {
       message.error("Missing upload id");
@@ -128,9 +129,9 @@ export default function AutoAssignExceptions() {
     } finally {
       setActionKey("");
     }
-  };
+  }, [load]);
 
-  const onManualAssign = async (row) => {
+  const onManualAssign = useCallback(async (row) => {
     const uploadId = row?.uploadId;
     if (!uploadId) {
       message.error("Missing upload id");
@@ -160,7 +161,7 @@ export default function AutoAssignExceptions() {
     } finally {
       setActionKey("");
     }
-  };
+  }, [ensureCadUsers]);
 
   const submitManualAssign = async (payload) => {
     setModalLoading(true);
@@ -223,7 +224,9 @@ export default function AutoAssignExceptions() {
         title: "Queue status",
         dataIndex: "status",
         key: "status",
-        render: (v) => <Tag color={statusTagColor(v)}>{v || "—"}</Tag>,
+        render: (v) => (
+          <Tag color={statusTagColor(v)}>{getAutoAssignExceptionStatusLabel(v)}</Tag>
+        ),
       },
       {
         title: "Failure reason",
@@ -284,7 +287,7 @@ export default function AutoAssignExceptions() {
         },
       },
     ],
-    [actionKey]
+    [actionKey, onManualAssign, onRetry]
   );
 
   const attemptColumns = [
@@ -334,7 +337,7 @@ export default function AutoAssignExceptions() {
             Auto-assign exception queue
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            PENDING_RETRY and EXCEPTION uploads that need a force retry or manual assign.
+            Uploads pending retry or in exception that need a force retry or manual assign.
           </Paragraph>
           <Text type="secondary">
             <Link to="/superadmin/assignments">← Back to Sketch Assignments</Link>
@@ -359,10 +362,13 @@ export default function AutoAssignExceptions() {
       {loadError ? <Alert type="error" showIcon message={loadError} /> : null}
 
       <Table
-        rowKey={(row) => String(row.uploadId || row.applicationId || Math.random())}
+        rowKey={(row, index) =>
+          String(row.uploadId || row.applicationId || `exception-${page}-${index}`)
+        }
         loading={loading}
         columns={columns}
         dataSource={rows}
+        scroll={{ x: "max-content" }}
         pagination={{
           current: page,
           pageSize: limit,
@@ -415,6 +421,7 @@ export default function AutoAssignExceptions() {
           columns={attemptColumns}
           dataSource={attempts}
           pagination={false}
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: "No attempts recorded" }}
         />
       </Drawer>

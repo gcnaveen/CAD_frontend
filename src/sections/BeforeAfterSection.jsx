@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
-import { BEFORE_AFTER_ASSET_CARDS } from "../constants/beforeAfterAssets";
+import { buildBeforeAfterCards } from "../constants/beforeAfterAssets.js";
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -61,24 +61,28 @@ function BeforeAfterMedia({
         onValueChange(getPercent(e.touches[0].clientX));
       }}
     >
-      {/* BEFORE image — full size, sits beneath */}
+      {/* BEFORE — full layer (Tippani / *-before-*) */}
       <img
         src={beforeSrc}
         alt="Before"
         className="ba-img ba-img--before"
+        data-ba-role="before"
+        width={560}
+        height={360}
         loading="lazy"
         decoding="async"
-        sizes="(max-width: 768px) 100vw, 560px"
       />
 
-      {/* AFTER image — same full size, clipped via clipPath so it never shifts */}
+      {/* AFTER — clipped reveal (AutoCAD / *-after-*) */}
       <img
         src={afterSrc}
         alt="After"
         className="ba-img ba-img--after"
+        data-ba-role="after"
+        width={560}
+        height={360}
         loading="lazy"
         decoding="async"
-        sizes="(max-width: 768px) 100vw, 560px"
         style={{ clipPath: `inset(0 ${100 - value}% 0 0)` }}
       />
 
@@ -107,20 +111,7 @@ export default function BeforeAfterSection() {
   const tr = translations[lang]?.beforeAfter;
   const sectionRef = useRef(null);
 
-  const cards = useMemo(() => {
-    const fallbackCards = BEFORE_AFTER_ASSET_CARDS.map((c) => ({ ...c }));
-
-    const beforeAfterCards = tr?.cards;
-    if (!beforeAfterCards) return fallbackCards;
-
-    return ["residential", "partition", "agricultural"].map((key, i) => ({
-      key,
-      title: beforeAfterCards[key]?.title ?? fallbackCards[i].title,
-      caption: beforeAfterCards[key]?.caption ?? fallbackCards[i].caption,
-      beforeSrc: fallbackCards[i].beforeSrc,
-      afterSrc: fallbackCards[i].afterSrc,
-    }));
-  }, [tr]);
+  const cards = useMemo(() => buildBeforeAfterCards(tr), [tr]);
 
   const [values, setValues] = useState({
     residential: 50,
@@ -132,16 +123,19 @@ export default function BeforeAfterSection() {
     const section = sectionRef.current;
     if (!section) return;
     const nodes = section.querySelectorAll(".ba-reveal");
+    const timers = [];
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
             const d = Number(el.dataset.delay || 0);
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0)";
-            }, d);
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0)";
+              }, d),
+            );
             io.unobserve(el);
           }
         });
@@ -156,7 +150,10 @@ export default function BeforeAfterSection() {
       io.observe(el);
     });
 
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang]);
 
   return (

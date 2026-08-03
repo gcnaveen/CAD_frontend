@@ -86,16 +86,19 @@ export default function HowItWorks() {
     const section = sectionRef.current;
     if (!section) return;
     const items = section.querySelectorAll(".hiw-reveal");
+    const timers = [];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
             const delay = Number(el.dataset.delay || 0);
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0) scale(1)";
-            }, delay);
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0) scale(1)";
+              }, delay),
+            );
             observer.unobserve(el);
           }
         });
@@ -108,7 +111,10 @@ export default function HowItWorks() {
       el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
       observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang]);
 
   return (

@@ -47,10 +47,43 @@ describe("normalizeAdminSketchPricingRecord", () => {
         sketchRevisionDiscountRupees: 5,
         sketchBalancePlanAmountRupees: 400,
         sketchBalanceDiscountRupees: 0,
+        pricing: {
+          upload: {
+            feePaise: 9000,
+            payableRupees: 90,
+            planAmountRupees: 100,
+            discountRupees: 10,
+            source: "admin",
+          },
+        },
       },
     });
     expect(out.sketchUploadPlanAmountRupees).toBe(100);
     expect(out.sketchUploadDiscountRupees).toBe(10);
     expect(out.sketchBalancePlanAmountRupees).toBe(400);
+    expect(out.resolved.upload.payableRupees).toBe(90);
+    expect(out.resolved.upload.source).toBe("admin");
+  });
+
+  it("keeps null plans and uses env-resolved upload fee", () => {
+    const out = normalizeAdminSketchPricingRecord({
+      data: {
+        sketchUploadPlanAmountRupees: null,
+        sketchUploadDiscountRupees: null,
+        pricing: {
+          upload: {
+            feePaise: 10000,
+            payableRupees: 100,
+            planAmountRupees: null,
+            discountRupees: null,
+            source: "env",
+          },
+        },
+      },
+    });
+    expect(out.sketchUploadPlanAmountRupees).toBeNull();
+    expect(out.resolved.upload.payableRupees).toBe(100);
+    expect(out.resolved.upload.feePaise).toBe(10000);
+    expect(out.resolved.upload.source).toBe("env");
   });
 });

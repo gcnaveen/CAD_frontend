@@ -1,9 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import LegalPageShell from "../components/LegalPageShell";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO, getWhatsAppSupportUrl } from "../constants/siteMeta.js";
+import {
+  formatSupportPhoneDisplay,
+  getPublicBusinessRules,
+} from "../services/public/businessRulesService.js";
 
 export default function TermsandCondition() {
   const location = useLocation();
+  const [refund, setRefund] = useState({ title: null, summary: null, fromApi: false });
+  const [support, setSupport] = useState({
+    email: SUPPORT_EMAIL,
+    whatsappNumber: null,
+    whatsappUrl: getWhatsAppSupportUrl(),
+  });
 
   useEffect(() => {
     if (location.hash === "#refund-policy") {
@@ -14,10 +25,36 @@ export default function TermsandCondition() {
     }
   }, [location.hash, location.pathname]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getPublicBusinessRules().then((rules) => {
+      if (cancelled) return;
+      setRefund({
+        title: rules.refundPolicy?.title || null,
+        summary: rules.refundPolicy?.summary || null,
+        fromApi: Boolean(rules.fromApi && rules.refundPolicy?.summary),
+      });
+      setSupport({
+        email: rules.supportContact?.email || SUPPORT_EMAIL,
+        whatsappNumber: rules.supportContact?.whatsappNumber || null,
+        whatsappUrl: rules.supportContact?.whatsappUrl || getWhatsAppSupportUrl(),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const phoneDisplay = formatSupportPhoneDisplay(support.whatsappNumber);
+  const phoneHref = support.whatsappNumber
+    ? `tel:+${String(support.whatsappNumber).replace(/\D/g, "")}`
+    : null;
+  const mailto = support.email ? `mailto:${support.email}` : SUPPORT_MAILTO;
+
   return (
     <LegalPageShell
       title="Terms of Service"
-      subtitle="Rules for using North-cot, including online payments and our no-refund policy for completed and in-progress CAD services."
+      subtitle="Rules for using North-cot, including online payments and refund terms published by the platform."
     >
       <p>
         These Terms of Service (“Terms”) govern your access to and use of the <strong>North-cot</strong> website,
@@ -61,9 +98,9 @@ export default function TermsandCondition() {
 
       <h2>5. Fees and payment gateway</h2>
       <p>
-        Fees for the Service are displayed before you confirm payment. All amounts are in Indian Rupees unless stated
-        otherwise. You authorise us and our payment partners to charge your selected payment method for the total
-        amount due.
+        Fees for the Service are displayed before you confirm payment and are calculated by the platform pricing
+        service. All amounts are in Indian Rupees unless stated otherwise. You authorise us and our payment partners to
+        charge your selected payment method for the total amount due.
       </p>
       <p>
         Payments are processed by third-party payment gateways. Your use of those services may be subject to separate
@@ -75,30 +112,24 @@ export default function TermsandCondition() {
         back, or found fraudulent, we may suspend your account and withhold deliverables until the matter is resolved.
       </p>
 
-      <h2 id="refund-policy">6. Refund policy (no refunds)</h2>
-      <p>
-        <strong>All payments for North-cot services are final. We do not offer refunds.</strong>
-      </p>
-      <p>This no-refund policy applies because:</p>
-      <ul>
-        <li>
-          Each order is for <strong>custom, labour-intensive CAD work</strong> prepared specifically from your uploads
-          and specifications.
-        </li>
-        <li>
-          Once work has started or been assigned, <strong>costs are incurred</strong> for operator time, quality review,
-          and platform resources.
-        </li>
-        <li>
-          Digital deliverables <strong>cannot be “returned”</strong> in the same way as physical goods once supplied.
-        </li>
-      </ul>
-      <p>
-        If you believe a technical error caused a duplicate charge or incorrect amount, contact{" "}
-        <a href="mailto:support@northcot.in">support@northcot.in</a> with transaction details within seven (7) days. We
-        will investigate in good faith; any remedy is at our discretion and does not waive this no-refund policy for
-        completed or substantially completed services.
-      </p>
+      <h2 id="refund-policy">
+        {refund.title || "6. Refund policy"}
+      </h2>
+      {refund.fromApi && refund.summary ? (
+        <div style={{ whiteSpace: "pre-wrap" }}>{refund.summary}</div>
+      ) : (
+        <>
+          <p>
+            Refund terms for North-cot are published by the platform and confirmed at checkout. When the live refund
+            policy is available from our business-rules service, it is shown in this section.
+          </p>
+          <p>
+            If you believe a technical error caused a duplicate charge or incorrect amount, contact{" "}
+            <a href={mailto}>{support.email || SUPPORT_EMAIL}</a> with transaction details within seven (7) days. We
+            will investigate in good faith.
+          </p>
+        </>
+      )}
       <p>
         Failure of a payment at checkout does not create an obligation for us to provide the Service until payment is
         successfully captured and confirmed.
@@ -150,12 +181,25 @@ export default function TermsandCondition() {
       <h2>13. Contact</h2>
       <p>
         Questions about these Terms:{" "}
-        <a href="mailto:support@northcot.in">support@northcot.in</a>
-        <br />
-        Phone: <a href="tel:+919876543210">+91 98765 43210</a> (as listed on our website)
+        <a href={mailto}>{support.email || SUPPORT_EMAIL}</a>
+        {phoneDisplay && phoneHref ? (
+          <>
+            <br />
+            Phone: <a href={phoneHref}>{phoneDisplay}</a>
+          </>
+        ) : null}
+        {support.whatsappUrl ? (
+          <>
+            <br />
+            WhatsApp:{" "}
+            <a href={support.whatsappUrl} target="_blank" rel="noopener noreferrer">
+              Chat with support
+            </a>
+          </>
+        ) : null}
       </p>
       <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "24px" }}>
-        Last updated: 13 April 2026
+        Last updated: 1 August 2026
       </p>
     </LegalPageShell>
   );

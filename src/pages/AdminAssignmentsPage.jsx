@@ -30,7 +30,8 @@ import AssignmentFeedbackViewer from "../components/assignments/AssignmentFeedba
 import AssignmentModal from "../components/assignments/AssignmentModal.jsx";
 import SlaExtendModal from "../components/sla/SlaExtendModal.jsx";
 import { extractFeedbackFromEntity } from "../utils/assignmentFeedbackUtils.js";
-import { canonicalizeSketchStatus } from "../utils/lifecycleQc.js";
+import { canonicalizeSketchStatus, getSketchStatusLabel } from "../utils/lifecycleQc.js";
+import { isSketchBookingUnpaid } from "../utils/sketchPaymentUtils.js";
 
 function normalizeStatuses(payload) {
   if (!payload) return [];
@@ -61,7 +62,7 @@ export default function AdminAssignmentsPage() {
   const [rows, setRows] = React.useState([]);
   const [manualGates, setManualGates] = React.useState({});
   const [gatesLoading, setGatesLoading] = React.useState(false);
-  const [tableLoading, setTableLoading] = React.useState(false);
+  const [tableLoading, setTableLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
   const [meta, setMeta] = React.useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
@@ -209,6 +210,12 @@ export default function AdminAssignmentsPage() {
   };
 
   const openAssign = async (sketch) => {
+    if (isSketchBookingUnpaid(sketch)) {
+      message.warning(
+        "Booking payment is pending. Assign is blocked until payment completes."
+      );
+      return;
+    }
     setModalError("");
     setModalSketch(sketch);
     setModalMode("assign");
@@ -294,8 +301,17 @@ export default function AdminAssignmentsPage() {
       await loadTable();
     } catch (err) {
       const blocked = parseManualAssignBlocked(err);
+      const code = String(err?.data?.code || err?.code || "");
       if (blocked.blocked) {
         setModalError(blocked.message);
+      } else if (
+        code === "SKETCH_PAYMENT_PENDING" ||
+        code === "SKETCH_PAYMENT_INCOMPLETE"
+      ) {
+        setModalError(
+          err?.message ||
+            "Booking payment is pending. Assign is blocked until payment completes."
+        );
       } else if (err?.status === 409) {
         setModalError("Sketch already assigned");
       } else if (err?.status === 403) {
@@ -367,8 +383,19 @@ export default function AdminAssignmentsPage() {
       </div>
 
       {pageError ? (
-        <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] px-4 py-3 text-sm text-danger">
-          {pageError}
+        <div className="flex flex-col gap-3 rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--danger)_08%,var(--bg-secondary))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-danger">{pageError}</div>
+          <button
+            type="button"
+            onClick={() => {
+              loadTop();
+              loadTable();
+            }}
+            disabled={tableLoading}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2 disabled:opacity-60"
+          >
+            Retry
+          </button>
         </div>
       ) : null}
 
@@ -506,7 +533,10 @@ export default function AdminAssignmentsPage() {
                 {feedbackSketch?.applicationId || "—"}
               </Descriptions.Item>
               <Descriptions.Item label="Status">
-                <Tag>{String(feedbackSketch?.status || "—")}</Tag>
+                <Tag>
+                  {getSketchStatusLabel(feedbackSketch?.status) ||
+                    String(feedbackSketch?.status || "—")}
+                </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Surveyor">{feedbackSurveyor}</Descriptions.Item>
               <Descriptions.Item label="CAD user">{feedbackCadUser}</Descriptions.Item>

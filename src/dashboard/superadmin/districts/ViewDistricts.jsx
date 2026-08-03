@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Typography,
   Table,
@@ -17,10 +18,22 @@ import {
   updateDistrict,
 } from "../../../services/masters/districtService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title } = Typography;
 
 const ViewDistricts = () => {
+  const currentRole = normalizeRoleKey(
+    useSelector((state) =>
+      resolveStoredUserRole(state.auth?.role, state.auth?.user?.role)
+    )
+  );
+  const canWrite = currentRole === ROLES.SUPER_ADMIN;
+
   const [list, setList] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -60,12 +73,24 @@ const ViewDistricts = () => {
   };
 
   const handleAdd = () => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("add");
     setEditingRecord(null);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record) => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("edit");
     setEditingRecord(record);
     setDrawerOpen(true);
@@ -119,7 +144,8 @@ const ViewDistricts = () => {
       title: "SL No",
       key: "slNo",
       width: 80,
-      render: (_, __, index) => (pagination.page - 1) * pagination.limit + index + 1,
+      render: (_, __, index) =>
+        (pagination.page - 1) * pagination.limit + index + 1,
     },
     {
       title: "Code",
@@ -139,23 +165,27 @@ const ViewDistricts = () => {
       key: "status",
       width: 100,
     },
-    {
-      title: "Action",
-      key: "action",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            aria-label="Edit district"
-          >
-            Edit
-          </Button>
-        </Space>
-      ),
-    },
+    ...(canWrite
+      ? [
+          {
+            title: "Action",
+            key: "action",
+            width: 120,
+            render: (_, record) => (
+              <Space size="small">
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                  aria-label="Edit district"
+                >
+                  Edit
+                </Button>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -167,9 +197,11 @@ const ViewDistricts = () => {
         <Title level={3} style={{ margin: 0 }}>
           Districts
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          Add District
-        </Button>
+        {canWrite ? (
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            Add District
+          </Button>
+        ) : null}
       </Space>
 
       <Spin spinning={loading}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Typography,
   Table,
@@ -19,6 +20,11 @@ import {
   updateTaluka,
 } from "../../../services/masters/talukaService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title } = Typography;
 
@@ -29,6 +35,13 @@ function normalizeList(res) {
 }
 
 const ViewTalukas = () => {
+  const currentRole = normalizeRoleKey(
+    useSelector((state) =>
+      resolveStoredUserRole(state.auth?.role, state.auth?.user?.role)
+    )
+  );
+  const canWrite = currentRole === ROLES.SUPER_ADMIN;
+
   const [districts, setDistricts] = useState([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState(undefined);
   const [list, setList] = useState([]);
@@ -92,12 +105,24 @@ const ViewTalukas = () => {
   };
 
   const handleAdd = () => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("add");
     setEditingRecord(null);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record) => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("edit");
     setEditingRecord(record);
     setDrawerOpen(true);
@@ -173,23 +198,27 @@ const ViewTalukas = () => {
       key: "status",
       width: 100,
     },
-    {
-      title: "Action",
-      key: "action",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            aria-label="Edit taluka"
-          >
-            Edit
-          </Button>
-        </Space>
-      ),
-    },
+    ...(canWrite
+      ? [
+          {
+            title: "Action",
+            key: "action",
+            width: 120,
+            render: (_, record) => (
+              <Space size="small">
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                  aria-label="Edit taluka"
+                >
+                  Edit
+                </Button>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -219,13 +248,11 @@ const ViewTalukas = () => {
               label: d.code ? `${d.name} (${d.code})` : d.name,
             }))}
           />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-          >
-            Add Taluka
-          </Button>
+          {canWrite ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Taluka
+            </Button>
+          ) : null}
         </Space>
       </Space>
 

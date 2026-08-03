@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { t } from "../constants/translation";
 import { ArrowRight, MapPin, Clock, ShieldCheck, IndianRupee } from "lucide-react";
 import SurveyingBackground from "../components/SurveyingBackground";
+import usePublicBusinessRules from "../hooks/usePublicBusinessRules.js";
 
 const HeroVideo = lazy(() => import("../components/HeroVideo.jsx"));
 
@@ -11,78 +12,78 @@ const Hero = () => {
   const navigate = useNavigate();
   const lang = useSelector((state) => state.language?.lang || "en");
   const rootRef = useRef(null);
+  const { rules, fromApi } = usePublicBusinessRules();
+  const gross = fromApi ? rules?.cadOperatorEarnings?.standardOrderGrossRupees : null;
+  const priceChip = gross != null ? `₹${gross} · 48h` : "48h delivery";
+  const priceValue = gross != null ? `₹${gross}` : t(lang, "hero.stats.priceValueFallback") || "Checkout";
 
   const scrollToHowItWorks = () => {
     const element = document.getElementById("how-it-works");
     if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Magnetic button effect
+  // Magnetic button effect — desktop fine pointer only (skip on touch / coarse)
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    const finePointer =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches;
+    if (!finePointer) return;
+
     const btns = root.querySelectorAll(".magnetic-btn");
     const handlers = [];
+    let raf = 0;
     btns.forEach((btn) => {
-      const onMove = (e) => {
-        const rect = btn.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
-        btn.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px) scale(1.02)`;
+      let rect = null;
+      const refreshRect = () => {
+        rect = btn.getBoundingClientRect();
       };
-      const onLeave = () => { btn.style.transform = ""; };
+      const onMove = (e) => {
+        if (!rect) refreshRect();
+        const r = rect;
+        if (!r) return;
+        const x = e.clientX - r.left - r.width / 2;
+        const y = e.clientY - r.top - r.height / 2;
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          btn.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px) scale(1.02)`;
+        });
+      };
+      const onLeave = () => {
+        cancelAnimationFrame(raf);
+        btn.style.transform = "";
+        rect = null;
+      };
+      const onEnter = () => refreshRect();
+      btn.addEventListener("mouseenter", onEnter);
       btn.addEventListener("mousemove", onMove);
       btn.addEventListener("mouseleave", onLeave);
-      handlers.push({ btn, onMove, onLeave });
+      handlers.push({ btn, onMove, onLeave, onEnter });
     });
-    return () => handlers.forEach(({ btn, onMove, onLeave }) => {
-      btn.removeEventListener("mousemove", onMove);
-      btn.removeEventListener("mouseleave", onLeave);
-    });
+    return () => {
+      cancelAnimationFrame(raf);
+      handlers.forEach(({ btn, onMove, onLeave, onEnter }) => {
+        btn.removeEventListener("mouseenter", onEnter);
+        btn.removeEventListener("mousemove", onMove);
+        btn.removeEventListener("mouseleave", onLeave);
+      });
+    };
   }, []);
 
-  // Stagger stat cards on mount
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const cards = root.querySelectorAll(".stat-card-anim");
-    cards.forEach((card, i) => {
-      card.style.opacity = "0";
-      card.style.transform = "translateY(20px)";
-      setTimeout(() => {
-        card.style.transition = "opacity 0.6s ease, transform 0.6s ease";
-        card.style.opacity = "1";
-        card.style.transform = "translateY(0)";
-      }, 300 + i * 100);
-    });
-  }, [lang]);
-
-  // Hero text reveal
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const els = root.querySelectorAll(".reveal-up");
-    els.forEach((el, i) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(30px)";
-      setTimeout(() => {
-        el.style.transition = "opacity 0.7s ease, transform 0.7s ease";
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
-      }, i * 120);
-    });
-  }, [lang]);
+  // Reveal motion is CSS-driven (see hero reveal keyframes below).
+  // Do not set opacity:0 in JS after paint — that regresses LCP/FCP.
 
   const stats = useMemo(() => [
-    { Icon: IndianRupee, value: t(lang, "hero.stats.priceValue"), label: t(lang, "hero.stats.priceLabel") },
+    { Icon: IndianRupee, value: priceValue, label: t(lang, "hero.stats.priceLabel") },
     { Icon: Clock, value: t(lang, "hero.stats.deliveryValue"), label: t(lang, "hero.stats.deliveryLabel") },
     { Icon: MapPin, value: t(lang, "hero.stats.regionValue"), label: t(lang, "hero.stats.regionLabel") },
     { Icon: ShieldCheck, value: t(lang, "hero.stats.qcValue"), label: t(lang, "hero.stats.qcLabel") },
-  ], [lang]);
+  ], [lang, priceValue]);
 
   const marqueeItems = useMemo(() => [
-    "Karnataka", "Licensed surveyors", "₹500 · 48h", "QC-assured",
-  ], []);
+    "Karnataka", "Licensed surveyors", priceChip, "QC-assured",
+  ], [priceChip]);
 
   return (
     <section
@@ -94,6 +95,29 @@ const Hero = () => {
         paddingTop: "70px",
       }}
     >
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .reveal-up {
+            animation: heroRevealUp 0.7s ease both;
+          }
+          .reveal-up:nth-child(1) { animation-delay: 0ms; }
+          .reveal-up:nth-child(2) { animation-delay: 120ms; }
+          .reveal-up:nth-child(3) { animation-delay: 240ms; }
+          .reveal-up:nth-child(4) { animation-delay: 360ms; }
+          .stat-card-anim {
+            animation: heroRevealUp 0.6s ease both;
+          }
+          .stat-card-anim:nth-child(1) { animation-delay: 300ms; }
+          .stat-card-anim:nth-child(2) { animation-delay: 400ms; }
+          .stat-card-anim:nth-child(3) { animation-delay: 500ms; }
+          .stat-card-anim:nth-child(4) { animation-delay: 600ms; }
+        }
+        /* Transform-only so content stays paint-visible (FCP/LCP safe). */
+        @keyframes heroRevealUp {
+          from { transform: translateY(16px); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
       {/* Decorative background elements */}
       <SurveyingBackground />
       <div

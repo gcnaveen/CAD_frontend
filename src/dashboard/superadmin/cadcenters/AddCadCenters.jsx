@@ -19,8 +19,8 @@ const AddCadCenters = ({ onCancel, onSubmit, loading = false }) => {
         phone: values.phone ?? "",
       },
     };
+    // Do not reset here — parent closes drawer only after successful API response.
     onSubmit?.(payload);
-    form.resetFields();
   };
 
   const handleCancel = () => {

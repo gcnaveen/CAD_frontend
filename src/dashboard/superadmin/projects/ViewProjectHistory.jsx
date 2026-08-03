@@ -7,6 +7,11 @@ import ProjectOrderDetailDrawer from "./ProjectOrderDetailDrawer";
 import apiClient from "../../../services/apiClient.js";
 import { loadSketchUploadWithAssignment } from "../../../services/assignmentApi.js";
 import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title, Text } = Typography;
 
@@ -33,17 +38,11 @@ const STATUS_COLOR = {
 
 const ViewProjectHistory = () => {
   const navigate = useNavigate();
-  const userRole = useSelector((state) => state.auth?.role);
-  const currentRole =
-    userRole ||
-    (() => {
-      try {
-        const stored = localStorage.getItem("user");
-        return stored ? JSON.parse(stored)?.role : null;
-      } catch {
-        return null;
-      }
-    })();
+  const roleFromStore = useSelector((state) => state.auth?.role);
+  const userRoleFromStore = useSelector((state) => state.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromStore, userRoleFromStore)
+  );
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +53,7 @@ const ViewProjectHistory = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
-    if (currentRole !== "ADMIN" && currentRole !== "SUPER_ADMIN") {
+    if (currentRole !== ROLES.ADMIN && currentRole !== ROLES.SUPER_ADMIN) {
       message.error("Access denied. Admin or Super Admin access required.");
       navigate("/superadmin/home");
     }

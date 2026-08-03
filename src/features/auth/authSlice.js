@@ -1,27 +1,35 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
-  TOKEN_KEY,
-  USER_KEY,
   extractAccessToken,
-  storeAccessToken,
+  setAccessToken,
+  clearAccessToken,
+  clearLegacyAuthStorage,
+  consumeE2EUserSeed,
+  getAccessToken,
 } from "../../utils/authToken.js";
+import { normalizeRoleKey } from "../../constants/roles.js";
 
-const loadUser = () => {
-  try {
-    const u = localStorage.getItem(USER_KEY);
-    return u ? JSON.parse(u) : null;
-  } catch {
-    return null;
+function initialAuthState() {
+  // E2E: memory token + optional user seeded before first paint (never from localStorage).
+  const e2eUser = consumeE2EUserSeed();
+  const token = getAccessToken();
+  if (e2eUser) {
+    return {
+      token,
+      user: e2eUser,
+      role: normalizeRoleKey(e2eUser.role) ?? e2eUser.role ?? null,
+      bootstrapped: Boolean(token),
+    };
   }
-};
+  return {
+    token: null,
+    user: null,
+    role: null,
+    bootstrapped: false,
+  };
+}
 
-const loadToken = () => localStorage.getItem(TOKEN_KEY) || null;
-
-const initialState = {
-  token: loadToken(),
-  user: loadUser(),
-  role: loadUser()?.role ?? null,
-};
+const initialState = initialAuthState();
 
 const authSlice = createSlice({
   name: "auth",
@@ -32,26 +40,39 @@ const authSlice = createSlice({
       const nextToken =
         extractAccessToken({ token, accessToken }) ||
         extractAccessToken(action.payload) ||
-        state.token;
+        null;
       if (nextToken) {
         state.token = nextToken;
-        storeAccessToken(nextToken);
+        setAccessToken(nextToken);
       }
       if (user) {
         state.user = user;
-        state.role = user.role ?? null;
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        state.role = normalizeRoleKey(user.role) ?? user.role ?? null;
       }
+      state.bootstrapped = true;
+    },
+    setAccessTokenOnly: (state, action) => {
+      const nextToken = extractAccessToken(action.payload) || null;
+      if (nextToken) {
+        state.token = nextToken;
+        setAccessToken(nextToken);
+      }
+      state.bootstrapped = true;
+    },
+    setBootstrapped: (state, action) => {
+      state.bootstrapped = Boolean(action.payload);
     },
     logout: (state) => {
       state.token = null;
       state.user = null;
       state.role = null;
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      state.bootstrapped = true;
+      clearAccessToken();
+      clearLegacyAuthStorage();
     },
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, setAccessTokenOnly, setBootstrapped, logout } =
+  authSlice.actions;
 export default authSlice.reducer;

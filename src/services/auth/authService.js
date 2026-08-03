@@ -1,5 +1,6 @@
 import apiClient from "../apiClient.js";
 import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
+import { extractAccessToken } from "../../utils/authToken.js";
 
 function unwrapResponse(body) {
   return body?.data ?? body;
@@ -39,15 +40,76 @@ export async function staffLogin(payload) {
 
 /**
  * Current user (JWT payload)
- * GET /auth/me
+ * GET /api/auth/me → { user, role } (canonical role) or nested data.
+ * @returns {Promise<{ user: object, role?: string }>}
  */
 export async function getCurrentUser() {
   try {
     const { data } = await apiClient.get("/api/auth/me");
-    return data;
+    return normalizeMeResponse(data);
   } catch (error) {
     const message = error.response?.data?.message ?? error.message ?? "Failed to get current user";
     throw new Error(message);
+  }
+}
+
+/**
+ * Normalize /api/auth/me payload to `{ user, role }`.
+ * @param {any} body
+ */
+export function normalizeMeResponse(body) {
+  const root = body?.data ?? body;
+  if (!root || typeof root !== "object") {
+    return { user: null, role: null };
+  }
+  const user =
+    root.user && typeof root.user === "object"
+      ? { ...root.user }
+      : root.id || root._id || root.email || root.phone || root.role
+        ? { ...root }
+        : null;
+  const role = root.role ?? user?.role ?? null;
+  if (user && role != null && user.role == null) {
+    user.role = role;
+  }
+  return { user, role: role ?? user?.role ?? null };
+}
+
+
+/**
+ * M-02: Renew access token using HttpOnly refresh cookie (credentials included).
+ * POST /api/auth/refresh
+ * @returns {Promise<string>} new access token
+ */
+export async function refreshAccessToken() {
+  const { data } = await apiClient.post(
+    "/api/auth/refresh",
+    {},
+    {
+      // Mark so 401 interceptor does not recurse
+      skipAuthRefresh: true,
+    }
+  );
+  const token = extractAccessToken(data);
+  if (!token) {
+    throw new Error("Refresh response missing access token");
+  }
+  return token;
+}
+
+/**
+ * M-02: Clear server refresh cookie when supported.
+ * POST /api/auth/logout
+ */
+export async function logoutSession() {
+  try {
+    await apiClient.post(
+      "/api/auth/logout",
+      {},
+      { skipAuthRefresh: true }
+    );
+  } catch {
+    // Cookie may already be gone; client still clears memory state.
   }
 }
 
@@ -82,7 +144,6 @@ export async function verifyOtp(payload) {
 /**
  * Surveyor: Send OTP (start registration) – Step 1
  * POST /api/auth/surveyor/start
- * Payload: { phone, firstName, lastName }
  */
 export async function surveyorStart(payload) {
   try {
@@ -96,7 +157,6 @@ export async function surveyorStart(payload) {
 /**
  * Surveyor: Verify OTP – Step 2
  * POST /api/auth/surveyor/verify-otp
- * Payload: { phone, otp }
  */
 export async function surveyorVerifyOtp(payload) {
   try {
@@ -110,8 +170,6 @@ export async function surveyorVerifyOtp(payload) {
 /**
  * Surveyor: Complete registration – Step 3
  * POST /api/auth/surveyor/complete
- * Payload: { phone, password, district, taluka, category, surveyType }
- * surveyType: "LS" (Licensed) | "GS" (Government)
  */
 export async function surveyorComplete(payload) {
   try {

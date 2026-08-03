@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { Avatar, Dropdown } from "antd";
@@ -11,7 +11,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { logout } from "../../../features/auth/authSlice";
+import { performFullLogout } from "../../../utils/performFullLogout.js";
 import { useTheme } from "../../../theme/useTheme.js";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
 
@@ -24,6 +24,7 @@ const UserDashboardHeader = () => {
   const { resolvedTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(location.pathname);
 
   const logoSrc =
     resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
@@ -33,14 +34,16 @@ const UserDashboardHeader = () => {
     localStorage.getItem("user") ||
     "User";
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
+  // Close mobile menu on route change (adjust state during render).
+  if (location.pathname !== menuPath) {
+    setMenuPath(location.pathname);
+    if (mobileMenuOpen) setMobileMenuOpen(false);
+  }
 
   const handleChangeNumber = () => {
     setDropdownOpen(false);
     setMobileMenuOpen(false);
-    navigate("/dashboard/change-number");
+    navigate("/dashboard/user/profile");
   };
 
   const handleOrderHistory = () => {
@@ -49,10 +52,10 @@ const UserDashboardHeader = () => {
     navigate("/dashboard/user/order-history");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setDropdownOpen(false);
     setMobileMenuOpen(false);
-    dispatch(logout());
+    await performFullLogout(dispatch);
     navigate("/login", { replace: true });
   };
 
@@ -157,7 +160,8 @@ const UserDashboardHeader = () => {
           <button
             type="button"
             className="fixed inset-0 z-[60] bg-black/45 lg:hidden"
-            aria-label="Close menu"
+            aria-hidden="true"
+            tabIndex={-1}
             onClick={() => setMobileMenuOpen(false)}
           />
           <div className="fixed right-0 top-14 z-[61] flex h-[calc(100dvh-3.5rem)] w-[min(100vw-2.5rem,320px)] flex-col border-l border-line bg-[color-mix(in_srgb,var(--bg-elevated)_98%,transparent)] shadow-xl backdrop-blur-md lg:hidden">
@@ -166,7 +170,7 @@ const UserDashboardHeader = () => {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-fg"
+                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-line text-fg"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />

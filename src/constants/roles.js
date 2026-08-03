@@ -12,9 +12,6 @@ export const ROLES = {
   CUSTOMER: "CUSTOMER",
 };
 
-/** Match USER_KEY in services/apiClient.js */
-const LS_USER_KEY = "user";
-
 /**
  * Normalize backend / UI role strings for comparison (e.g. "super_admin", "Super Admin" → "SUPER_ADMIN").
  */
@@ -28,16 +25,10 @@ export function normalizeRoleKey(role) {
 }
 
 /**
- * Prefer Redux `auth.role`, then `auth.user.role`, then persisted user in localStorage.
+ * Prefer Redux `auth.role`, then `auth.user.role`. Does not read localStorage.
  */
 export function resolveStoredUserRole(roleFromSlice, userRoleFromSlice) {
   const r = roleFromSlice ?? userRoleFromSlice;
   if (r != null && String(r).trim() !== "") return r;
-  try {
-    const raw = localStorage.getItem(LS_USER_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw)?.role ?? null;
-  } catch {
-    return null;
-  }
+  return null;
 }

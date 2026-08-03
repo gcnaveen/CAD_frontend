@@ -70,22 +70,30 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
 
   /* Districts */
   useEffect(() => {
-    setLoading((p) => ({ ...p, districts: true }));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoading((p) => ({ ...p, districts: true }));
+    });
     getActiveDistricts()
       .then((res) => setDistricts(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id }))))
       .catch((err) => { message.error(err.message || "Failed to load districts"); setDistricts([]); })
       .finally(() => setLoading((p) => ({ ...p, districts: false })));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /* Talukas */
   useEffect(() => {
     if (!district) {
-      setTalukas((p) => upsertEntity(p, prefillEntities?.taluka));
+      queueMicrotask(() => {
+        setTalukas((p) => upsertEntity(p, prefillEntities?.taluka));
+      });
       const hasDown = !!form.getFieldValue("taluka") || !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
       if (!hasDown) form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
       return;
     }
-    setLoading((p) => ({ ...p, talukas: true }));
+    queueMicrotask(() => setLoading((p) => ({ ...p, talukas: true })));
     getTalukasByDistrict(district)
       .then((res) => setTalukas(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.taluka)))
       .catch((err) => { message.error(err.message || "Failed to load talukas"); setTalukas([]); })
@@ -94,17 +102,19 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
     const curTalukId = idFromValue(form.getFieldValue("taluka"));
     const isDraft    = !!prefillEntities && curDistId === prefillDistrictId && curTalukId === prefillTalukaId;
     if (!isDraft) form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
-  }, [district]);
+  }, [district, form, prefillEntities, prefillDistrictId, prefillTalukaId]);
 
   /* Hoblis */
   useEffect(() => {
     if (!taluka) {
-      setHoblis((p) => upsertEntity(p, prefillEntities?.hobli));
+      queueMicrotask(() => {
+        setHoblis((p) => upsertEntity(p, prefillEntities?.hobli));
+      });
       const hasDown = !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
       if (!hasDown) form.setFieldsValue({ hobli: undefined, village: undefined });
       return;
     }
-    setLoading((p) => ({ ...p, hoblis: true }));
+    queueMicrotask(() => setLoading((p) => ({ ...p, hoblis: true })));
     getHoblisByTaluka(taluka)
       .then((res) => setHoblis(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.hobli)))
       .catch((err) => { message.error(err.message || "Failed to load hoblis"); setHoblis([]); })
@@ -113,16 +123,18 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
     const curHobliId = idFromValue(form.getFieldValue("hobli"));
     const isDraft    = !!prefillEntities && curTalukId === prefillTalukaId && curHobliId === prefillHobliId;
     if (!isDraft) form.setFieldsValue({ hobli: undefined, village: undefined });
-  }, [taluka]);
+  }, [taluka, form, prefillEntities, prefillTalukaId, prefillHobliId]);
 
   /* Villages */
   useEffect(() => {
     if (!hobli) {
-      setVillages((p) => upsertEntity(p, prefillEntities?.village));
+      queueMicrotask(() => {
+        setVillages((p) => upsertEntity(p, prefillEntities?.village));
+      });
       if (!form.getFieldValue("village")) form.setFieldsValue({ village: undefined });
       return;
     }
-    setLoading((p) => ({ ...p, villages: true }));
+    queueMicrotask(() => setLoading((p) => ({ ...p, villages: true })));
     getVillages({ hobliId: hobli })
       .then((res) => setVillages(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.village)))
       .catch((err) => { message.error(err.message || "Failed to load villages"); setVillages([]); })
@@ -132,14 +144,16 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
     const prefVillId   = idFromValue(prefillEntities?.village) || idOf(prefillEntities?.village);
     const isDraft      = !!prefillEntities && curHobliId === prefillHobliId && curVillageId === prefVillId;
     if (!isDraft) form.setFieldsValue({ village: undefined });
-  }, [hobli]);
+  }, [hobli, form, prefillEntities, prefillHobliId]);
 
   /* Sync prefill entities into dropdowns */
   useEffect(() => {
     if (!prefillEntities) return;
-    if (taluka)  setTalukas((p)  => upsertEntity(p, prefillEntities.taluka));
-    if (hobli)   setHoblis((p)   => upsertEntity(p, prefillEntities.hobli));
-    if (village) setVillages((p) => upsertEntity(p, prefillEntities.village));
+    queueMicrotask(() => {
+      if (taluka)  setTalukas((p)  => upsertEntity(p, prefillEntities.taluka));
+      if (hobli)   setHoblis((p)   => upsertEntity(p, prefillEntities.hobli));
+      if (village) setVillages((p) => upsertEntity(p, prefillEntities.village));
+    });
   }, [prefillEntities, taluka, hobli, village]);
 
   /* Ensure label fields exist in the form even for draft prefill */
@@ -257,12 +271,12 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
         {/* Taluka */}
         <Form.Item
           name="taluka"
-          label={<FieldLabel kn="ತಾಲೂಕು" en="Taluk" required />}
+          label={<FieldLabel kn="ತಾಲೂಕು" en="Taluka" required />}
           rules={[{ required: true, message: "Please select taluka" }]}
         >
           <Select
             {...sharedSelectProps}
-            placeholder={!district && !taluka ? "Select district first" : "Select taluk"}
+            placeholder={!district && !taluka ? "Select district first" : "Select taluka"}
             disabled={!district && !taluka}
             loading={loading.talukas}
             options={talukas.map((t) => ({ value: t.id ?? t._id, label: t.code ? `${t.name} (${t.code})` : t.name }))}

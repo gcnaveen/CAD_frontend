@@ -1,9 +1,9 @@
 // Layout wrapper — uses <Outlet /> for nested routes
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { Menu, X } from "lucide-react";
-import { logout } from "../../../features/auth/authSlice";
+import { performFullLogout } from "../../../utils/performFullLogout.js";
 import { useTheme } from "../../../theme/useTheme.js";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
@@ -108,18 +108,21 @@ const DashboardLayout = () => {
   const dispatch = useDispatch();
   const { resolvedTheme } = useTheme();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(location.pathname);
   const { userName, userInitial, displayName } = useUserDisplayName();
 
   const logoSrc =
     resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
 
-  useEffect(() => {
-    setMobileDrawerOpen(false);
-  }, [location.pathname]);
+  // Close mobile drawer on route change (adjust state during render).
+  if (location.pathname !== menuPath) {
+    setMenuPath(location.pathname);
+    if (mobileDrawerOpen) setMobileDrawerOpen(false);
+  }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setMobileDrawerOpen(false);
-    dispatch(logout());
+    await performFullLogout(dispatch);
     navigate("/login", { replace: true });
   };
 
@@ -182,7 +185,7 @@ const DashboardLayout = () => {
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-[color-mix(in_srgb,var(--bg-secondary)_90%,transparent)] text-fg"
+              className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-line bg-[color-mix(in_srgb,var(--bg-secondary)_90%,transparent)] text-fg"
               aria-label="Open menu"
             >
               <Menu className="h-5 w-5" strokeWidth={2} />
@@ -246,7 +249,8 @@ const DashboardLayout = () => {
           <button
             type="button"
             className="fixed inset-0 z-55 bg-black/45 lg:hidden"
-            aria-label="Close menu"
+            aria-hidden="true"
+            tabIndex={-1}
             onClick={() => setMobileDrawerOpen(false)}
           />
           <div className="fixed top-14 right-0 z-56 flex h-[calc(100dvh-3.5rem)] w-[min(100vw-2rem,320px)] flex-col border-l border-line bg-[color-mix(in_srgb,var(--bg-elevated)_98%,transparent)] shadow-xl backdrop-blur-md lg:hidden">
@@ -255,7 +259,7 @@ const DashboardLayout = () => {
               <button
                 type="button"
                 onClick={() => setMobileDrawerOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-fg"
+                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-line text-fg"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Badge, Button, App, Modal } from "antd";
+import { Badge, App, Modal } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router";
 import { useNotifications } from "../../hooks/useNotifications.js";
@@ -67,7 +67,11 @@ export default function NotificationBell({ layout = "user" }) {
           return;
         }
       }
-      const path = resolveNotificationPath(layout, item.entityType);
+      const path = resolveNotificationPath(layout, item.entityType, {
+        type: item.type,
+        entityId: item.entityId,
+        data: item.data,
+      });
       if (path) {
         setOpen(false);
         navigate(path);
@@ -107,24 +111,23 @@ export default function NotificationBell({ layout = "user" }) {
   const isUserLayout = layout === "user";
 
   const trigger = isUserLayout ? (
-    <button
-      type="button"
-      aria-label="Notifications"
+    <span
+      aria-hidden="true"
       className="theme-animate-surface inline-flex items-center justify-center w-10 h-10 rounded-xl border border-line bg-surface text-fg hover:bg-surface-2 transition-colors shadow-sm"
     >
       <Badge count={unreadCount} size="small" offset={[-2, 2]}>
         <BellOutlined style={{ fontSize: 18, color: "var(--user-accent)" }} />
       </Badge>
-    </button>
+    </span>
   ) : (
     <Badge count={unreadCount} size="small" offset={[-4, 4]}>
-      <Button
-        type="text"
-        icon={<BellOutlined style={{ fontSize: 18 }} />}
-        aria-label="Notifications"
-        className="cad-notif-bell"
+      <span
+        aria-hidden="true"
+        className="cad-notif-bell inline-flex items-center justify-center w-10 h-10"
         style={{ color: "var(--text-secondary)" }}
-      />
+      >
+        <BellOutlined style={{ fontSize: 18 }} />
+      </span>
     </Badge>
   );
 

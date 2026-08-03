@@ -1,6 +1,6 @@
 // src/dashboard/user/component/Home.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useSelector } from "react-redux";
 import { getDrafts } from "../../../services/draftApi.js";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
@@ -37,6 +37,7 @@ const PlusIcon = ({ className = "" }) => (
 
 const Home = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const authSlice = useSelector((s) => s.auth);
   const userName = useMemo(() => {
     const fromRedux =
@@ -71,6 +72,18 @@ const Home = () => {
   const [orderCounts, setOrderCounts] = useState({ all: 0, active: 0, completed: 0, cancelled: 0 });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUploadId, setSelectedUploadId] = useState(null);
+
+  // NOTIF-01 — deep-link from payment / order notifications (?uploadId=&action=retryPayment)
+  useEffect(() => {
+    const uploadId = String(searchParams.get("uploadId") || "").trim();
+    if (!uploadId) return;
+    setSelectedUploadId(uploadId);
+    setDrawerOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("uploadId");
+    next.delete("action");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const loadDrafts = async () => {
     setDraftsLoading(true);

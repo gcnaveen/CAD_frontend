@@ -1,24 +1,24 @@
 {
   "metric": "initial_js_gzip_kb",
   "budget_kb": 250,
-  "measured_kb": 132.2,
+  "measured_kb": 131.5,
   "files": [
     {
-      "rel": "/assets/react-vendor-BgkF3xKf.js",
-      "gzipKb": 71.26953125
+      "rel": "/assets/react-vendor-BHnTbYv3.js",
+      "gzipKb": 71.6865234375
     },
     {
-      "rel": "/assets/index-BKUlVuSL.js",
-      "gzipKb": 50.5087890625
+      "rel": "/assets/index-DoWe11kO.js",
+      "gzipKb": 49.5439453125
     },
     {
-      "rel": "/assets/redux-2ssCHxGC.js",
-      "gzipKb": 10.021484375
+      "rel": "/assets/redux-CWmvec9w.js",
+      "gzipKb": 9.8701171875
     },
     {
       "rel": "/assets/rolldown-runtime-DGruFWvd.js",
       "gzipKb": 0.3798828125
     }
   ],
-  "at": "2026-07-25T10:06:32.880Z"
+  "at": "2026-07-30T16:48:50.129Z"
 }

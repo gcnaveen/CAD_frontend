@@ -8,11 +8,12 @@ import {
   isAuthOnlyPath,
   resolveSessionToken,
 } from "../utils/authRedirect";
+import { resolveStoredUserRole } from "../constants/roles";
 
-// Public critical path — keep homepage + login relatively eager for LCP / auth.
+// Public critical path — homepage eager for LCP; login is lazy (not needed on "/").
 import Homepage from "../pages/Homepage";
-import LoginPage from "../pages/LoginPage";
 
+const LoginPage = lazy(() => import("../pages/LoginPage"));
 const LoginPageEmail = lazy(() => import("../pages/LoginPageEmail.jsx"));
 const EnrollmentPage = lazy(() => import("../pages/EnrollmentPage.jsx"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage"));
@@ -33,6 +34,14 @@ const AdminApp = lazy(() => import("./shells/AdminApp"));
 
 function Lazy({ children }) {
   return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
+
+/** Bare `/dashboard` → role home (avoids blank outlet). */
+function DashboardRootRedirect() {
+  const role = useSelector((state) =>
+    resolveStoredUserRole(state.auth?.role, state.auth?.user?.role),
+  );
+  return <Navigate to={getRedirectForRole(role)} replace />;
 }
 
 /**
@@ -77,7 +86,13 @@ export default function AppRoutes() {
   useBlockAuthPagesWhenLoggedIn(token, role);
 
   const guestOrRedirect = (Page) =>
-    token ? <Navigate to={loggedInHome} replace /> : <Page />;
+    token ? (
+      <Navigate to={loggedInHome} replace />
+    ) : (
+      <Lazy>
+        <Page />
+      </Lazy>
+    );
 
   return (
     <Routes>
@@ -278,6 +293,17 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardRootRedirect />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

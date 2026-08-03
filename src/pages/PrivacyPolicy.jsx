@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useLocation } from "react-router";
 import LegalPageShell from "../components/LegalPageShell";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/siteMeta.js";
 
 export default function PrivacyPolicy() {
   const location = useLocation();
@@ -122,7 +123,7 @@ export default function PrivacyPolicy() {
       <h2 id="contact">10. Contact</h2>
       <p>
         For privacy questions or requests:{" "}
-        <a href="mailto:support@northcot.in">support@northcot.in</a>
+        <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>
         <br />
         North-cot — Karnataka, India.
       </p>

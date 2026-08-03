@@ -1,10 +1,6 @@
 // src/dashboard/user/form/steps/ReviewStep.jsx
 import React from "react";
 import { Alert, Form, Skeleton, Typography } from "antd";
-import {
-  GOOGLE_SUPERIMPOSE_CHARGE,
-  GST_PERCENT,
-} from "../../../../utils/sketchPricingCompute.js";
 
 const { Text } = Typography;
 
@@ -53,6 +49,7 @@ const ReviewStep = ({
   sketchPricingError = null,
   sketchPricingBreakdown = null,
   checkoutFinalRupees = null,
+  onRetryPricing = null,
 }) => {
   const values = form.getFieldsValue(true);
   /** Must read from watch: value is stored on a hidden field so it survives unmounted drawing step. */
@@ -137,7 +134,26 @@ const ReviewStep = ({
           <>
             {sketchPricingError ? (
               <div className="mb-3">
-                <Alert type="warning" showIcon message="Using default pricing" description={sketchPricingError} />
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Pricing unavailable"
+                  description={
+                    sketchPricingError ||
+                    "Could not load server pricing. Refresh the page or try again before submitting."
+                  }
+                  action={
+                    typeof onRetryPricing === "function" ? (
+                      <button
+                        type="button"
+                        className="text-xs font-bold underline"
+                        onClick={onRetryPricing}
+                      >
+                        Retry
+                      </button>
+                    ) : null
+                  }
+                />
               </div>
             ) : null}
             {sketchPricingBreakdown ? (
@@ -156,29 +172,36 @@ const ReviewStep = ({
                       Google Superimpose
                     </span>
                     <span className="text-sm font-bold text-fg text-right whitespace-nowrap">
-                      +{formatRs(GOOGLE_SUPERIMPOSE_CHARGE)}
+                      +{formatRs(sketchPricingBreakdown.googleFeeRupees || 0)}
                     </span>
                   </div>
                 ) : null}
-                <Row
-                  label={`GST (${sketchPricingBreakdown.gstPercent || GST_PERCENT}%)`}
-                  value={`+${formatRs(sketchPricingBreakdown.gstAmountRupees || 0)}`}
-                />
+                {Number(sketchPricingBreakdown.gstAmountRupees) > 0 ? (
+                  <Row
+                    label={
+                      sketchPricingBreakdown.gstPercent != null
+                        ? `Tax / GST (${sketchPricingBreakdown.gstPercent}%)`
+                        : "Tax / GST"
+                    }
+                    value={`+${formatRs(sketchPricingBreakdown.gstAmountRupees)}`}
+                  />
+                ) : null}
                 <div className="py-3">
                   <Text strong style={{ fontSize: 16 }}>
                     Total Payable:{" "}
                     {formatRs(
                       checkoutFinalRupees != null
                         ? checkoutFinalRupees
-                        : Number(sketchPricingBreakdown.baseAmountRupees ?? 0) +
-                            Number(sketchPricingBreakdown.gstAmountRupees ?? 0)
+                        : sketchPricingBreakdown.finalPayableRupees
                     )}
                   </Text>
                 </div>
               </div>
             ) : (
               <div className="py-3">
-                <p className="text-sm text-fg-muted font-semibold text-center">Pricing unavailable</p>
+                <p className="text-sm text-fg-muted font-semibold text-center">
+                  {sketchPricingLoading ? "Loading pricing…" : "Pricing unavailable from server"}
+                </p>
               </div>
             )}
           </>

@@ -32,11 +32,22 @@ export function mapWalletSummary(raw) {
  */
 export function mapOrderStats(raw) {
   const r = raw?.orders ?? raw?.data?.orders ?? raw ?? {};
+  const countSemantics =
+    r.countSemantics && typeof r.countSemantics === "object"
+      ? r.countSemantics
+      : typeof r.countSemantics === "string"
+        ? { note: r.countSemantics }
+        : null;
   return {
     totalOrders: Number(r.totalOrders ?? 0) || 0,
     acceptedOrders: Number(r.acceptedOrders ?? 0) || 0,
     rejectedOrders: Number(r.rejectedOrders ?? 0) || 0,
     inProgressOrders: Number(r.inProgressOrders ?? 0) || 0,
+    /** CAD-03 — ASSIGNED / awaiting accept (additive). */
+    pendingAcceptOrders: Number(r.pendingAcceptOrders ?? 0) || 0,
+    /** CAD-03 — completed assignments (additive). */
+    completedOrders: Number(r.completedOrders ?? 0) || 0,
+    countSemantics,
   };
 }
 

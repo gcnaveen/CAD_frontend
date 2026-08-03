@@ -8,16 +8,7 @@ import { Eye, EyeOff, ArrowRight, Mail, MapPin, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
-
-const getRedirectForRole = (role) => {
-  const r = (role || "").toUpperCase();
-  if (r === "SUPER_ADMIN") return "/superadmin";
-  if (r === "ADMIN") return "/superadmin";
-  if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
-  if (r === "SURVEYOR") return "/dashboard/user";
-  if (r === "USER" || r === "CUSTOMER") return "/dashboard/user";
-  return "/";
-};
+import { getRedirectForRole } from "../utils/authRedirect.js";
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -39,12 +30,18 @@ export default function LoginPageEmail() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState({});
   const [mounted, setMounted] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
   const errorSummaryRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setTimeout(() => setMounted(true), 60);
+    setPassword("");
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => {
+      clearTimeout(t);
+      setPassword("");
+    };
   }, []);
 
   const announceFieldErrors = (nextErrors) => {
@@ -89,8 +86,18 @@ export default function LoginPageEmail() {
       const userPayload = data?.user ?? data;
       const user = userPayload ?? (data?.name != null || data?.email != null ? data : null);
 
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Login succeeded but no access token was returned. Please try again.",
+        });
+        requestAnimationFrame(() => errorSummaryRef.current?.focus());
+        return;
+      }
+
       dispatch(setCredentials({ token, accessToken: token, user }));
       const role = user?.role ?? data?.role ?? body?.role;
+      setPassword("");
       setMessage({ type: "success", text: "Login successful. Redirecting..." });
       navigate(getRedirectForRole(role), { replace: true });
     } catch (error) {
@@ -179,6 +186,10 @@ export default function LoginPageEmail() {
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
           box-sizing: border-box;
           backdrop-filter: blur(4px);
+        }
+        /* iOS zooms text inputs below 16px, so bump them up on phones. */
+        @media (max-width: 768px) {
+          .lp-input { font-size: 16px; }
         }
         .lp-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 55%, transparent); }
         .lp-input:focus,
@@ -305,11 +316,25 @@ export default function LoginPageEmail() {
               boxShadow: "0 8px 28px rgba(201,168,76,0.18), 0 2px 8px rgba(0,0,0,0.08)",
               overflow: "hidden",
             }}>
-              <img
-                src="/assets/logo.webp"
-                alt="North-cot"
-                style={{ width: "80px", height: "80px", objectFit: "contain" }}
-              />
+              {logoFailed ? (
+                <span style={{
+                  fontFamily: "'IBM Plex Serif', Georgia, serif",
+                  fontStyle: "italic", fontWeight: 700,
+                  fontSize: "22px", color: "var(--brand-gold)",
+                }}>
+                  NC
+                </span>
+              ) : (
+                <img
+                  src="/assets/logo.webp"
+                  alt="North-cot"
+                  width={80}
+                  height={80}
+                  decoding="async"
+                  style={{ width: "80px", height: "80px", objectFit: "contain" }}
+                  onError={() => setLogoFailed(true)}
+                />
+              )}
             </div>
           </button>
 

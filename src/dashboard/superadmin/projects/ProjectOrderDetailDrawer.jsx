@@ -14,6 +14,8 @@ import {
   message,
   Descriptions,
   Spin,
+  Alert,
+  Modal,
 } from "antd";
 import {
   FileOutlined,
@@ -35,6 +37,11 @@ import {
   formatUserDisplayLabel,
 } from "../../../services/assignmentApi.js";
 import { parseManualAssignBlocked } from "../../../services/admin/autoAssignAdminService.js";
+import {
+  canAdminApproveSketch,
+  canAdminRejectSketch,
+  reviewSketchUpload,
+} from "../../../services/admin/sketchReviewAdminService.js";
 import PullbackReassignModal from "../../../components/assignments/PullbackReassignModal.jsx";
 import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 import SlaExtendModal from "../../../components/sla/SlaExtendModal.jsx";
@@ -48,22 +55,20 @@ import {
 } from "../../../utils/sketchFileUtils.js";
 import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard.jsx";
 import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import { isSketchBookingUnpaid } from "../../../utils/sketchPaymentUtils.js";
 import { normalizeSla, resolveSla } from "../../../utils/sla.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-
-const STATUS_OPTIONS = [
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "need_changes", label: "Need Changes" },
-];
 
 const PAYMENT_STATUS_MAP = {
   paid: { color: "green", text: "Paid" },
   pending: { color: "orange", text: "Pending" },
   unpaid: { color: "red", text: "Unpaid" },
 };
+
+const BOOKING_UNPAID_HINT =
+  "Booking payment is pending. Assign, pullback, and status progression are blocked until payment completes.";
 
 /**
  * Document field labels mapping (Normal mode)
@@ -167,8 +172,11 @@ const ProjectOrderDetailDrawer = ({
     () => !readOnly && (roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN),
     [readOnly, roleKey]
   );
+  const canReview = useMemo(
+    () => !readOnly && (roleKey === ROLES.ADMIN || roleKey === ROLES.SUPER_ADMIN),
+    [readOnly, roleKey]
+  );
   const [assignedCadUser, setAssignedCadUser] = useState(null);
-  const [status, setStatus] = useState("approved");
   const [note, setNote] = useState("");
   const [cadUsers, setCadUsers] = useState([]);
   const [cadUsersLoading, setCadUsersLoading] = useState(false);
@@ -182,6 +190,10 @@ const ProjectOrderDetailDrawer = ({
   const [downloadingByKey, setDownloadingByKey] = useState({});
   const [slaExtendOpen, setSlaExtendOpen] = useState(false);
   const [slaLocal, setSlaLocal] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewDecision, setReviewDecision] = useState(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const singleUploadFiles = useMemo(
     () => normalizeFileList(order?.singleUpload),
@@ -230,16 +242,10 @@ const ProjectOrderDetailDrawer = ({
       setAssignedCadUser(
         resolveAssignedCadUserIdFromEntity(order) || order.assignedCadCenterId || null
       );
-      // Map API status to drawer status format
-      const statusMap = {
-        PENDING: "approved",
-        UNDER_REVIEW: "approved",
-        UNDER_REVISION: "approved",
-        APPROVED: "approved",
-        REJECTED: "rejected",
-      };
-      setStatus(statusMap[order.status] || order.status || "approved");
       setNote(order.statusNote || order.note || "");
+      setReviewOpen(false);
+      setReviewDecision(null);
+      setReviewNote("");
     }
   }, [order]);
 
@@ -259,6 +265,10 @@ const ProjectOrderDetailDrawer = ({
 
   const handlePullbackOpen = async () => {
     if (!order) return;
+    if (isSketchBookingUnpaid(order)) {
+      message.warning(BOOKING_UNPAID_HINT);
+      return;
+    }
     setPullbackError("");
     setPullbackSketch(order);
     setPullbackAssignmentId(order.assignmentId ?? null);
@@ -338,6 +348,10 @@ const ProjectOrderDetailDrawer = ({
       message.error("Order not loaded.");
       return;
     }
+    if (isSketchBookingUnpaid(order)) {
+      message.warning(BOOKING_UNPAID_HINT);
+      return;
+    }
     if (!assignedCadUser) {
       message.warning("Please select a CAD user.");
       return;
@@ -382,16 +396,21 @@ const ProjectOrderDetailDrawer = ({
           assignment,
           assignmentId: assignmentId ? String(assignmentId) : undefined,
           assignedCadCenterId: assignedCadUser,
-          status,
-          note: status === "need_changes" ? note : "",
+          note: note || "",
           sla: assignment?.sla ?? order.sla,
         });
       }
       onClose?.();
     } catch (err) {
+      const code = String(err?.code || err?.data?.code || err?.response?.data?.code || "");
       const blocked = parseManualAssignBlocked(err);
       if (blocked.blocked) {
         message.error(blocked.message);
+      } else if (
+        code === "SKETCH_PAYMENT_PENDING" ||
+        code === "SKETCH_PAYMENT_INCOMPLETE"
+      ) {
+        message.error(err?.message || BOOKING_UNPAID_HINT);
       } else {
         message.error(
           err?.message ||
@@ -401,6 +420,53 @@ const ProjectOrderDetailDrawer = ({
       }
     } finally {
       setSaveLoading(false);
+    }
+  };
+
+  const openReview = (decision) => {
+    setReviewDecision(decision);
+    setReviewNote("");
+    setReviewOpen(true);
+  };
+
+  const closeReview = () => {
+    if (reviewLoading) return;
+    setReviewOpen(false);
+    setReviewDecision(null);
+    setReviewNote("");
+  };
+
+  const handleReviewSubmit = async () => {
+    const uploadId = order?._id ?? order?.id;
+    if (!uploadId || !reviewDecision) return;
+    setReviewLoading(true);
+    try {
+      const updated = await reviewSketchUpload(uploadId, {
+        decision: reviewDecision,
+        note: reviewNote,
+      });
+      message.success(
+        reviewDecision === "APPROVED"
+          ? "Sketch approved — moved to Completed."
+          : "Sketch rejected — moved to Cancelled."
+      );
+      setReviewOpen(false);
+      setReviewDecision(null);
+      setReviewNote("");
+      if (onSave && updated) {
+        onSave({ ...order, ...updated });
+      }
+      await onOrderRefresh?.();
+      onClose?.();
+    } catch (err) {
+      const code = String(err?.code || err?.data?.code || "");
+      if (code === "SKETCH_PAYMENT_PENDING" || code === "SKETCH_PAYMENT_INCOMPLETE") {
+        message.error(err?.message || BOOKING_UNPAID_HINT);
+      } else {
+        message.error(err?.message || "Failed to submit review");
+      }
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -426,8 +492,12 @@ const ProjectOrderDetailDrawer = ({
   if (!order && !loading) return null;
 
   const paymentInfo = PAYMENT_STATUS_MAP[order?.paymentStatus] || PAYMENT_STATUS_MAP.pending;
-  const showNote = status === "need_changes";
-  const canPullback = canManagePullback && canPullbackSketchEntity(order);
+  const bookingUnpaid = Boolean(order) && isSketchBookingUnpaid(order);
+  const progressionLocked = bookingUnpaid;
+  const canPullback =
+    canManagePullback && canPullbackSketchEntity(order) && !progressionLocked;
+  const showApprove = canReview && canAdminApproveSketch(order);
+  const showReject = canReview && canAdminRejectSketch(order);
 
   return (
     <>
@@ -443,15 +513,31 @@ const ProjectOrderDetailDrawer = ({
       open={open}
       destroyOnClose
       extra={
-        !readOnly && (onSave || canPullback) ? (
+        !readOnly && (onSave || canPullback || showApprove || showReject) ? (
           <Space wrap>
             {canPullback ? (
               <Button onClick={handlePullbackOpen}>Pull back &amp; reassign</Button>
             ) : null}
+            {showReject ? (
+              <Button danger onClick={() => openReview("REJECTED")}>
+                Reject
+              </Button>
+            ) : null}
+            {showApprove ? (
+              <Button type="primary" onClick={() => openReview("APPROVED")}>
+                Approve
+              </Button>
+            ) : null}
             {onSave ? (
               <>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button type="primary" onClick={handleSave} loading={saveLoading}>
+                <Button
+                  type="primary"
+                  onClick={handleSave}
+                  loading={saveLoading}
+                  disabled={progressionLocked}
+                  title={progressionLocked ? BOOKING_UNPAID_HINT : undefined}
+                >
                   Save Changes
                 </Button>
               </>
@@ -467,6 +553,10 @@ const ProjectOrderDetailDrawer = ({
         </div>
       ) : order ? (
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          {progressionLocked ? (
+            <Alert type="warning" showIcon message={BOOKING_UNPAID_HINT} />
+          ) : null}
+
           {/* Surveyor Information */}
           {order.surveyor && (
             <>
@@ -841,7 +931,7 @@ const ProjectOrderDetailDrawer = ({
                   style={{ width: "100%", maxWidth: 400 }}
                   value={assignedCadUser}
                   onChange={setAssignedCadUser}
-                  disabled={readOnly}
+                  disabled={readOnly || progressionLocked}
                   loading={cadUsersLoading}
                   options={cadUsers.map((u) => ({
                     value: u.id || u._id,
@@ -873,7 +963,7 @@ const ProjectOrderDetailDrawer = ({
                   placeholder="Add notes for this assignment (submitted as string)..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  disabled={readOnly}
+                  disabled={readOnly || progressionLocked}
                   style={{ width: "100%", maxWidth: 400 }}
                 />
               </div>
@@ -890,35 +980,33 @@ const ProjectOrderDetailDrawer = ({
 
           <Divider style={{ margin: "8px 0" }} />
 
-          {/* Status & Note for revert/changes */}
-          <Card size="small" title="Review & Notes">
+          {/* Terminal review (BIZ-10) — APPROVED / REJECTED via review API only */}
+          <Card size="small" title="Terminal review">
             <Space direction="vertical" style={{ width: "100%" }} size="middle">
-              <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>
-                  Status
-                </Text>
-                <Select
-                  style={{ width: "100%", maxWidth: 280 }}
-                  value={status}
-                  onChange={setStatus}
-                  disabled={readOnly}
-                  options={STATUS_OPTIONS}
-                />
-              </div>
-              {showNote && (
-                <div>
-                  <Text strong style={{ display: "block", marginBottom: 8 }}>
-                    Note for revert or changes in uploaded CAD files
+              <Text type="secondary">
+                Approve moves the sketch to Completed ({getSketchStatusLabel("APPROVED")}).
+                Reject moves it to Cancelled ({getSketchStatusLabel("REJECTED")}) and cancels
+                active assignments. Approve is only allowed from{" "}
+                {getSketchStatusLabel("CAD_DELIVERED")} when booking payment is satisfied.
+              </Text>
+              <Space wrap>
+                {showReject ? (
+                  <Button danger onClick={() => openReview("REJECTED")}>
+                    Reject
+                  </Button>
+                ) : null}
+                {showApprove ? (
+                  <Button type="primary" onClick={() => openReview("APPROVED")}>
+                    Approve
+                  </Button>
+                ) : null}
+                {!showApprove && !showReject ? (
+                  <Text type="secondary">
+                    No review actions available for status{" "}
+                    {getSketchStatusLabel(order.status) || order.status || "—"}.
                   </Text>
-                  <TextArea
-                    rows={4}
-                    placeholder="Describe required changes or revert reason..."
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    disabled={readOnly}
-                  />
-                </div>
-              )}
+                ) : null}
+              </Space>
             </Space>
           </Card>
 
@@ -950,6 +1038,51 @@ const ProjectOrderDetailDrawer = ({
       )}
     </Drawer>
 
+    <Modal
+      title={
+        reviewDecision === "APPROVED"
+          ? "Approve sketch"
+          : reviewDecision === "REJECTED"
+            ? "Reject sketch"
+            : "Review sketch"
+      }
+      open={reviewOpen}
+      onCancel={closeReview}
+      onOk={handleReviewSubmit}
+      okText={reviewDecision === "APPROVED" ? "Approve" : "Reject"}
+      okButtonProps={{
+        danger: reviewDecision === "REJECTED",
+        loading: reviewLoading,
+      }}
+      confirmLoading={reviewLoading}
+      destroyOnClose
+    >
+      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Text type="secondary">
+          {reviewDecision === "APPROVED"
+            ? "Confirm QC pass and mark this sketch Completed (APPROVED)."
+            : "Cancel this sketch (REJECTED). Unpaid bookings may be cleared; active assignments are cancelled."}
+        </Text>
+        <div>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Reviewer note (optional, max 500)
+          </Text>
+          <TextArea
+            rows={4}
+            maxLength={500}
+            showCount
+            placeholder={
+              reviewDecision === "REJECTED"
+                ? "Payment abandoned / QC fail / …"
+                : "Optional note"
+            }
+            value={reviewNote}
+            onChange={(e) => setReviewNote(e.target.value)}
+          />
+        </div>
+      </Space>
+    </Modal>
+
     <PullbackReassignModal
       open={pullbackOpen}
       loading={pullbackResolving || pullbackSubmitting}
@@ -974,4 +1107,4 @@ const ProjectOrderDetailDrawer = ({
 };
 
 export default ProjectOrderDetailDrawer;
-export { PAYMENT_STATUS_MAP, STATUS_OPTIONS };
+export { PAYMENT_STATUS_MAP };

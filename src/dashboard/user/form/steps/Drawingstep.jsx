@@ -1,7 +1,6 @@
 // src/dashboard/user/form/steps/DrawingStep.jsx
 import React, { useRef, useEffect, useState } from "react";
 import { Form, Input, Upload, message, Typography } from "antd";
-import { GOOGLE_SUPERIMPOSE_CHARGE } from "../../../../utils/sketchPricingCompute.js";
 
 const { Text } = Typography;
 import { Mic, Square, Trash2, Upload as UploadIcon } from "lucide-react";
@@ -48,7 +47,7 @@ const FieldLabel = ({ kn, en, required, optional }) => (
 
 const audioRemoteUrl = (audio) => audio?.fileUrl || audio?.url || null;
 
-const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange }) => {
+const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superimposeAddOnRupees = 0 }) => {
   const audioField = Form.useWatch("audio", form);
   /** Parent `audioData` survives step unmount; form field may clear when this step is not mounted. */
   const savedAudio = audioRemoteUrl(audioField) ? audioField : audioRemoteUrl(audioData) ? audioData : null;
@@ -287,7 +286,7 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange }) => {
           </div>
         </button>
         <Text type="secondary" className="block text-xs leading-snug -mt-1 mb-0.5">
-          Selecting Google Superimpose will add ₹{GOOGLE_SUPERIMPOSE_CHARGE} to your total cost.
+          Selecting Google Superimpose will add ₹{Number(superimposeAddOnRupees) || 0} to your total cost.
         </Text>
 
         <Form.Item name="others" label={<FieldLabel kn="ಟಿಪ್ಪಣಿಗಳು" en="Notes" optional />}>

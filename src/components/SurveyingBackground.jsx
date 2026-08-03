@@ -1,14 +1,46 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // Surveying-themed animated SVG background
 // Matches the warm parchment/gold/forest-green palette of the Hero component
+// Infinite animations start only after idle so LCP / Speed Index stay stable.
 
 const SurveyingBackground = () => {
   const svgRef = useRef(null);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      return undefined;
+    }
+    // Mobile / coarse pointer: keep a static SVG (avoids 15+ non-composited
+    // stroke/opacity animations during Lighthouse Slow-4G mobile audits).
+    const mobileOrTouch =
+      window.matchMedia?.("(max-width: 768px)")?.matches ||
+      window.matchMedia?.("(pointer: coarse)")?.matches;
+    if (mobileOrTouch) return undefined;
+
+    let cancelled = false;
+    const start = () => {
+      if (!cancelled) setAnimate(true);
+    };
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(start, { timeout: 2800 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback?.(id);
+      };
+    }
+    const t = window.setTimeout(start, 2000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, []);
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className={`pointer-events-none absolute inset-0 overflow-hidden${animate ? " sv-animate" : ""}`}
       aria-hidden="true"
       style={{ zIndex: 1 }}
     >
@@ -79,41 +111,57 @@ const SurveyingBackground = () => {
           100% { transform: translateY(-12px); opacity: 0; }
         }
 
-        /* ─ individual animation declarations ─ */
-        .sv-grid       { animation: gridFade 2s ease forwards; }
+        /* Static grid always; motion only after .sv-animate (post-idle) */
+        .sv-grid { opacity: 1; }
+        .sv-animate .sv-grid { animation: gridFade 2s ease forwards; }
 
-        .sv-line-1     { stroke-dasharray: 1000; animation: drawLine 6s ease-in-out 0.5s infinite; }
-        .sv-line-2     { stroke-dasharray: 1000; animation: drawLine 7s ease-in-out 1.8s infinite; }
-        .sv-line-3     { stroke-dasharray: 1000; animation: drawLine 5.5s ease-in-out 3.2s infinite; }
-        .sv-line-4     { stroke-dasharray: 1000; animation: drawLine 8s ease-in-out 0.9s infinite; }
-        .sv-line-5     { stroke-dasharray: 1000; animation: drawLine 6.5s ease-in-out 4.1s infinite; }
-        .sv-line-6     { stroke-dasharray: 1000; animation: drawLine 7.5s ease-in-out 2.6s infinite; }
+        .sv-line-1, .sv-line-2, .sv-line-3, .sv-line-4, .sv-line-5, .sv-line-6 {
+          stroke-dasharray: 1000;
+        }
+        .sv-animate .sv-line-1 { animation: drawLine 6s ease-in-out 0.5s infinite; }
+        .sv-animate .sv-line-2 { animation: drawLine 7s ease-in-out 1.8s infinite; }
+        .sv-animate .sv-line-3 { animation: drawLine 5.5s ease-in-out 3.2s infinite; }
+        .sv-animate .sv-line-4 { animation: drawLine 8s ease-in-out 0.9s infinite; }
+        .sv-animate .sv-line-5 { animation: drawLine 6.5s ease-in-out 4.1s infinite; }
+        .sv-animate .sv-line-6 { animation: drawLine 7.5s ease-in-out 2.6s infinite; }
 
-        .sv-tri-1      { animation: triPulse 6s ease-in-out 1s infinite; }
-        .sv-tri-2      { animation: triPulse 7s ease-in-out 3s infinite; }
-        .sv-tri-3      { animation: triPulse 5.5s ease-in-out 5s infinite; }
+        .sv-animate .sv-tri-1 { animation: triPulse 6s ease-in-out 1s infinite; }
+        .sv-animate .sv-tri-2 { animation: triPulse 7s ease-in-out 3s infinite; }
+        .sv-animate .sv-tri-3 { animation: triPulse 5.5s ease-in-out 5s infinite; }
 
-        .sv-cross-1    { transform-origin: 120px 180px; animation: crossSpin 8s ease-in-out 0s infinite; }
-        .sv-cross-2    { transform-origin: 680px 320px; animation: crossSpin 9s ease-in-out 2s infinite; }
-        .sv-cross-3    { transform-origin: 900px 500px; animation: crossSpin 7s ease-in-out 4s infinite; }
+        .sv-cross-1 { transform-origin: 120px 180px; }
+        .sv-cross-2 { transform-origin: 680px 320px; }
+        .sv-cross-3 { transform-origin: 900px 500px; }
+        .sv-animate .sv-cross-1 { animation: crossSpin 8s ease-in-out 0s infinite; }
+        .sv-animate .sv-cross-2 { animation: crossSpin 9s ease-in-out 2s infinite; }
+        .sv-animate .sv-cross-3 { animation: crossSpin 7s ease-in-out 4s infinite; }
 
-        .sv-scope      { transform-origin: 400px 240px; animation: scopeRotate 9s ease-in-out 1s infinite; }
+        .sv-scope { transform-origin: 400px 240px; }
+        .sv-animate .sv-scope { animation: scopeRotate 9s ease-in-out 1s infinite; }
 
-        .sv-ping-1     { animation: surveyPing 2.5s ease-out 0.5s infinite; }
-        .sv-ping-2     { animation: surveyPing 2.5s ease-out 2.0s infinite; }
-        .sv-ping-3     { animation: surveyPing 2.5s ease-out 3.7s infinite; }
-        .sv-ping-4     { animation: surveyPing 2.5s ease-out 5.2s infinite; }
+        .sv-animate .sv-ping-1 { animation: surveyPing 2.5s ease-out 0.5s infinite; }
+        .sv-animate .sv-ping-2 { animation: surveyPing 2.5s ease-out 2.0s infinite; }
+        .sv-animate .sv-ping-3 { animation: surveyPing 2.5s ease-out 3.7s infinite; }
+        .sv-animate .sv-ping-4 { animation: surveyPing 2.5s ease-out 5.2s infinite; }
 
-        .sv-label-1    { animation: labelBlink 5s ease-in-out 1s infinite; }
-        .sv-label-2    { animation: labelBlink 6s ease-in-out 2.5s infinite; }
-        .sv-label-3    { animation: labelBlink 4.5s ease-in-out 4s infinite; }
+        .sv-animate .sv-label-1 { animation: labelBlink 5s ease-in-out 1s infinite; }
+        .sv-animate .sv-label-2 { animation: labelBlink 6s ease-in-out 2.5s infinite; }
+        .sv-animate .sv-label-3 { animation: labelBlink 4.5s ease-in-out 4s infinite; }
 
-        .sv-contour-1  { stroke-dasharray: 18 10; animation: contourDrift 12s linear infinite; }
-        .sv-contour-2  { stroke-dasharray: 18 10; animation: contourDrift 15s linear 3s infinite; }
-        .sv-contour-3  { stroke-dasharray: 18 10; animation: contourDrift 10s linear 6s infinite; }
+        .sv-contour-1, .sv-contour-2, .sv-contour-3 { stroke-dasharray: 18 10; }
+        .sv-animate .sv-contour-1 { animation: contourDrift 12s linear infinite; }
+        .sv-animate .sv-contour-2 { animation: contourDrift 15s linear 3s infinite; }
+        .sv-animate .sv-contour-3 { animation: contourDrift 10s linear 6s infinite; }
 
-        .sv-tick-1     { transform-origin: 260px 400px; animation: tickFloat 5s ease-in-out 1s infinite; }
-        .sv-tick-2     { transform-origin: 750px 280px; animation: tickFloat 6s ease-in-out 3s infinite; }
+        .sv-tick-1 { transform-origin: 260px 400px; }
+        .sv-tick-2 { transform-origin: 750px 280px; }
+        .sv-animate .sv-tick-1 { animation: tickFloat 5s ease-in-out 1s infinite; }
+        .sv-animate .sv-tick-2 { animation: tickFloat 6s ease-in-out 3s infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sv-animate .sv-grid,
+          .sv-animate [class^="sv-"] { animation: none !important; }
+        }
       `}</style>
 
       <svg

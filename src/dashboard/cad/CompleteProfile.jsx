@@ -84,7 +84,7 @@ export default function CompleteProfile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const auth = useSelector((state) => state.auth || {});
-  const user = auth.user || {};
+  const user = useMemo(() => auth.user || {}, [auth.user]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -147,6 +147,8 @@ export default function CompleteProfile() {
   };
 
   const isFormReadyForSubmit = useMemo(() => {
+    // formVersion bumps when fields change so readiness re-evaluates.
+    void formVersion;
     const values = form.getFieldsValue(true);
     const requiredOk = REQUIRED_FIELDS.every((fieldName) =>
       isFieldFilled(fieldName, values)
@@ -154,7 +156,7 @@ export default function CompleteProfile() {
     const ifscOk = IFSC_REGEX.test(String(values?.ifscCode || "").trim());
     const accountOk = ACCOUNT_NUMBER_REGEX.test(String(values?.accountNumber || "").trim());
     return requiredOk && ifscOk && accountOk;
-  }, [form, formVersion, currentStep, uploading, submitting]);
+  }, [form, formVersion]);
 
   const isCurrentStepValid = () => {
     if (Object.values(uploading).some(Boolean)) return false;
@@ -306,7 +308,7 @@ export default function CompleteProfile() {
       setIsDraftDirty(false);
 
       message.success(cadBi.profile.profileCompleted);
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard/cad", { replace: true });
     } catch (error) {
       const validationError = Array.isArray(error?.response?.data?.errors)
         ? error.response.data.errors[0]?.message

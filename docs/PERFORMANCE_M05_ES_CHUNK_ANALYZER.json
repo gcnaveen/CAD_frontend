@@ -1,0 +1,195 @@
+{
+  "chunk": "assets/es-D4oYjcen.js",
+  "fileBytes": 1477983,
+  "fileKB": 1443.3,
+  "moduleCount": 1399,
+  "groups": [
+    {
+      "name": "antd",
+      "modules": 619,
+      "renderedKB": 1504.7
+    },
+    {
+      "name": "@rc-component/*",
+      "modules": 559,
+      "renderedKB": 1338.7
+    },
+    {
+      "name": "@ant-design/icons",
+      "modules": 109,
+      "renderedKB": 115.9
+    },
+    {
+      "name": "@ant-design/*",
+      "modules": 14,
+      "renderedKB": 88.3
+    },
+    {
+      "name": "@ant-design/cssinjs",
+      "modules": 41,
+      "renderedKB": 50.1
+    },
+    {
+      "name": "dayjs",
+      "modules": 7,
+      "renderedKB": 24.7
+    },
+    {
+      "name": "vendor:stylis",
+      "modules": 7,
+      "renderedKB": 19.8
+    },
+    {
+      "name": "vendor:@babel",
+      "modules": 32,
+      "renderedKB": 12.4
+    },
+    {
+      "name": "vendor:throttle-debounce",
+      "modules": 1,
+      "renderedKB": 4.9
+    },
+    {
+      "name": "vendor:compute-scroll-into-view",
+      "modules": 1,
+      "renderedKB": 4.5
+    },
+    {
+      "name": "vendor:@emotion",
+      "modules": 2,
+      "renderedKB": 1.8
+    },
+    {
+      "name": "vendor:react-is",
+      "modules": 2,
+      "renderedKB": 1.6
+    },
+    {
+      "name": "vendor:is-mobile",
+      "modules": 1,
+      "renderedKB": 1.3
+    },
+    {
+      "name": "vendor:scroll-into-view-if-needed",
+      "modules": 1,
+      "renderedKB": 1.2
+    },
+    {
+      "name": "vendor:json2mq",
+      "modules": 1,
+      "renderedKB": 1.1
+    },
+    {
+      "name": "vendor:clsx",
+      "modules": 1,
+      "renderedKB": 0.6
+    },
+    {
+      "name": "vendor:string-convert",
+      "modules": 1,
+      "renderedKB": 0.3
+    }
+  ],
+  "topModules": [
+    {
+      "kb": 29.1,
+      "module": "@rc-component/tree/es/Tree.js"
+    },
+    {
+      "kb": 25.2,
+      "module": "@rc-component/qrcode/es/libs/qrcodegen.js"
+    },
+    {
+      "kb": 24.4,
+      "module": "@rc-component/form/es/hooks/useForm.js"
+    },
+    {
+      "kb": 23.2,
+      "module": "@ant-design/react-slick/es/inner-slider.js"
+    },
+    {
+      "kb": 22.6,
+      "module": "@ant-design/react-slick/es/utils/innerSliderUtils.js"
+    },
+    {
+      "kb": 19.9,
+      "module": "antd/es/tabs/style/index.js"
+    },
+    {
+      "kb": 19.7,
+      "module": "@rc-component/table/es/Table.js"
+    },
+    {
+      "kb": 19.7,
+      "module": "@rc-component/picker/es/PickerInput/RangePicker.js"
+    },
+    {
+      "kb": 18,
+      "module": "antd/es/table/hooks/useSelection.js"
+    },
+    {
+      "kb": 16.8,
+      "module": "@rc-component/picker/es/PickerInput/SinglePicker.js"
+    },
+    {
+      "kb": 15.6,
+      "module": "antd/es/menu/style/index.js"
+    },
+    {
+      "kb": 15.2,
+      "module": "@rc-component/trigger/es/hooks/useAlign.js"
+    },
+    {
+      "kb": 14.9,
+      "module": "@rc-component/tabs/es/TabNavList/index.js"
+    },
+    {
+      "kb": 14.3,
+      "module": "@rc-component/input-number/es/InputNumber.js"
+    },
+    {
+      "kb": 14.3,
+      "module": "antd/es/table/InternalTable.js"
+    },
+    {
+      "kb": 14.2,
+      "module": "@rc-component/trigger/es/index.js"
+    },
+    {
+      "kb": 13.8,
+      "module": "antd/es/result/serverError.js"
+    },
+    {
+      "kb": 13.7,
+      "module": "@rc-component/select/es/Select.js"
+    },
+    {
+      "kb": 13.7,
+      "module": "@rc-component/pagination/es/Pagination.js"
+    },
+    {
+      "kb": 13.5,
+      "module": "@rc-component/tree-select/es/TreeSelect.js"
+    },
+    {
+      "kb": 13.3,
+      "module": "antd/es/pagination/style/index.js"
+    },
+    {
+      "kb": 13.2,
+      "module": "antd/es/date-picker/style/panel.js"
+    },
+    {
+      "kb": 13.1,
+      "module": "@rc-component/virtual-list/es/List.js"
+    },
+    {
+      "kb": 12.8,
+      "module": "@rc-component/mentions/es/Mentions.js"
+    },
+    {
+      "kb": 12.8,
+      "module": "@rc-component/picker/es/PickerPanel/index.js"
+    }
+  ]
+}

@@ -14,7 +14,6 @@ export function useOtpCountdown(expiresAt) {
 
   useEffect(() => {
     if (!expiresAt) {
-      setSecondsLeft(0);
       return undefined;
     }
 
@@ -23,12 +22,13 @@ export function useOtpCountdown(expiresAt) {
       setSecondsLeft(diff);
     };
 
-    tick();
+    // Defer initial tick so setState is not synchronous in the effect body.
+    queueMicrotask(tick);
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [expiresAt]);
 
-  return secondsLeft;
+  return expiresAt ? secondsLeft : 0;
 }
 
 export const OTP_VALIDITY_MS = 10 * 60 * 1000;

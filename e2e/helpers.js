@@ -19,20 +19,34 @@ export async function seedAuth(page, opts) {
 
   await page.addInitScript(
     ({ token: t, user: u }) => {
-      localStorage.setItem("token", t);
-      localStorage.setItem("user", JSON.stringify(u));
-      localStorage.setItem(
-        "persist:auth",
-        JSON.stringify({
-          token: JSON.stringify(t),
-          user: JSON.stringify(u),
-          role: JSON.stringify(u.role),
-          _persist: JSON.stringify({ version: -1, rehydrated: true }),
-        })
-      );
+      window.__CAD_E2E_ACCESS_TOKEN__ = t;
+      window.__CAD_E2E_USER__ = u;
+      try {
+        localStorage.removeItem("persist:auth");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      } catch {
+        /* ignore */
+      }
     },
     { token, user }
   );
+
+  // Bootstrap may call refresh/me; seed in-memory auth without localStorage JWT.
+  await page.route("**/api/auth/refresh", async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ success: false, message: "No refresh session" }),
+    });
+  });
+  await page.route("**/api/auth/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, data: user }),
+    });
+  });
 }
 
 /**
@@ -46,6 +60,15 @@ export async function stubApi(page, override) {
     const url = req.url();
     const method = req.method();
     const path = new URL(url).pathname;
+
+    if (path.includes("/auth/refresh")) {
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ success: false, message: "No refresh session" }),
+      });
+      return;
+    }
 
     const custom = override?.(path, method, req);
     if (custom !== undefined && custom !== null) {

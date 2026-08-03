@@ -22,6 +22,7 @@ import {
 import { getActiveDistricts } from "../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../services/masters/talukaService.js";
 import { getCadCenters } from "../../services/masters/cadcenterservice.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../constants/roles.js";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -82,20 +83,18 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
   const [userRole, setUserRole] = useState(role);
   
   // Get current user role from Redux
-  const currentUserRole = useSelector((state) => state.auth?.role) || (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored)?.role : null;
-    } catch {
-      return null;
-    }
-  })();
+  const roleFromStore = useSelector((state) => state.auth?.role);
+  const userRoleFromStore = useSelector((state) => state.auth?.user?.role);
+  const currentUserRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromStore, userRoleFromStore)
+  );
 
   const selectedDistrict = Form.useWatch("district", form);
   const isEditMode = mode === "edit";
-  const isSurveyor = userRole === "SURVEYOR";
-  const isCad = userRole === "CAD";
-  const isAdmin = userRole === "ADMIN";
+  const roleKey = normalizeRoleKey(userRole);
+  const isSurveyor = roleKey === ROLES.SURVEYOR;
+  const isCad = roleKey === ROLES.CAD || roleKey === ROLES.CAD_USER;
+  const isAdmin = roleKey === ROLES.ADMIN;
 
   // Load districts for SURVEYOR role
   useEffect(() => {
@@ -156,7 +155,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
         };
 
         // Handle SURVEYOR specific fields
-        if (user.role === "SURVEYOR") {
+        if (normalizeRoleKey(user.role) === ROLES.SURVEYOR) {
           const districtValue = user.surveyorProfile?.district ?? user.district;
           const talukaValue = user.surveyorProfile?.taluka ?? user.taluka;
           const category = user.surveyorProfile?.category ?? "SURVEYOR";
@@ -188,7 +187,10 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
           }
 
           form.setFieldsValue(formValues);
-        } else if (user.role === "CAD") {
+        } else if (
+          normalizeRoleKey(user.role) === ROLES.CAD ||
+          normalizeRoleKey(user.role) === ROLES.CAD_USER
+        ) {
           // Handle CAD specific fields
           const cadCenter = user.cadProfile?.cadCenter ?? user.cadCenter;
           formValues.cadCenter = cadCenter;
@@ -213,7 +215,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
           }
 
           // If SURVEYOR and has district, load talukas
-          if (user.role === "SURVEYOR" && user.surveyorProfile?.district) {
+          if (normalizeRoleKey(user.role) === ROLES.SURVEYOR && user.surveyorProfile?.district) {
             const districtValue = user.surveyorProfile.district ?? user.district;
             let districtId = districtValue;
             
@@ -258,7 +260,11 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
 
   const handleSubmit = async (values) => {
     // Prevent ADMIN from creating/editing ADMIN users
-    if ((role === "ADMIN" || userRole === "ADMIN") && currentUserRole === "ADMIN") {
+    if (
+      (normalizeRoleKey(role) === ROLES.ADMIN ||
+        normalizeRoleKey(userRole) === ROLES.ADMIN) &&
+      currentUserRole === ROLES.ADMIN
+    ) {
       message.error("You do not have permission to create or edit admin users.");
       return;
     }
@@ -328,7 +334,7 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
           expiresAt: invite.expiresAt,
         });
       } else {
-        // Surveyor add mode still uses an explicit PIN (phone login).
+        // Surveyor add mode still uses an explicit 4-digit password (phone login).
         const payload = {
           role,
           firstName: values.firstName,
@@ -358,10 +364,23 @@ const UserFormDrawer = ({ open, onClose, mode, role, userId, onSuccess }) => {
   };
 
   const getTitle = () => {
+    const labelRole = normalizeRoleKey(isEditMode ? userRole : role);
     if (isEditMode) {
-      return `Edit ${userRole === "SURVEYOR" ? "Surveyor" : userRole === "CAD" ? "CAD" : "Admin"} User`;
+      return `Edit ${
+        labelRole === ROLES.SURVEYOR
+          ? "Surveyor"
+          : labelRole === ROLES.CAD || labelRole === ROLES.CAD_USER
+            ? "CAD"
+            : "Admin"
+      } User`;
     }
-    return `Add ${role === "SURVEYOR" ? "Surveyor" : role === "CAD" ? "CAD" : "Admin"} User`;
+    return `Add ${
+      labelRole === ROLES.SURVEYOR
+        ? "Surveyor"
+        : labelRole === ROLES.CAD || labelRole === ROLES.CAD_USER
+          ? "CAD"
+          : "Admin"
+    } User`;
   };
 
   return (

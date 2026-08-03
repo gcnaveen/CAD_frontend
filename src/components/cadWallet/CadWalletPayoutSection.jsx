@@ -14,6 +14,7 @@ import {
   Typography,
   message,
 } from "antd";
+import { getPayoutStatusLabel } from "../../utils/displayLabels.js";
 import {
   markCadWalletEntryPaid,
   recordCadWalletEntryPayment,
@@ -75,9 +76,10 @@ function normalizeEntry(e) {
 
 function statusTag(status) {
   const s = String(status || "").toUpperCase();
-  if (s === "PAID") return <Tag color="green">PAID</Tag>;
-  if (s === "PARTIAL") return <Tag color="orange">PARTIAL</Tag>;
-  return <Tag color="red">PENDING</Tag>;
+  const label = getPayoutStatusLabel(status);
+  if (s === "PAID") return <Tag color="green">{label}</Tag>;
+  if (s === "PARTIAL") return <Tag color="orange">{label}</Tag>;
+  return <Tag color="red">{label}</Tag>;
 }
 
 const formatRs = (n) => `₹${(Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -197,6 +199,7 @@ export default function CadWalletPayoutSection({
           rowKey="id"
           pagination={false}
           dataSource={rows}
+          scroll={{ x: "max-content" }}
           expandable={{
             expandedRowRender: (row) => (
               <div style={{ padding: "8px 0" }}>
@@ -244,6 +247,7 @@ export default function CadWalletPayoutSection({
                     pagination={false}
                     rowKey={(_, i) => `log-${row.id}-${i}`}
                     dataSource={row.paymentLog}
+                    scroll={{ x: "max-content" }}
                     columns={[
                       {
                         title: "Amount",

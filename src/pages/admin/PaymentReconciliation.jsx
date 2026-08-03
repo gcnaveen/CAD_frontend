@@ -17,7 +17,7 @@ import {
   message,
 } from "antd";
 import dayjs from "dayjs";
-import { ROLES } from "../../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../constants/roles.js";
 import {
   RECONCILIATION_FLAG_KEYS,
   getAdminPaymentReconciliation,
@@ -25,16 +25,6 @@ import {
 } from "../../services/admin/paymentReconciliationAdminService.js";
 
 const { Title, Text, Paragraph } = Typography;
-
-function getCurrentRole(roleFromRedux) {
-  if (roleFromRedux) return roleFromRedux;
-  try {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored)?.role : null;
-  } catch {
-    return null;
-  }
-}
 
 const FLAG_LABELS = {
   MISSING: "Missing",
@@ -48,7 +38,10 @@ const FLAG_LABELS = {
 export default function PaymentReconciliation() {
   const navigate = useNavigate();
   const roleFromRedux = useSelector((s) => s.auth?.role);
-  const currentRole = getCurrentRole(roleFromRedux);
+  const userRoleFromRedux = useSelector((s) => s.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromRedux, userRoleFromRedux)
+  );
   const allowed =
     currentRole === ROLES.SUPER_ADMIN || currentRole === ROLES.ADMIN;
 
@@ -265,7 +258,7 @@ export default function PaymentReconciliation() {
           dataSource={report?.items || []}
           pagination={{ pageSize: 20 }}
           locale={{ emptyText: "No flagged items in this window" }}
-          scroll={{ x: true }}
+          scroll={{ x: "max-content" }}
         />
       </Card>
     </div>

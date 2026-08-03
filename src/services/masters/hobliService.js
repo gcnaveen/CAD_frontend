@@ -1,4 +1,8 @@
 import apiClient from "../apiClient.js";
+import {
+  handleMasterWriteError,
+  masterWriteAuthConfig,
+} from "./masterAuth.js";
 
 const BASE = "/api/masters";
 
@@ -7,13 +11,17 @@ function handleError(error, fallbackMessage) {
   throw new Error(message);
 }
 
-/** POST /api/masters/hoblis - Create Hobli */
+/** POST /api/masters/hoblis - Create Hobli (Bearer + SUPER_ADMIN) */
 export async function createHobli(payload) {
   try {
-    const { data } = await apiClient.post(`${BASE}/hoblis`, payload);
+    const { data } = await apiClient.post(
+      `${BASE}/hoblis`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to create hobli");
+    handleMasterWriteError(error, "Failed to create hobli");
   }
 }
 
@@ -39,12 +47,16 @@ export async function getHobliById(hobliId) {
   }
 }
 
-/** PATCH /api/masters/hoblis/{hobliId} - Update Hobli */
+/** PATCH /api/masters/hoblis/{hobliId} - Update Hobli (Bearer + SUPER_ADMIN) */
 export async function updateHobli(hobliId, payload) {
   try {
-    const { data } = await apiClient.patch(`${BASE}/hoblis/${hobliId}`, payload);
+    const { data } = await apiClient.patch(
+      `${BASE}/hoblis/${hobliId}`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to update hobli");
+    handleMasterWriteError(error, "Failed to update hobli");
   }
 }

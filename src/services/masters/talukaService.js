@@ -1,4 +1,8 @@
 import apiClient from "../apiClient.js";
+import {
+  handleMasterWriteError,
+  masterWriteAuthConfig,
+} from "./masterAuth.js";
 
 const BASE = "/api/masters";
 
@@ -7,13 +11,17 @@ function handleError(error, fallbackMessage) {
   throw new Error(message);
 }
 
-/** POST /api/masters/talukas - Create Taluka */
+/** POST /api/masters/talukas - Create Taluka (Bearer + SUPER_ADMIN) */
 export async function createTaluka(payload) {
   try {
-    const { data } = await apiClient.post(`${BASE}/talukas`, payload);
+    const { data } = await apiClient.post(
+      `${BASE}/talukas`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to create taluka");
+    handleMasterWriteError(error, "Failed to create taluka");
   }
 }
 
@@ -39,12 +47,16 @@ export async function getTalukaById(talukaId) {
   }
 }
 
-/** PATCH /api/masters/talukas/{talukaId} - Update Taluka */
+/** PATCH /api/masters/talukas/{talukaId} - Update Taluka (Bearer + SUPER_ADMIN) */
 export async function updateTaluka(talukaId, payload) {
   try {
-    const { data } = await apiClient.patch(`${BASE}/talukas/${talukaId}`, payload);
+    const { data } = await apiClient.patch(
+      `${BASE}/talukas/${talukaId}`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to update taluka");
+    handleMasterWriteError(error, "Failed to update taluka");
   }
 }

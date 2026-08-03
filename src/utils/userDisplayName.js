@@ -1,4 +1,4 @@
-import { USER_KEY } from "../config/axiosInstance";
+import { USER_KEY } from "../utils/authToken.js";
 
 export function readStoredUser() {
   try {

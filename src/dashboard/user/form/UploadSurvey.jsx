@@ -110,7 +110,7 @@ const UploadSurvey = ({
         form.setFieldValue(fieldName, [
           ...currentValue.filter((f) => f.uid !== file.uid && f.name !== file.name),
           {
-            uid: file.uid || `rc-upload-${Date.now()}-${Math.random()}`,
+            uid: file.uid || `rc-upload-${Date.now()}-${String(file.name || "file").slice(0, 40)}`,
             name: file.name,
             size: file.size,
             type: file.type,
@@ -140,7 +140,7 @@ const UploadSurvey = ({
         : await uploadImageToS3(actualFile, village);
 
       const currentValue = form.getFieldValue(fieldName) || [];
-      const fileUid = file.uid || `rc-upload-${Date.now()}-${Math.random()}`;
+      const fileUid = file.uid || `rc-upload-${Date.now()}-${String(file.name || "file").slice(0, 40)}`;
       const fileMeta = {
         fileUrl,
         fileName: file.name || actualFile.name,

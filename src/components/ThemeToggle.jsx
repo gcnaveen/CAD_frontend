@@ -20,7 +20,7 @@ export default function ThemeToggle({ variant = "default", className = "" }) {
       onClick={toggleTheme}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Light mode" : "Dark mode"}
-      className={`${baseBtn} border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] shadow-sm ${isCompact ? "h-9 w-9" : "h-10 w-10 px-2"} ${className}`.trim()}
+      className={`${baseBtn} border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] shadow-sm ${isCompact ? "h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0" : "h-11 w-11 min-h-[44px] min-w-[44px] sm:h-10 sm:w-10 px-2"} ${className}`.trim()}
     >
       {dark ? <Sun size={isCompact ? 18 : 20} strokeWidth={2} /> : <Moon size={isCompact ? 18 : 20} strokeWidth={2} />}
     </button>

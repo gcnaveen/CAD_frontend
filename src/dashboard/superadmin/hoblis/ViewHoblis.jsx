@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Typography,
   Table,
@@ -20,6 +21,11 @@ import {
   updateHobli,
 } from "../../../services/masters/hobliService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title } = Typography;
 
@@ -30,6 +36,13 @@ function normalizeList(res) {
 }
 
 const ViewHoblis = () => {
+  const currentRole = normalizeRoleKey(
+    useSelector((state) =>
+      resolveStoredUserRole(state.auth?.role, state.auth?.user?.role)
+    )
+  );
+  const canWrite = currentRole === ROLES.SUPER_ADMIN;
+
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState(undefined);
@@ -110,12 +123,24 @@ const ViewHoblis = () => {
   };
 
   const handleAdd = () => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("add");
     setEditingRecord(null);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record) => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("edit");
     setEditingRecord(record);
     setDrawerOpen(true);
@@ -195,23 +220,27 @@ const ViewHoblis = () => {
       key: "status",
       width: 100,
     },
-    {
-      title: "Action",
-      key: "action",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            aria-label="Edit hobli"
-          >
-            Edit
-          </Button>
-        </Space>
-      ),
-    },
+    ...(canWrite
+      ? [
+          {
+            title: "Action",
+            key: "action",
+            width: 120,
+            render: (_, record) => (
+              <Space size="small">
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                  aria-label="Edit hobli"
+                >
+                  Edit
+                </Button>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -259,13 +288,11 @@ const ViewHoblis = () => {
               label: t.code ? `${t.name} (${t.code})` : t.name,
             }))}
           />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-          >
-            Add Hobli
-          </Button>
+          {canWrite ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Hobli
+            </Button>
+          ) : null}
         </Space>
       </Space>
 

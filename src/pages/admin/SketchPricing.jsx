@@ -14,8 +14,9 @@ import {
   Typography,
   message,
 } from "antd";
-import { ROLES } from "../../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../constants/roles.js";
 import {
+  adminPricingFormValues,
   getAdminSurveySketchPricing,
   normalizeAdminSketchPricingRecord,
   patchAdminSurveySketchPricing,
@@ -32,20 +33,20 @@ const FIELD_KEYS = [
   "sketchBalanceDiscountRupees",
 ];
 
-function getCurrentRole(roleFromRedux) {
-  if (roleFromRedux) return roleFromRedux;
-  try {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored)?.role : null;
-  } catch {
-    return null;
-  }
-}
-
-function payable(plan, discount) {
-  const p = Number(plan) || 0;
+/** Client preview when editing a plan; otherwise server-resolved rupees. */
+function displayPayable(plan, discount, resolvedTier) {
+  const p = plan == null || plan === "" ? null : Number(plan);
   const d = Number(discount) || 0;
-  return Math.max(0, p - d);
+  if (p != null && Number.isFinite(p) && p > 0) {
+    return Math.max(0, p - d);
+  }
+  if (resolvedTier?.payableRupees != null && Number.isFinite(Number(resolvedTier.payableRupees))) {
+    return Math.max(0, Number(resolvedTier.payableRupees));
+  }
+  if (resolvedTier?.feePaise != null && Number.isFinite(Number(resolvedTier.feePaise))) {
+    return Math.max(0, Number(resolvedTier.feePaise) / 100);
+  }
+  return 0;
 }
 
 function stripUndefined(obj) {
@@ -56,10 +57,21 @@ function stripUndefined(obj) {
   return out;
 }
 
+function formatSource(source) {
+  if (!source) return null;
+  const s = String(source).toLowerCase();
+  if (s === "env") return "env fallback";
+  if (s === "admin") return "admin plan";
+  return source;
+}
+
 export default function SketchPricing() {
   const navigate = useNavigate();
   const roleFromRedux = useSelector((s) => s.auth?.role);
-  const currentRole = getCurrentRole(roleFromRedux);
+  const userRoleFromRedux = useSelector((s) => s.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromRedux, userRoleFromRedux)
+  );
   const allowed = currentRole === ROLES.SUPER_ADMIN;
 
   const [form] = Form.useForm();
@@ -67,6 +79,7 @@ export default function SketchPricing() {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [baseline, setBaseline] = useState(null);
+  const [resolved, setResolved] = useState(null);
 
   useEffect(() => {
     if (!allowed) {
@@ -81,8 +94,10 @@ export default function SketchPricing() {
     try {
       const raw = await getAdminSurveySketchPricing();
       const rec = normalizeAdminSketchPricingRecord(raw);
-      setBaseline({ ...rec });
-      form.setFieldsValue(rec);
+      const fields = adminPricingFormValues(rec);
+      setBaseline({ ...fields });
+      setResolved(rec.resolved);
+      form.setFieldsValue(fields);
     } catch (e) {
       setLoadError(e?.message || "Failed to load pricing");
       message.error(e?.message || "Failed to load pricing");
@@ -104,11 +119,11 @@ export default function SketchPricing() {
 
   const computed = useMemo(() => {
     return {
-      uploadPayable: payable(upPlan, upDisc),
-      revisionPayable: payable(revPlan, revDisc),
-      balancePayable: payable(balPlan, balDisc),
+      uploadPayable: displayPayable(upPlan, upDisc, resolved?.upload),
+      revisionPayable: displayPayable(revPlan, revDisc, resolved?.revision),
+      balancePayable: displayPayable(balPlan, balDisc, resolved?.balance),
     };
-  }, [upPlan, upDisc, revPlan, revDisc, balPlan, balDisc]);
+  }, [upPlan, upDisc, revPlan, revDisc, balPlan, balDisc, resolved]);
 
   const onFinish = async (values) => {
     if (!baseline) {
@@ -119,11 +134,15 @@ export default function SketchPricing() {
     try {
       const patch = {};
       for (const k of FIELD_KEYS) {
-        const next = Number(values[k]);
-        const prev = Number(baseline[k]);
-        const a = Number.isFinite(next) ? next : 0;
-        const b = Number.isFinite(prev) ? prev : 0;
-        if (a !== b) patch[k] = a;
+        const nextRaw = values[k];
+        const prevRaw = baseline[k];
+        const next =
+          nextRaw == null || nextRaw === "" ? null : Number(nextRaw);
+        const prev =
+          prevRaw == null || prevRaw === "" ? null : Number(prevRaw);
+        const a = next != null && Number.isFinite(next) ? next : null;
+        const b = prev != null && Number.isFinite(prev) ? prev : null;
+        if (a !== b && a != null) patch[k] = a;
       }
       const body = stripUndefined(patch);
       if (Object.keys(body).length === 0) {
@@ -131,10 +150,9 @@ export default function SketchPricing() {
         return;
       }
       await patchAdminSurveySketchPricing(body);
-      const nextBaseline = { ...baseline, ...body };
-      setBaseline(nextBaseline);
-      form.setFieldsValue(nextBaseline);
       message.success("Sketch pricing updated");
+      // Reload so payable/source come from server (not client math alone).
+      await load();
     } catch (e) {
       message.error(e?.message || "Save failed");
     } finally {
@@ -143,6 +161,10 @@ export default function SketchPricing() {
   };
 
   if (!allowed) return null;
+
+  const uploadSource = formatSource(resolved?.upload?.source);
+  const revisionSource = formatSource(resolved?.revision?.source);
+  const balanceSource = formatSource(resolved?.balance?.source);
 
   return (
     <div>
@@ -153,7 +175,8 @@ export default function SketchPricing() {
           </Title>
           <Text type="secondary">
             Configure survey sketch upload, revision, and CAD download balance amounts (rupees). Only
-            changed fields are sent on save.
+            changed fields are sent on save. Payable amounts are resolved by the server (admin plan, or
+            env fallback when plan is unset).
           </Text>
         </div>
 
@@ -168,31 +191,27 @@ export default function SketchPricing() {
               layout="vertical"
               onFinish={onFinish}
               initialValues={{
-                sketchUploadPlanAmountRupees: 0,
-                sketchUploadDiscountRupees: 0,
-                sketchRevisionPlanAmountRupees: 0,
-                sketchRevisionDiscountRupees: 0,
-                sketchBalancePlanAmountRupees: 400,
-                sketchBalanceDiscountRupees: 0,
+                sketchUploadPlanAmountRupees: null,
+                sketchUploadDiscountRupees: null,
+                sketchRevisionPlanAmountRupees: null,
+                sketchRevisionDiscountRupees: null,
+                sketchBalancePlanAmountRupees: null,
+                sketchBalanceDiscountRupees: null,
               }}
             >
               <Title level={5}>Upload pricing</Title>
+              <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+                Leave plan empty to use the server env fee. Discount applies only when
+                a plan amount is set.
+              </Text>
               <Row gutter={16}>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchUploadPlanAmountRupees"
-                    label="Plan amount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
+                  <Form.Item name="sketchUploadPlanAmountRupees" label="Plan amount (₹)">
+                    <InputNumber min={0} style={{ width: "100%" }} placeholder="Unset (env fee)" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchUploadDiscountRupees"
-                    label="Discount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
+                  <Form.Item name="sketchUploadDiscountRupees" label="Discount (₹)">
                     <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
                   </Form.Item>
                 </Col>
@@ -203,20 +222,12 @@ export default function SketchPricing() {
               </Title>
               <Row gutter={16}>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchRevisionPlanAmountRupees"
-                    label="Plan amount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
+                  <Form.Item name="sketchRevisionPlanAmountRupees" label="Plan amount (₹)">
+                    <InputNumber min={0} style={{ width: "100%" }} placeholder="Unset (env fee)" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchRevisionDiscountRupees"
-                    label="Discount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
+                  <Form.Item name="sketchRevisionDiscountRupees" label="Discount (₹)">
                     <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
                   </Form.Item>
                 </Col>
@@ -226,46 +237,62 @@ export default function SketchPricing() {
                 CAD download balance (C-02)
               </Title>
               <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-                Second payment after CAD delivery. Set plan to 0 to rely on env default, or discount
-                plan to 0 payable to waive the gate.
+                Second payment after CAD delivery. Leave plan empty for env default, or set plan and
+                discount so payable is 0 to waive the gate.
               </Text>
               <Row gutter={16}>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchBalancePlanAmountRupees"
-                    label="Plan amount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <InputNumber min={0} style={{ width: "100%" }} placeholder="400" />
+                  <Form.Item name="sketchBalancePlanAmountRupees" label="Plan amount (₹)">
+                    <InputNumber min={0} style={{ width: "100%" }} placeholder="Unset (env fee)" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                  <Form.Item
-                    name="sketchBalanceDiscountRupees"
-                    label="Discount (₹)"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
+                  <Form.Item name="sketchBalanceDiscountRupees" label="Discount (₹)">
                     <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
                   </Form.Item>
                 </Col>
               </Row>
 
-              <Card size="small" type="inner" title="Computed payable (preview)" style={{ marginBottom: 16 }}>
+              <Card
+                size="small"
+                type="inner"
+                title="Resolved payable (from server)"
+                style={{ marginBottom: 16 }}
+                data-testid="resolved-payable"
+              >
                 <Row gutter={[16, 8]}>
                   <Col span={12}>
                     <Text strong>Upload payable</Text>
+                    {uploadSource ? (
+                      <Text type="secondary" style={{ display: "block", fontSize: 12 }}>
+                        source: {uploadSource}
+                        {resolved?.upload?.feePaise != null
+                          ? ` · ${resolved.upload.feePaise} paise`
+                          : ""}
+                      </Text>
+                    ) : null}
                   </Col>
                   <Col span={12} style={{ textAlign: "right" }}>
                     ₹{computed.uploadPayable.toFixed(2)}
                   </Col>
                   <Col span={12}>
                     <Text strong>Revision payable</Text>
+                    {revisionSource ? (
+                      <Text type="secondary" style={{ display: "block", fontSize: 12 }}>
+                        source: {revisionSource}
+                      </Text>
+                    ) : null}
                   </Col>
                   <Col span={12} style={{ textAlign: "right" }}>
                     ₹{computed.revisionPayable.toFixed(2)}
                   </Col>
                   <Col span={12}>
                     <Text strong>Balance payable</Text>
+                    {balanceSource ? (
+                      <Text type="secondary" style={{ display: "block", fontSize: 12 }}>
+                        source: {balanceSource}
+                      </Text>
+                    ) : null}
                   </Col>
                   <Col span={12} style={{ textAlign: "right" }}>
                     ₹{computed.balancePayable.toFixed(2)}
