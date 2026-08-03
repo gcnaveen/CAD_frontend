@@ -75,7 +75,18 @@
   color: var(--accent-color) !important;
 }
 
-/* Responsive: smaller padding on mobile */
+/* Responsive: hide sider rail on mobile; overlay when open (MOBILE-01) */
+.superadmin-sider-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
 @media (max-width: 768px) {
   .superadmin-content {
     margin: 16px !important;
@@ -92,6 +103,11 @@
 
   .superadmin-logout .anticon {
     margin-inline-end: 0;
+  }
+
+  .superadmin-trigger {
+    min-width: 44px !important;
+    min-height: 44px !important;
   }
 }
 

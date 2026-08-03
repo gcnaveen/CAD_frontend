@@ -11,15 +11,14 @@ import {
   PenLine,
   Sparkles,
 } from "lucide-react";
-import { getCadOperatorEarningsRules } from "../services/public/businessRulesService.js";
-import { FALLBACK_CAD_OPERATOR_EARNINGS } from "../utils/cadOperatorEarnings.js";
+import { getPublicBusinessRules } from "../services/public/businessRulesService.js";
 
 const FEATURE_ICONS = [Wallet, Zap, ShieldCheck, Layers, PenLine, Sparkles];
 
 const FALLBACK_FEATURES = [
   {
     title: "Per-drawing payouts",
-    body: "Fixed ₹400 operator earnings on each standard approved drawing (₹500 order).",
+    body: "Operator earnings follow the current platform payout rules on each standard approved drawing.",
   },
   {
     title: "Rapid settlement",
@@ -48,7 +47,8 @@ const Autocadskills = () => {
   const sectionRef = useRef(null);
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.autocadskills;
-  const [earnings, setEarnings] = useState(FALLBACK_CAD_OPERATOR_EARNINGS);
+  const [earnings, setEarnings] = useState(null);
+  const [earningsFromApi, setEarningsFromApi] = useState(false);
 
   const featureDefs = tr?.features?.length ? tr.features : FALLBACK_FEATURES;
   const verticalLabels = tr?.verticalLabels?.length
@@ -57,8 +57,10 @@ const Autocadskills = () => {
 
   useEffect(() => {
     let cancelled = false;
-    getCadOperatorEarningsRules().then((rules) => {
-      if (!cancelled && rules) setEarnings(rules);
+    getPublicBusinessRules().then((rules) => {
+      if (cancelled) return;
+      setEarnings(rules.cadOperatorEarnings);
+      setEarningsFromApi(Boolean(rules.fromApi));
     });
     return () => {
       cancelled = true;
@@ -69,18 +71,24 @@ const Autocadskills = () => {
     const root = sectionRef.current;
     if (!root) return;
     const nodes = root.querySelectorAll(".cad-skill-reveal");
+    const timers = [];
+    const frames = [];
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
           const el = entry.target;
           const d = Number(el.dataset.delay || 0);
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0)";
-            }, d);
-          });
+          frames.push(
+            requestAnimationFrame(() => {
+              timers.push(
+                setTimeout(() => {
+                  el.style.opacity = "1";
+                  el.style.transform = "translateY(0)";
+                }, d),
+              );
+            }),
+          );
           io.unobserve(el);
         });
       },
@@ -92,7 +100,11 @@ const Autocadskills = () => {
       el.style.transition = "opacity 0.65s ease, transform 0.65s ease";
       io.observe(el);
     });
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      frames.forEach(cancelAnimationFrame);
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   return (
@@ -327,29 +339,36 @@ const Autocadskills = () => {
               color: "rgba(248,250,252,0.9)",
             }}
           >
-            {tr?.bottomFeePrefix || "Typical survey drawing fee on North-cot —"}{" "}
-            <span
-              style={{
-                color: "var(--brand-gold)",
-                fontFamily: "'IBM Plex Serif', Georgia, serif",
-                fontSize: "1.15em",
-              }}
-            >
-              ₹{earnings.standardOrderGrossRupees}
-            </span>{" "}
-            <span
-              style={{
-                color: "rgba(226,232,240,0.55)",
-                fontWeight: 500,
-                fontSize: "0.92em",
-              }}
-            >
-              {tr?.operatorSharePrefix || "(operator earnings fixed"}{" "}
-              <span style={{ color: "rgba(201,168,76,0.95)" }}>
-                ₹{earnings.payoutRupees}
-              </span>
-              {tr?.operatorShareSuffix || ")"}
-            </span>
+            {earningsFromApi && earnings ? (
+              <>
+                {tr?.bottomFeePrefix || "Typical survey drawing fee on North-cot —"}{" "}
+                <span
+                  style={{
+                    color: "var(--brand-gold)",
+                    fontFamily: "'IBM Plex Serif', Georgia, serif",
+                    fontSize: "1.15em",
+                  }}
+                >
+                  ₹{earnings.standardOrderGrossRupees}
+                </span>{" "}
+                <span
+                  style={{
+                    color: "rgba(226,232,240,0.55)",
+                    fontWeight: 500,
+                    fontSize: "0.92em",
+                  }}
+                >
+                  {tr?.operatorSharePrefix || "(operator earnings fixed"}{" "}
+                  <span style={{ color: "rgba(201,168,76,0.95)" }}>
+                    ₹{earnings.payoutRupees}
+                  </span>
+                  {tr?.operatorShareSuffix || ")"}
+                </span>
+              </>
+            ) : (
+              tr?.bottomFeeFallback ||
+              "Live drawing fees and operator earnings are published by the platform pricing rules."
+            )}
           </p>
           <p
             style={{
@@ -358,8 +377,11 @@ const Autocadskills = () => {
               color: "rgba(226,232,240,0.5)",
             }}
           >
-            {tr?.bottomDisclaimer ||
-              `On ₹${earnings.standardOrderGrossRupees} = booking ₹${earnings.bookingRupees} + balance ₹${earnings.balanceRupees}. Rates from current business rules.`}
+            {earningsFromApi && earnings
+              ? tr?.bottomDisclaimer ||
+                `On ₹${earnings.standardOrderGrossRupees} = booking ₹${earnings.bookingRupees} + balance ₹${earnings.balanceRupees}. Rates from current business rules.`
+              : tr?.bottomDisclaimerFallback ||
+                "Exact amounts are confirmed at assignment and payout time."}
           </p>
         </div>
 

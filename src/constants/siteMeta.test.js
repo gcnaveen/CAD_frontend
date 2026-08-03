@@ -3,6 +3,9 @@ import {
   isIndexablePath,
   titleForPath,
   BRAND_NAME,
+  SUPPORT_EMAIL,
+  DEFAULT_SUPPORT_WHATSAPP_PHONE,
+  getWhatsAppSupportUrl,
 } from "./siteMeta.js";
 
 describe("siteMeta indexing (L-01)", () => {
@@ -28,5 +31,17 @@ describe("siteMeta indexing (L-01)", () => {
     expect(titleForPath("/")).toContain(BRAND_NAME);
     expect(titleForPath("/login")).toContain(BRAND_NAME);
     expect(titleForPath("/dashboard/user")).toBe(`${BRAND_NAME} App`);
+  });
+});
+
+describe("siteMeta support contact (CONTACT-01 / SUPPORT-01)", () => {
+  it("exposes a single canonical support email", () => {
+    expect(SUPPORT_EMAIL).toBe("support@northcot.in");
+  });
+
+  it("builds a WhatsApp URL from the default support phone", () => {
+    const url = getWhatsAppSupportUrl();
+    expect(url).toContain(DEFAULT_SUPPORT_WHATSAPP_PHONE);
+    expect(url).toMatch(/^https:\/\/api\.whatsapp\.com\//);
   });
 });

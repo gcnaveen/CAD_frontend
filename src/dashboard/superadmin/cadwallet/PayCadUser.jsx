@@ -30,7 +30,7 @@ import {
   ReloadOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
-import { ROLES, resolveStoredUserRole } from "../../../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../../constants/roles.js";
 import { formatUserDisplayLabel } from "../../../services/assignmentApi.js";
 import {
   getCadWalletPendingSummary,
@@ -208,7 +208,9 @@ export default function PayCadUser() {
   const navigate = useNavigate();
   const roleFromRedux = useSelector((s) => s.auth?.role);
   const userRoleFromRedux = useSelector((s) => s.auth?.user?.role);
-  const currentRole = resolveStoredUserRole(roleFromRedux, userRoleFromRedux);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromRedux, userRoleFromRedux)
+  );
   const allowed = ALLOWED_ROLES.includes(currentRole);
 
   const [payForm] = Form.useForm();
@@ -729,6 +731,7 @@ export default function PayCadUser() {
                           columns={entryColumns}
                           dataSource={row.entries}
                           pagination={false}
+                          scroll={{ x: "max-content" }}
                         />
                       ),
                       rowExpandable: (row) => (row.entries?.length ?? 0) > 0,

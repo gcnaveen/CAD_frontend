@@ -51,7 +51,10 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
 
   // Load districts on mount
   useEffect(() => {
-    setLoading((prev) => ({ ...prev, districts: true }));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoading((prev) => ({ ...prev, districts: true }));
+    });
     getActiveDistricts()
       .then((res) => {
         const items = normalizeList(res);
@@ -62,12 +65,17 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
         setDistricts([]);
       })
       .finally(() => setLoading((prev) => ({ ...prev, districts: false })));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load talukas when district changes
   useEffect(() => {
     if (!district) {
-      setTalukas((prev) => upsertEntity(prev, prefillEntities?.taluka));
+      queueMicrotask(() => {
+        setTalukas((prev) => upsertEntity(prev, prefillEntities?.taluka));
+      });
       // When prefilling drafts, backend may send district=null but still provide downstream fields.
       // Avoid wiping already-set values; keep the existing cascade-clear behavior otherwise.
       const hasDownstream =
@@ -79,7 +87,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
       }
       return;
     }
-    setLoading((prev) => ({ ...prev, talukas: true }));
+    queueMicrotask(() => setLoading((prev) => ({ ...prev, talukas: true })));
     getTalukasByDistrict(district)
       .then((res) => {
         const items = normalizeList(res);
@@ -108,14 +116,16 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
   // Load hoblis when taluka changes
   useEffect(() => {
     if (!taluka) {
-      setHoblis((prev) => upsertEntity(prev, prefillEntities?.hobli));
+      queueMicrotask(() => {
+        setHoblis((prev) => upsertEntity(prev, prefillEntities?.hobli));
+      });
       const hasDownstream = !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
       if (!hasDownstream) {
         form.setFieldsValue({ hobli: undefined, village: undefined });
       }
       return;
     }
-    setLoading((prev) => ({ ...prev, hoblis: true }));
+    queueMicrotask(() => setLoading((prev) => ({ ...prev, hoblis: true })));
     getHoblisByTaluka(taluka)
       .then((res) => {
         const items = normalizeList(res);
@@ -142,14 +152,16 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
   // Load villages when hobli changes
   useEffect(() => {
     if (!hobli) {
-      setVillages((prev) => upsertEntity(prev, prefillEntities?.village));
+      queueMicrotask(() => {
+        setVillages((prev) => upsertEntity(prev, prefillEntities?.village));
+      });
       const hasVillage = !!form.getFieldValue("village");
       if (!hasVillage) {
         form.setFieldsValue({ village: undefined });
       }
       return;
     }
-    setLoading((prev) => ({ ...prev, villages: true }));
+    queueMicrotask(() => setLoading((prev) => ({ ...prev, villages: true })));
     getVillages({ hobliId: hobli })
       .then((res) => {
         const items = normalizeList(res);
@@ -177,9 +189,11 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
   // Ensure prefilled entities appear with labels even if parent chain is missing (e.g., district=null)
   useEffect(() => {
     if (!prefillEntities) return;
-    if (taluka) setTalukas((prev) => upsertEntity(prev, prefillEntities.taluka));
-    if (hobli) setHoblis((prev) => upsertEntity(prev, prefillEntities.hobli));
-    if (village) setVillages((prev) => upsertEntity(prev, prefillEntities.village));
+    queueMicrotask(() => {
+      if (taluka) setTalukas((prev) => upsertEntity(prev, prefillEntities.taluka));
+      if (hobli) setHoblis((prev) => upsertEntity(prev, prefillEntities.hobli));
+      if (village) setVillages((prev) => upsertEntity(prev, prefillEntities.village));
+    });
   }, [prefillEntities, taluka, hobli, village]);
 
   return (

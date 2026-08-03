@@ -1,6 +1,8 @@
 import apiClient from "./apiClient.js";
 import { getSketchUploadById } from "./surveyor/sketchUploadService.js";
 import { normalizeSurveySketchStatusesPayload } from "../utils/lifecycleQc.js";
+import { normalizeRoleKey, ROLES } from "../constants/roles.js";
+import { isSketchBookingUnpaid } from "../utils/sketchPaymentUtils.js";
 
 function handleError(error, fallbackMessage) {
   const message = error.response?.data?.message ?? error.message ?? fallbackMessage;
@@ -31,7 +33,10 @@ export function normalizeUserListFromApi(responseBody) {
 }
 
 export function filterCadRoleUsers(users) {
-  return (users || []).filter((u) => String(u?.role || "").toUpperCase() === "CAD");
+  return (users || []).filter((u) => {
+    const r = normalizeRoleKey(u?.role);
+    return r === ROLES.CAD || r === ROLES.CAD_USER;
+  });
 }
 
 /**
@@ -317,6 +322,9 @@ export function resolveAssignmentStatusFromEntity(entity) {
 /** Whether admin can pull back and reassign this sketch upload row. */
 export function canPullbackSketchEntity(entity) {
   if (!entity) return false;
+  // BIZ-10: unpaid bookings cannot progress (pullback included).
+  if (isSketchBookingUnpaid(entity)) return false;
+
   const assignmentSt = resolveAssignmentStatusFromEntity(entity);
   if (PULLBACK_ASSIGNMENT_STATUSES.has(assignmentSt)) return true;
 

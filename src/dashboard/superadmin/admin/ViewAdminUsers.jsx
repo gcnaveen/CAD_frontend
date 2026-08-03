@@ -15,26 +15,27 @@ import UserFormDrawer from "../../../components/users/UserFormDrawer.jsx";
 import { getUsersByRole, deleteUser } from "../../../services/user/userService.js";
 import { mapUserToRow } from "../../../utils/userListUtils.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title } = Typography;
 
-const ROLE_ADMIN = "ADMIN";
+const ROLE_ADMIN = ROLES.ADMIN;
 
 const ViewAdminUsers = () => {
   const navigate = useNavigate();
-  const userRole = useSelector((state) => state.auth?.role);
-  const currentRole = userRole || (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored)?.role : null;
-    } catch {
-      return null;
-    }
-  })();
+  const roleFromStore = useSelector((state) => state.auth?.role);
+  const userRoleFromStore = useSelector((state) => state.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromStore, userRoleFromStore)
+  );
 
   // Redirect ADMIN users away from this page
   React.useEffect(() => {
-    if (currentRole === "ADMIN") {
+    if (currentRole === ROLES.ADMIN) {
       message.warning("You do not have permission to access this page.");
       navigate("/superadmin/home", { replace: true });
     }

@@ -16,8 +16,8 @@ const EditDistricts = ({ initialValues, onCancel, onSubmit, loading = false }) =
   }, [initialValues, form]);
 
   const handleSubmit = (values) => {
+    // Do not reset here — parent closes drawer only after successful API response.
     onSubmit?.(values);
-    form.resetFields();
   };
 
   const handleCancel = () => {

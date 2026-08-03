@@ -1,0 +1,133 @@
+/* Ant Design shell overrides — loaded only with authenticated AntdShellProvider.
+   Kept out of the public homepage CSS critical path (M-05 / Lighthouse). */
+
+/* ══════════════════════════════════════════
+   CAD Upload Wizard — Ant Design overrides
+   (scoped to .upload-form-wrap)
+   ══════════════════════════════════════════ */
+
+.upload-form-wrap .ant-select-selector {
+  border-radius: 12px !important;
+  border-color: var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-ibm-plex-sans) !important;
+  font-weight: 600 !important;
+}
+.upload-form-wrap .ant-select-focused .ant-select-selector {
+  border-color: var(--user-accent-hover) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--user-accent) 25%, transparent) !important;
+}
+.upload-form-wrap .ant-input {
+  border-radius: 12px !important;
+  border-color: var(--border-color) !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-ibm-plex-sans) !important;
+  font-weight: 600 !important;
+}
+.upload-form-wrap .ant-input:focus {
+  border-color: var(--user-accent-hover) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--user-accent) 25%, transparent) !important;
+}
+.upload-form-wrap .ant-input-textarea textarea { border-radius: 12px !important; }
+.upload-form-wrap .ant-form-item-label > label {
+  font-family: var(--font-ibm-plex-sans) !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+}
+.upload-form-wrap .ant-form-item          { margin-bottom: 0 !important; }
+
+.upload-form-wrap .ant-select-dropdown {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+}
+.upload-form-wrap .ant-select-item-option,
+.upload-form-wrap .ant-select-item-option-content {
+  color: var(--text-primary) !important;
+}
+.upload-form-wrap .ant-select-item-option-selected,
+.upload-form-wrap .ant-select-item-option-active {
+  background-color: var(--bg-hover) !important;
+}
+.upload-form-wrap .ant-select-search__field,
+.upload-form-wrap .ant-select-selection-search-input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+.upload-form-wrap .ant-select-search__field::placeholder,
+.upload-form-wrap .ant-select-selection-search-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.upload-form-wrap .ant-checkbox-inner     { border-radius: 6px !important; }
+.upload-form-wrap .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: var(--user-accent) !important;
+  border-color: var(--user-accent) !important;
+}
+
+.upload-area-full .ant-upload.ant-upload-select {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  border: 2px dashed color-mix(in srgb, var(--user-accent) 35%, var(--border-color)) !important;
+  background: var(--user-accent-soft) !important;
+}
+.upload-area-full .ant-upload.ant-upload-select:hover {
+  border-color: var(--user-accent-hover) !important;
+  background: color-mix(in srgb, var(--user-accent-soft) 85%, var(--bg-primary)) !important;
+}
+.upload-area-full .ant-upload-list-picture-card .ant-upload-list-item {
+  border-radius: 12px !important;
+}
+
+.app-antd-message .ant-message-notice-content,
+.ant-message .ant-message-notice-content {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 8px 24px var(--homepage-card-shadow) !important;
+}
+
+.app-antd-notification .ant-notification-notice {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.app-antd-root .ant-table-thead th.ant-table-column-sort,
+.app-antd-root .ant-table-thead th.ant-table-column-has-sorters:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary);
+}
+
+.app-antd-root .ant-table-tbody td.ant-table-column-sort {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary);
+}
+
+.app-antd-root .ant-table-filter-trigger:hover {
+  background: var(--bg-hover) !important;
+}
+
+.app-antd-root .ant-table-wrapper,
+.table-component .ant-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-antd-root .ant-table,
+.table-component .ant-table {
+  min-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .app-antd-root .ant-table-content,
+  .table-component .ant-table-content {
+    overflow-x: auto !important;
+  }
+}

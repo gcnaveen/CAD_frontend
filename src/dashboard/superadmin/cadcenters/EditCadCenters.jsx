@@ -53,8 +53,8 @@ const EditCadCenters = ({ initialValues, onCancel, onSubmit, loading = false }) 
       status: values.status ?? "ACTIVE",
       capacity: values.capacity ?? 0,
     };
+    // Do not reset here — parent closes drawer only after successful API response.
     onSubmit?.(payload);
-    form.resetFields();
   };
 
   const handleCancel = () => {

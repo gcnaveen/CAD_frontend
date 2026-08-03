@@ -124,13 +124,13 @@ export default function DraftList({ className = "" }) {
                   </td>
                 </tr>
               ) : (
-                items.map((d) => {
+                items.map((d, idx) => {
                   const id = pickId(d);
                   const districtName = d?.district?.name ?? d?.districtName ?? d?.district;
                   const villageName = d?.village?.name ?? d?.villageName ?? d?.village;
                   const updatedAt = d?.updatedAt ?? d?.lastUpdated ?? d?.modifiedAt;
                   return (
-                    <tr key={id ?? Math.random()} className="hover:bg-[color-mix(in_srgb,var(--bg-hover)_85%,transparent)]">
+                    <tr key={id ?? `draft-row-${idx}`} className="hover:bg-[color-mix(in_srgb,var(--bg-hover)_85%,transparent)]">
                       <td className="px-4 py-3">{getLabel(d?.surveyType)}</td>
                       <td className="px-4 py-3">{getLabel(d?.surveyNo)}</td>
                       <td className="px-4 py-3">

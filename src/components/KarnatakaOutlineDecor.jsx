@@ -15,6 +15,8 @@ export default function KarnatakaOutlineDecor({ variant = "center" }) {
         src="/karnataka-outline.svg"
         alt=""
         className="karnataka-outline-decor__img"
+        width={255}
+        height={392}
         decoding="async"
         fetchPriority="low"
       />

@@ -15,12 +15,11 @@ export function useUserDisplayName() {
   const token = useSelector((s) => s.auth?.token);
   const authRehydrated = useSelector((s) => s.auth?._persist?.rehydrated);
 
-  const [displayName, setDisplayName] = useState(() => resolveUserNameOnly(null));
+  const localName = resolveUserNameOnly(authUser);
+  const [fetchedName, setFetchedName] = useState(null);
 
   useEffect(() => {
-    const localName = resolveUserNameOnly(authUser);
     if (localName) {
-      setDisplayName(localName);
       return undefined;
     }
 
@@ -34,11 +33,11 @@ export function useUserDisplayName() {
           response?.user ??
           response?.data ??
           response;
-        const fetchedName = getUserNameOnly(profileUser) || getUserDisplayName(profileUser);
+        const name = getUserNameOnly(profileUser) || getUserDisplayName(profileUser);
 
-        if (cancelled || !fetchedName) return;
+        if (cancelled || !name) return;
 
-        setDisplayName(fetchedName);
+        setFetchedName(name);
         dispatch(
           setCredentials({
             token,
@@ -53,8 +52,9 @@ export function useUserDisplayName() {
     return () => {
       cancelled = true;
     };
-  }, [authUser, authRehydrated, dispatch, token]);
+  }, [localName, authUser, authRehydrated, dispatch, token]);
 
+  const displayName = localName || fetchedName || resolveUserNameOnly(null);
   const userName = displayName || "User";
   const userInitial = displayName ? getUserInitial(displayName) : "U";
 

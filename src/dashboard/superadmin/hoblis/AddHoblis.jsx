@@ -26,13 +26,14 @@ const AddHoblis = ({ onCancel, onSubmit, loading = false, talukaId, districtId }
 
   useEffect(() => {
     if (!selectedDistrict) {
-      setTalukas([]);
       return;
     }
     getTalukasByDistrict(selectedDistrict)
       .then((res) => setTalukas(normalizeList(res)))
       .catch(() => setTalukas([]));
   }, [selectedDistrict]);
+
+  const talukaOptions = selectedDistrict ? talukas : [];
 
   useEffect(() => {
     if (districtId) form.setFieldValue("district", districtId);
@@ -108,7 +109,7 @@ const AddHoblis = ({ onCancel, onSubmit, loading = false, talukaId, districtId }
             size="large"
             showSearch
             optionFilterProp="label"
-            options={talukas.map((t) => ({
+            options={talukaOptions.map((t) => ({
               value: t._id ?? t.id,
               label: t.name,
             }))}

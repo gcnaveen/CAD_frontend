@@ -15,6 +15,7 @@ export const translations = {
       auth: {
         login: "Login",
         logout: "Logout",
+        dashboard: "Dashboard",
       },
       langToggle: {
         activeEn: "EN",
@@ -28,11 +29,11 @@ export const translations = {
       eyebrow: "Karnataka Land Surveyors",
       title: "Every Land Transaction Needs a Drawing — Get Yours in 48 Hours.",
       subtitle:
-        "Upload your Tippani and survey documents from your smartphone and receive a professionally prepared, QC-reviewed AutoCAD drawing within 48 hours — without travelling to a CAD centre. Fixed ₹500 per drawing, every time, for licensed land surveyors across Karnataka. North-cot is for Karnataka surveyors only; we do not accept orders or registrations from other states.",
+        "Upload your Tippani and survey documents from your smartphone and receive a professionally prepared, QC-reviewed AutoCAD drawing within 48 hours — without travelling to a CAD centre. Transparent platform pricing for licensed land surveyors across Karnataka. North-cot is for Karnataka surveyors only; we do not accept orders or registrations from other states.",
       ctaPrimary: "Upload Your Drawing",
       ctaSecondary: "How It Works",
       stats: {
-        priceValue: "₹500",
+        priceValue: "Checkout",
         priceLabel: "per drawing",
         deliveryValue: "48hr",
         deliveryLabel: "delivery",
@@ -65,7 +66,7 @@ export const translations = {
       solutions: [
         "No travel required — upload from anywhere",
         "Works entirely from your smartphone",
-        "Fixed ₹500 price, every time",
+        "Transparent platform pricing, every time",
         "Delivered in 48 hours, QC-reviewed",
       ],
       featureCards: [
@@ -122,7 +123,7 @@ export const translations = {
         {
           title: "Upload Your Documents",
           description:
-            "Log in, enter land details, upload your survey documents, and pay ₹100 to confirm your order.",
+            "Log in, enter land details, upload your survey documents, and pay the booking fee shown at checkout to confirm your order.",
         },
         {
           title: "Admin Reviews and Assigns",
@@ -137,7 +138,7 @@ export const translations = {
         {
           title: "QC Approved. Download Your Drawing.",
           description:
-            "After QC approval you get notified. Pay ₹400 and download your DWG + PDF securely.",
+            "After QC approval you get notified. Pay the remaining balance shown in the app and download your DWG + PDF securely.",
         },
       ],
       cta: "Get Started Now",
@@ -391,6 +392,7 @@ export const translations = {
       auth: {
         login: "ಲಾಗಿನ್",
         logout: "ಲಾಗೌಟ್",
+        dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
       },
       langToggle: {
         activeEn: "EN",
@@ -404,11 +406,11 @@ export const translations = {
       eyebrow: "ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗಾಗಿ",
       title: "ಪ್ರತಿ ಭೂಮಿ ವ್ಯವಹಾರಕ್ಕೆ ಡ್ರಾಯಿಂಗ್ ಬೇಕು — 48 ಗಂಟೆಯಲ್ಲಿ ಪಡೆಯಿರಿ.",
       subtitle:
-        "ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಟಿಪ್ಪಣಿ ಮತ್ತು ಸರ್ವೇ ದಾಖಲೆಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ. QC-ಪರಿಶೀಲಿತ AutoCAD ಡ್ರಾಯಿಂಗ್ 48 ಗಂಟೆಯಲ್ಲಿ ನಿಮ್ಮ ಫೋನ್‌ಗೆ ಬರುತ್ತದೆ. ಸ್ಥಿರ ₹500 ಬೆಲೆ. North-cot ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗೆ ಮಾತ್ರ; ಇತರ ರಾಜ್ಯಗಳಿಂದ ಆರ್ಡರ್ ಅಥವಾ ನೋಂದಣಿ ಸ್ವೀಕರಿಸುವುದಿಲ್ಲ.",
+        "ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್‌ಫೋನ್‌ನಿಂದ ಟಿಪ್ಪಣಿ ಮತ್ತು ಸರ್ವೇ ದಾಖಲೆಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ. QC-ಪರಿಶೀಲಿತ AutoCAD ಡ್ರಾಯಿಂಗ್ 48 ಗಂಟೆಯಲ್ಲಿ ನಿಮ್ಮ ಫೋನ್‌ಗೆ ಬರುತ್ತದೆ. ಪಾರದರ್ಶಕ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಬೆಲೆ. North-cot ಕರ್ನಾಟಕ ಭೂಮಾಪಕರಿಗೆ ಮಾತ್ರ; ಇತರ ರಾಜ್ಯಗಳಿಂದ ಆರ್ಡರ್ ಅಥವಾ ನೋಂದಣಿ ಸ್ವೀಕರಿಸುವುದಿಲ್ಲ.",
       ctaPrimary: "ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ",
       ctaSecondary: "ಹೇಗೆ ಕಾರ್ಯ ನಿರ್ವಹಿಸುತ್ತದೆ",
       stats: {
-        priceValue: "₹500",
+        priceValue: "ಚೆಕ್‌ಔಟ್",
         priceLabel: "ಪ್ರತಿ ಡ್ರಾಯಿಂಗ್",
         deliveryValue: "48hr",
         deliveryLabel: "ಡೆಲಿವರಿ",
@@ -705,7 +707,7 @@ export const translations = {
       ],
     },
     faq: {
-      kicker: "FAQ",
+      kicker: "ಪ್ರಶ್ನೋತ್ತರ",
       title: "ಭೂಮಾಪಕರು ಕೇಳುವ ಪ್ರಶ್ನೆಗಳು",
       subtitle:
         "ಆರ್ಡರ್, ಬೆಲೆ, ಪರಿಷ್ಕರಣೆ ಮತ್ತು ರಿಫಂಡ್ ಬಗ್ಗೆ ಸಂಕ್ಷಿಪ್ತ ಉತ್ತರಗಳು. ನಿಮಗೆ ಬೇಕಾದ ಭಾಷೆಯಲ್ಲಿ ಓದಲು ಹೆಡರ್‌ನಲ್ಲಿನ EN / ಕನ್ನಡ ಬಟನ್ ಬಳಸಿ.",

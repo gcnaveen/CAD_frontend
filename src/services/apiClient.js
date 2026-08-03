@@ -7,11 +7,14 @@ import {
 import {
   TOKEN_KEY,
   USER_KEY,
-  getStoredAccessToken,
+  getAccessToken,
+  setAccessToken,
+  clearAccessToken,
+  clearLegacyAuthStorage,
 } from "../utils/authToken.js";
+import { CSRF_HEADER_NAME, readCsrfTokenFromCookie } from "../utils/csrf.js";
 
 // Prefer VITE_API_BASE_URL when set; otherwise config.js stage API Gateway URL.
-// The baseURL should NOT include /api - endpoints already have /api prefix
 const baseURL =
   (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "") ||
   API_BASE_URL ||
@@ -54,16 +57,25 @@ function setRequestHeader(headers, name, value) {
   headers[name] = value;
 }
 
-// Request interceptor: auth + optional correlation id on mutating calls (M-07)
+function attachCsrfHeader(headers) {
+  const csrf = readCsrfTokenFromCookie();
+  if (csrf) {
+    setRequestHeader(headers, CSRF_HEADER_NAME, csrf);
+  }
+}
+
+// Request interceptor: auth + CSRF (cookie auth) + correlation id on mutating calls
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getStoredAccessToken();
+    const token = getAccessToken();
     if (token) {
       setRequestHeader(config.headers, "Authorization", `Bearer ${token}`);
     }
 
     const method = String(config.method || "get").toLowerCase();
     if (MUTATING_METHODS.has(method)) {
+      attachCsrfHeader(config.headers);
+
       const existing =
         config.headers?.["X-Correlation-Id"] ||
         config.headers?.["x-correlation-id"] ||
@@ -83,16 +95,76 @@ apiClient.interceptors.request.use(
 
 const AUTH_401_EXEMPT_PATHS = [
   "/api/auth/login",
+  "/api/auth/refresh",
+  "/api/auth/logout",
   "/api/auth/surveyor/verify-otp",
+  "/api/auth/surveyor/forgot-password/start",
   "/api/auth/surveyor/forgot-password/reset",
+  "/api/auth/surveyor/start",
+  "/api/auth/surveyor/complete",
+  "/api/auth/enrollment/complete",
+  "/api/auth/signup",
 ];
 
 function isAuth401Exempt(url = "") {
   return AUTH_401_EXEMPT_PATHS.some((path) => String(url).includes(path));
 }
 
-// Response interceptor: Handle 401 unauthorized; preserve correlation id on errors
-// Do NOT redirect for login/OTP flows — let the page show the error and keep form values
+/** Single-flight refresh so parallel 401s share one cookie renewal. */
+let refreshPromise = null;
+
+async function performTokenRefresh() {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  attachCsrfHeader(headers);
+
+  const { data } = await axios.post(`${baseURL}/api/auth/refresh`, {}, {
+    withCredentials: true,
+    headers,
+  });
+  const nested = data?.data ?? data;
+  const token =
+    (typeof nested?.accessToken === "string" && nested.accessToken.trim()) ||
+    (typeof nested?.access_token === "string" && nested.access_token.trim()) ||
+    (typeof nested?.token === "string" && nested.token.trim()) ||
+    (typeof data?.accessToken === "string" && data.accessToken.trim()) ||
+    "";
+  if (!token) {
+    throw new Error("No access token in refresh response");
+  }
+  setAccessToken(token);
+  if (storeRef?.dispatch) {
+    storeRef.dispatch({
+      type: "auth/setAccessTokenOnly",
+      payload: token,
+    });
+  }
+  return token;
+}
+
+function refreshAccessTokenSingleFlight() {
+  if (!refreshPromise) {
+    refreshPromise = performTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+function forceClientLogout() {
+  clearAccessToken();
+  clearLegacyAuthStorage();
+  if (storeRef?.dispatch) {
+    storeRef.dispatch({ type: "auth/logout" });
+  }
+  const path = window.location?.pathname || "";
+  if (!path.startsWith("/login")) {
+    window.location.assign("/login");
+  }
+}
+
+// Response interceptor: 401 → refresh once + retry; else logout
 apiClient.interceptors.response.use(
   (response) => {
     const cid = getCorrelationId(response);
@@ -101,19 +173,33 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     attachCorrelationId(error);
 
-    if (error.response?.status === 401) {
-      if (!isAuth401Exempt(error.config?.url)) {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-        if (storeRef?.dispatch) {
-          storeRef.dispatch({ type: "auth/logout" });
-        }
-        window.location.href = "/login";
+    const status = error.response?.status;
+    const config = error.config || {};
+
+    if (status === 401 && !isAuth401Exempt(config.url) && !config.skipAuthRefresh) {
+      if (config._retryAfterRefresh) {
+        forceClientLogout();
+        return Promise.reject(error);
+      }
+      try {
+        const newToken = await refreshAccessTokenSingleFlight();
+        config._retryAfterRefresh = true;
+        setRequestHeader(
+          config.headers || (config.headers = {}),
+          "Authorization",
+          `Bearer ${newToken}`
+        );
+        attachCsrfHeader(config.headers);
+        return apiClient.request(config);
+      } catch {
+        forceClientLogout();
+        return Promise.reject(error);
       }
     }
+
     return Promise.reject(error);
   }
 );

@@ -101,8 +101,8 @@ export async function getSketchUploads(params = {}) {
  *  limit?: number
  * }} params
  * Bucket rules (frontend; status query overrides API bucket when needed):
- * - active: PAYMENT_PENDING, PENDING, ASSIGNED, UNDER_REVISION
- * - completed: CAD_DELIVERED, APPROVED
+ * - active: PAYMENT_PENDING, PENDING, ASSIGNED, CAD_DELIVERED, UNDER_REVISION
+ * - completed: APPROVED
  * - cancelled: REJECTED
  * @returns {Promise<{ success: boolean, data: any[], meta: any }>}
  */

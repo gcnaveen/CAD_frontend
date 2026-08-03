@@ -1,6 +1,9 @@
 /**
  * M-05 media optimization — logos → WebP, hero poster, optional ffmpeg video variants.
  *
+ * Sources live in media-src/ (outside public/, so Vite never copies the large
+ * originals into dist). Optimized outputs are written to public/assets/.
+ *
  * Usage:
  *   node scripts/optimize-media.mjs
  *   node scripts/optimize-media.mjs --video   # requires ffmpeg on PATH
@@ -13,6 +16,7 @@ import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
+const sources = path.join(root, "media-src");
 const assets = path.join(root, "public", "assets");
 
 const wantVideo = process.argv.includes("--video");
@@ -21,10 +25,20 @@ function kb(n) {
   return `${(n / 1024).toFixed(1)} KB`;
 }
 
+// Prefer media-src/, but fall back to public/assets for originals that are also
+// shipped at runtime (e.g. logo.png is the live <img> fallback).
+function resolveSource(name) {
+  for (const dir of [sources, assets]) {
+    const candidate = path.join(dir, name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 async function toWebp(inputName, outputName, { width = 320, quality = 78 } = {}) {
-  const input = path.join(assets, inputName);
+  const input = resolveSource(inputName);
   const output = path.join(assets, outputName);
-  if (!fs.existsSync(input)) {
+  if (!input) {
     console.warn(`skip missing ${inputName}`);
     return null;
   }
@@ -42,9 +56,9 @@ async function toWebp(inputName, outputName, { width = 320, quality = 78 } = {})
 
 async function posterFromHero() {
   const candidates = ["hero.png", "herobgvideofinal.mp4"];
-  const heroPng = path.join(assets, "hero.png");
+  const heroPng = resolveSource("hero.png");
   const out = path.join(assets, "hero-poster.webp");
-  if (fs.existsSync(heroPng)) {
+  if (heroPng) {
     await sharp(heroPng)
       .resize({ width: 960, withoutEnlargement: true })
       .webp({ quality: 72, effort: 6 })
@@ -75,9 +89,9 @@ function optimizeVideos() {
     process.exitCode = 1;
     return;
   }
-  const src = path.join(assets, "herobgvideofinal.mp4");
+  const src = path.join(sources, "herobgvideofinal.mp4");
   if (!fs.existsSync(src)) {
-    console.error("missing herobgvideofinal.mp4");
+    console.error("missing media-src/herobgvideofinal.mp4");
     process.exitCode = 1;
     return;
   }
@@ -86,7 +100,7 @@ function optimizeVideos() {
   const mobileWebm = path.join(assets, "hero-mobile.webm");
   const desktopMp4 = path.join(assets, "hero-desktop.mp4");
   const desktopWebm = path.join(assets, "hero-desktop.webm");
-  const posterJpg = path.join(assets, "hero-poster-frame.jpg");
+  const posterJpg = path.join(sources, "hero-poster-frame.jpg");
 
   encodeVideo(
     [
@@ -201,7 +215,7 @@ async function main() {
 
   if (wantVideo) {
     optimizeVideos();
-    const frame = path.join(assets, "hero-poster-frame.jpg");
+    const frame = path.join(sources, "hero-poster-frame.jpg");
     if (fs.existsSync(frame)) {
       await sharp(frame)
         .resize({ width: 960, withoutEnlargement: true })

@@ -10,6 +10,7 @@ import {
   readSketchPaymentContext,
   resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils.js";
+import { getSketchStatusLabel } from "../utils/lifecycleQc.js";
 
 const { Paragraph, Text } = Typography;
 
@@ -203,7 +204,8 @@ export default function PaymentSuccessPage() {
             )}
             {upload?.status && (
               <Paragraph className="mb-0">
-                <Text strong>Order status:</Text> {upload.status}
+                <Text strong>Order status:</Text>{" "}
+                {getSketchStatusLabel(upload.status) || upload.status}
               </Paragraph>
             )}
             {!pollExhausted && (
@@ -256,7 +258,8 @@ export default function PaymentSuccessPage() {
             )}
             {upload?.status && (
               <Paragraph className="mb-0">
-                <Text strong>Order status:</Text> {upload.status}
+                <Text strong>Order status:</Text>{" "}
+                {getSketchStatusLabel(upload.status) || upload.status}
               </Paragraph>
             )}
             <Paragraph className="mb-0" style={{ marginTop: 8 }}>

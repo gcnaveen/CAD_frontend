@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { TOKEN_KEY, USER_KEY } from "../config/axiosInstance.js";
-import { toggleLanguage } from "../features/i18n/languageSlice";
+import { setLanguage } from "../features/i18n/languageSlice";
 import { t } from "../constants/translation";
 import { useTheme } from "../theme/useTheme.js";
 import { ArrowUpRight } from "lucide-react";
 import ThemeToggle from "./ThemeToggle.jsx";
 import InstallButton from "./pwa/InstallButton.jsx";
+import { getRedirectForRole } from "../utils/authRedirect.js";
+import { resolveStoredUserRole } from "../constants/roles.js";
 
 const FALLBACK_LOGO = "/assets/logo.webp";
 const FALLBACK_LOGO_PNG = "/assets/logo.png";
@@ -22,28 +23,19 @@ const NAV_LINKS = [
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const lang = useSelector((state) => state.language?.lang || "en");
+  const authToken = useSelector((state) => state.auth?.token);
+  const authRole = useSelector((state) =>
+    resolveStoredUserRole(state.auth?.role, state.auth?.user?.role),
+  );
+  const isLoggedIn = Boolean(authToken);
   const { resolvedTheme } = useTheme();
 
   const logoSrc =
     resolvedTheme === "dark" ? FALLBACK_LOGO : "/assets/logoblack.webp";
-
-  useEffect(() => {
-    const stored = localStorage.getItem(USER_KEY);
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-  }, [location.pathname]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -51,17 +43,8 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const getRedirectForRole = (role) => {
-    const r = (role || "").toUpperCase();
-    if (r === "SUPER_ADMIN" || r === "ADMIN") return "/superadmin";
-    if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
-    if (r === "SURVEYOR" || r === "USER" || r === "CUSTOMER")
-      return "/dashboard/user";
-    return "/login";
-  };
-
   const handleLoginClick = () => {
-    const dest = user?.role ? getRedirectForRole(user.role) : "/login";
+    const dest = isLoggedIn ? getRedirectForRole(authRole) : "/login";
     setIsMobileMenuOpen(false);
     navigate(dest);
   };
@@ -184,6 +167,8 @@ const Header = () => {
               <img
                 src={logoSrc}
                 alt="North-cot"
+                width={180}
+                height={58}
                 decoding="async"
                 style={{
                   height: "58px",
@@ -234,9 +219,9 @@ const Header = () => {
               style={{ alignItems: "center", gap: "12px", flexShrink: 0 }}
             >
               <ThemeToggle variant="compact" />
-              {/* Language toggle */}
-              <button
-                onClick={() => dispatch(toggleLanguage())}
+              {/* Language toggle — accessible names match visible EN / ಕನ್ನಡ */}
+              <div
+                role="group"
                 aria-label={t(lang, "header.langToggle.ariaLabel")}
                 style={{
                   display: "flex",
@@ -246,32 +231,41 @@ const Header = () => {
                   borderRadius: "10px",
                   padding: "3px",
                   gap: "2px",
-                  border: "none",
-                  cursor: "pointer",
                 }}
               >
-                {["en", "kn"].map((l) => (
-                  <span
-                    key={l}
-                    className={
-                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
-                    }
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: "7px",
-                      fontSize: "12px",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {t(
-                      l,
-                      l === "en"
-                        ? "header.langToggle.activeEn"
-                        : "header.langToggle.activeKn",
-                    )}
-                  </span>
-                ))}
-              </button>
+                {["en", "kn"].map((l) => {
+                  const label = t(
+                    l,
+                    l === "en"
+                      ? "header.langToggle.activeEn"
+                      : "header.langToggle.activeKn",
+                  );
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => dispatch(setLanguage(l))}
+                      aria-label={label}
+                      aria-pressed={lang === l}
+                      className={
+                        lang === l ? "lang-btn-active" : "lang-btn-inactive"
+                      }
+                      style={{
+                        padding: "5px 12px",
+                        minHeight: "44px",
+                        minWidth: "44px",
+                        borderRadius: "7px",
+                        fontSize: "12px",
+                        transition: "all 0.2s ease",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
 
               <InstallButton
                 size="middle"
@@ -290,6 +284,7 @@ const Header = () => {
                   alignItems: "center",
                   gap: "7px",
                   padding: "9px 22px",
+                  minHeight: "44px",
                   borderRadius: "11px",
                   background: "var(--homepage-cta-bg)",
                   color: "var(--homepage-cta-fg)",
@@ -301,7 +296,9 @@ const Header = () => {
                   boxShadow: "0 6px 20px var(--homepage-card-shadow)",
                 }}
               >
-                {t(lang, "header.auth.login")}
+                {isLoggedIn
+                  ? t(lang, "header.auth.dashboard")
+                  : t(lang, "header.auth.login")}
                 <ArrowUpRight size={14} />
               </button>
             </div>
@@ -312,9 +309,8 @@ const Header = () => {
               style={{ display: "none", alignItems: "center", gap: "8px", flexShrink: 0 }}
             >
               <ThemeToggle variant="compact" />
-              <button
-                type="button"
-                onClick={() => dispatch(toggleLanguage())}
+              <div
+                role="group"
                 aria-label={t(lang, "header.langToggle.ariaLabel")}
                 style={{
                   display: "flex",
@@ -324,32 +320,41 @@ const Header = () => {
                   borderRadius: "10px",
                   padding: "2px",
                   gap: "2px",
-                  border: "none",
-                  cursor: "pointer",
                 }}
               >
-                {["en", "kn"].map((l) => (
-                  <span
-                    key={l}
-                    className={
-                      lang === l ? "lang-btn-active" : "lang-btn-inactive"
-                    }
-                    style={{
-                      padding: "4px 9px",
-                      borderRadius: "7px",
-                      fontSize: "11px",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {t(
-                      l,
-                      l === "en"
-                        ? "header.langToggle.activeEn"
-                        : "header.langToggle.activeKn",
-                    )}
-                  </span>
-                ))}
-              </button>
+                {["en", "kn"].map((l) => {
+                  const label = t(
+                    l,
+                    l === "en"
+                      ? "header.langToggle.activeEn"
+                      : "header.langToggle.activeKn",
+                  );
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => dispatch(setLanguage(l))}
+                      aria-label={label}
+                      aria-pressed={lang === l}
+                      className={
+                        lang === l ? "lang-btn-active" : "lang-btn-inactive"
+                      }
+                      style={{
+                        padding: "4px 9px",
+                        minHeight: "44px",
+                        minWidth: "44px",
+                        borderRadius: "7px",
+                        fontSize: "11px",
+                        transition: "all 0.2s ease",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -358,8 +363,8 @@ const Header = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: "42px",
-                  height: "42px",
+                  width: "44px",
+                  height: "44px",
                   borderRadius: "10px",
                   background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
                   border: "1px solid var(--homepage-cream-border)",
@@ -424,8 +429,10 @@ const Header = () => {
                 key={key}
                 onClick={() => scrollToSection(section)}
                 style={{
-                  display: "block",
+                  display: "flex",
+                  alignItems: "center",
                   width: "100%",
+                  minHeight: "44px",
                   textAlign: "left",
                   padding: "11px 14px",
                   borderRadius: "10px",
@@ -497,7 +504,9 @@ const Header = () => {
                   letterSpacing: "0.03em",
                 }}
               >
-                {t(lang, "header.auth.login")}
+                {isLoggedIn
+                  ? t(lang, "header.auth.dashboard")
+                  : t(lang, "header.auth.login")}
                 <ArrowUpRight size={14} />
               </button>
             </div>

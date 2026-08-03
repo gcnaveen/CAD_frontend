@@ -63,8 +63,16 @@ export default defineConfig(({ mode }) => ({
         // Keep large hero video out of precache; logos/webm still optional via runtime.
         // Do not precache HTML: cached document Responses retain stale
         // Permissions-Policy and can block getUserMedia after header deploys.
+        // Do NOT precache the ~1.5MB antd `es-*.js` chunk (or other oversized
+        // dashboard async chunks): SW install on `/` would download them and
+        // Lighthouse flags them as unused JS even though Homepage never executes them.
         globPatterns: ["**/*.{js,css,ico,svg,woff2,webp}"],
-        globIgnores: ["**/hero-*.{mp4,webm}", "**/herobgvideofinal.mp4"],
+        globIgnores: [
+          "**/hero-*.{mp4,webm}",
+          "**/herobgvideofinal.mp4",
+          "**/es-*.js",
+        ],
+        maximumFileSizeToCacheInBytes: 350 * 1024,
         navigateFallback: null,
         runtimeCaching: [
           {

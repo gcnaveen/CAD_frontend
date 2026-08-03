@@ -6,9 +6,7 @@ import {
   computeSketchSubmitAmountRupees,
   buildSketchCheckoutBreakdown,
   normalizeSurveyorSketchPricingPayload,
-  GOOGLE_SUPERIMPOSE_CHARGE,
-  GST_RATE,
-  FALLBACK_SURVEYOR_SKETCH_PRICING,
+  getSuperimposeAddOnRupees,
 } from "./sketchPricingCompute.js";
 
 describe("computeSketchTierPayable", () => {
@@ -36,9 +34,9 @@ describe("computeSketchTierPayable", () => {
       computeSketchTierPayable({
         planAmountRupees: 0,
         discountRupees: 0,
-        feePaise: 150,
+        feePaise: 10000,
       })
-    ).toBe(1.5);
+    ).toBe(100);
   });
 
   it("prefers explicit payableRupees from API", () => {
@@ -94,13 +92,35 @@ describe("feePaiseToRupees", () => {
   });
 });
 
-describe("checkout amounts", () => {
-  const upload = { planAmountRupees: 100, discountRupees: 0, feePaise: 0 };
-  const revision = { planAmountRupees: 50, discountRupees: 10, feePaise: 0 };
+describe("getSuperimposeAddOnRupees", () => {
+  it("returns 0 when server omits add-on", () => {
+    expect(getSuperimposeAddOnRupees({})).toBe(0);
+    expect(getSuperimposeAddOnRupees(null)).toBe(0);
+  });
 
-  it("adds GST on upload tier", () => {
-    const base = 100;
-    const expected = base + base * GST_RATE;
+  it("reads payableRupees / feePaise / amountRupees from common shapes", () => {
+    expect(getSuperimposeAddOnRupees({ superimpose: { payableRupees: 150 } })).toBe(150);
+    expect(getSuperimposeAddOnRupees({ googleSuperimpose: { feePaise: 20000 } })).toBe(200);
+    expect(getSuperimposeAddOnRupees({ addons: { superimpose: { amountRupees: 75 } } })).toBe(75);
+    expect(getSuperimposeAddOnRupees({ superimposeAddOnRupees: 90 })).toBe(90);
+  });
+
+  it("derives add-on from uploadWithSuperimpose minus upload", () => {
+    expect(
+      getSuperimposeAddOnRupees({
+        upload: { payableRupees: 100 },
+        uploadWithSuperimpose: { payableRupees: 300 },
+      })
+    ).toBe(200);
+  });
+});
+
+describe("checkout amounts", () => {
+  const upload = { planAmountRupees: 100, discountRupees: 0, feePaise: 0, payableRupees: 100 };
+  const revision = { planAmountRupees: 50, discountRupees: 10, feePaise: 0, payableRupees: 40 };
+  const superimposeAddOnRupees = 150;
+
+  it("uses backend payable without inventing GST", () => {
     expect(
       computeSketchSubmitAmountRupees({
         uploadTier: upload,
@@ -108,12 +128,22 @@ describe("checkout amounts", () => {
         isRevision: false,
         isGoogleSuperimpose: false,
       })
-    ).toBeCloseTo(expected);
+    ).toBe(100);
   });
 
-  it("adds Google superimpose + GST", () => {
-    const base = 100 + GOOGLE_SUPERIMPOSE_CHARGE;
-    const expected = base + base * GST_RATE;
+  it("adds server superimpose add-on only (no invented GST)", () => {
+    expect(
+      computeSketchSubmitAmountRupees({
+        uploadTier: upload,
+        revisionTier: revision,
+        isRevision: false,
+        isGoogleSuperimpose: true,
+        superimposeAddOnRupees,
+      })
+    ).toBe(100 + superimposeAddOnRupees);
+  });
+
+  it("charges 0 superimpose add-on when server omits it", () => {
     expect(
       computeSketchSubmitAmountRupees({
         uploadTier: upload,
@@ -121,11 +151,10 @@ describe("checkout amounts", () => {
         isRevision: false,
         isGoogleSuperimpose: true,
       })
-    ).toBeCloseTo(expected);
+    ).toBe(100);
   });
 
   it("uses revision tier when isRevision", () => {
-    const base = 40;
     expect(
       computeSketchSubmitAmountRupees({
         uploadTier: upload,
@@ -133,7 +162,19 @@ describe("checkout amounts", () => {
         isRevision: true,
         isGoogleSuperimpose: false,
       })
-    ).toBeCloseTo(base + base * GST_RATE);
+    ).toBe(40);
+  });
+
+  it("adds API-provided gstAmountRupees when present", () => {
+    expect(
+      computeSketchSubmitAmountRupees({
+        uploadTier: upload,
+        revisionTier: revision,
+        isRevision: false,
+        isGoogleSuperimpose: false,
+        gstAmountRupees: 18,
+      })
+    ).toBe(118);
   });
 
   it("buildSketchCheckoutBreakdown matches submit amount", () => {
@@ -142,14 +183,17 @@ describe("checkout amounts", () => {
       revision,
       isRevision: false,
       isGoogleSuperimpose: true,
+      superimposeAddOnRupees,
     });
-    expect(breakdown.googleFeeRupees).toBe(GOOGLE_SUPERIMPOSE_CHARGE);
-    expect(breakdown.finalPayableRupees).toBeCloseTo(
+    expect(breakdown.googleFeeRupees).toBe(superimposeAddOnRupees);
+    expect(breakdown.gstAmountRupees).toBe(0);
+    expect(breakdown.finalPayableRupees).toBe(
       computeSketchSubmitAmountRupees({
         uploadTier: upload,
         revisionTier: revision,
         isRevision: false,
         isGoogleSuperimpose: true,
+        superimposeAddOnRupees,
       })
     );
   });
@@ -169,12 +213,42 @@ describe("normalizeSurveyorSketchPricingPayload", () => {
     expect(out.revision.planAmountRupees).toBe(50);
     expect(out.revision.discountRupees).toBe(10);
     expect(out.balance.feePaise).toBe(40000);
+    expect(out.superimposeAddOnRupees).toBe(0);
   });
 
-  it("falls back when payload empty", () => {
-    const out = normalizeSurveyorSketchPricingPayload({});
-    expect(out.upload.feePaise).toBe(FALLBACK_SURVEYOR_SKETCH_PRICING.upload.feePaise);
-    expect(out.revision.feePaise).toBe(FALLBACK_SURVEYOR_SKETCH_PRICING.revision.feePaise);
-    expect(out.balance.feePaise).toBe(FALLBACK_SURVEYOR_SKETCH_PRICING.balance.feePaise);
+  it("extracts superimposeAddOnRupees from API add-ons", () => {
+    const out = normalizeSurveyorSketchPricingPayload({
+      data: {
+        upload: { feePaise: 10000, payableRupees: 100 },
+        revision: { feePaise: 10000, payableRupees: 100 },
+        balance: { feePaise: 40000, payableRupees: 400 },
+        googleSuperimpose: { payableRupees: 175 },
+      },
+    });
+    expect(out.superimposeAddOnRupees).toBe(175);
+  });
+
+  it("preserves payableRupees and source from env-resolved upload", () => {
+    const out = normalizeSurveyorSketchPricingPayload({
+      data: {
+        upload: {
+          feePaise: 10000,
+          payableRupees: 100,
+          planAmountRupees: null,
+          discountRupees: null,
+          source: "env",
+        },
+        revision: {
+          feePaise: 10000,
+          payableRupees: 100,
+          source: "env",
+        },
+        balance: { feePaise: 40000, payableRupees: 400, source: "env" },
+      },
+    });
+    expect(out.upload.payableRupees).toBe(100);
+    expect(out.upload.feePaise).toBe(10000);
+    expect(out.upload.source).toBe("env");
+    expect(computeSketchTierPayable(out.upload)).toBe(100);
   });
 });

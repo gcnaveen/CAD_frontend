@@ -58,7 +58,8 @@ export default function AssignmentModal({
       <button
         type="button"
         className="absolute inset-0 bg-[color-mix(in_srgb,var(--text-primary)_42%,transparent)]"
-        aria-label="Close modal"
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={() => onClose?.()}
       />
 
@@ -83,7 +84,8 @@ export default function AssignmentModal({
           <button
             type="button"
             onClick={() => onClose?.()}
-            className="rounded-lg border border-line bg-surface px-2 py-1 text-sm text-fg hover:bg-surface-2"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-line bg-surface px-2 py-1 text-sm text-fg hover:bg-surface-2"
+            aria-label="Close"
           >
             ✕
           </button>

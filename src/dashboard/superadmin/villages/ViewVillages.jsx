@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Typography,
   Table,
@@ -21,6 +22,11 @@ import {
   updateVillage,
 } from "../../../services/masters/villageService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title } = Typography;
 
@@ -31,6 +37,13 @@ function normalizeList(res) {
 }
 
 const ViewVillages = () => {
+  const currentRole = normalizeRoleKey(
+    useSelector((state) =>
+      resolveStoredUserRole(state.auth?.role, state.auth?.user?.role)
+    )
+  );
+  const canWrite = currentRole === ROLES.SUPER_ADMIN;
+
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
   const [hoblis, setHoblis] = useState([]);
@@ -133,12 +146,24 @@ const ViewVillages = () => {
   };
 
   const handleAdd = () => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("add");
     setEditingRecord(null);
     setDrawerOpen(true);
   };
 
   const handleEdit = (record) => {
+    if (!canWrite) {
+      message.error(
+        "Insufficient permissions. Only Super Admin can create or edit geo master data."
+      );
+      return;
+    }
     setDrawerMode("edit");
     setEditingRecord(record);
     setDrawerOpen(true);
@@ -218,23 +243,27 @@ const ViewVillages = () => {
       key: "status",
       width: 100,
     },
-    {
-      title: "Action",
-      key: "action",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            aria-label="Edit village"
-          >
-            Edit
-          </Button>
-        </Space>
-      ),
-    },
+    ...(canWrite
+      ? [
+          {
+            title: "Action",
+            key: "action",
+            width: 120,
+            render: (_, record) => (
+              <Space size="small">
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                  aria-label="Edit village"
+                >
+                  Edit
+                </Button>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -300,9 +329,11 @@ const ViewVillages = () => {
               label: h.code ? `${h.name} (${h.code})` : h.name,
             }))}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Village
-          </Button>
+          {canWrite ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Village
+            </Button>
+          ) : null}
         </Space>
       </Space>
 

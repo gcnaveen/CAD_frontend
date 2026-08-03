@@ -14,16 +14,19 @@ export default function AboutPlatform() {
     const section = sectionRef.current;
     if (!section) return;
     const items = section.querySelectorAll(".scroll-reveal");
+    const timers = [];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
             const delay = el.dataset.delay || 0;
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0)";
-            }, Number(delay));
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0)";
+              }, Number(delay)),
+            );
             observer.unobserve(el);
           }
         });
@@ -36,7 +39,10 @@ export default function AboutPlatform() {
       el.style.transition = "opacity 0.65s ease, transform 0.65s ease";
       observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang]);
 
   const featureIcons = [

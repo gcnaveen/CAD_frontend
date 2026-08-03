@@ -36,7 +36,6 @@ const AddVillages = ({
 
   useEffect(() => {
     if (!selectedDistrict) {
-      setTalukas([]);
       return;
     }
     getTalukasByDistrict(selectedDistrict)
@@ -46,13 +45,15 @@ const AddVillages = ({
 
   useEffect(() => {
     if (!selectedTaluka) {
-      setHoblis([]);
       return;
     }
     getHoblisByTaluka(selectedTaluka)
       .then((res) => setHoblis(normalizeList(res)))
       .catch(() => setHoblis([]));
   }, [selectedTaluka]);
+
+  const talukaOptions = selectedDistrict ? talukas : [];
+  const hobliOptions = selectedTaluka ? hoblis : [];
 
   useEffect(() => {
     if (districtId) form.setFieldValue("district", districtId);
@@ -135,7 +136,7 @@ const AddVillages = ({
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            options={talukas.map((t) => ({
+            options={talukaOptions.map((t) => ({
               value: t._id ?? t.id,
               label: t.code ? `${t.name} (${t.code})` : t.name,
             }))}
@@ -155,7 +156,7 @@ const AddVillages = ({
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            options={hoblis.map((h) => ({
+            options={hobliOptions.map((h) => ({
               value: h._id ?? h.id,
               label: h.code ? `${h.name} (${h.code})` : h.name,
             }))}

@@ -1,249 +1,3 @@
-// import React, { useState } from "react";
-// import { useNavigate } from "react-router";
-// import { useDispatch } from "react-redux";
-// import { setCredentials } from "../features/auth/authSlice";
-// import { userLogin } from "../services/user/userService";
-
-// const getRedirectForRole = (role) => {
-//   const r = (role || "").toUpperCase();
-//   if (r === "SUPER_ADMIN") return "/superadmin";
-//   if (r === "ADMIN") return "/superadmin";
-//   if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
-//   if (r === "SURVEYOR") return "/dashboard/user";
-//   if (r === "USER" || r === "CUSTOMER") return "/dashboard/user";
-//   return "/";
-// };
-
-// const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-// const LoginPage = () => {
-//   const [loginMode, setLoginMode] = useState("phone"); // "phone" | "email"
-//   const [phone, setPhone] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [message, setMessage] = useState({ type: "", text: "" });
-//   const [errors, setErrors] = useState({});
-//   const navigate = useNavigate();
-//   const dispatch = useDispatch();
-
-//   const handleLogin = async (e) => {
-//     e.preventDefault();
-//     setMessage({ type: "", text: "" });
-//     setErrors({});
-
-//     if (loginMode === "email") {
-//       if (!email.trim()) {
-//         setErrors((prev) => ({ ...prev, email: "Email is required" }));
-//         return;
-//       }
-//       if (!validateEmail(email)) {
-//         setErrors((prev) => ({ ...prev, email: "Please enter a valid email" }));
-//         return;
-//       }
-//     }
-//     if (!password) {
-//       setErrors((prev) => ({ ...prev, password: "Password is required" }));
-//       return;
-//     }
-
-//     setIsLoading(true);
-//     try {
-//       const payload =
-//         loginMode === "phone"
-//           ? { phone: phone.replace(/\D/g, "").slice(0, 10), password }
-//           : { email: email.trim(), password };
-//       const response = await userLogin(payload);
-//       // API returns { success, data: { user, token, ... } }; axios response.data is that body
-//       const body = response?.data ?? response;
-//       const data = body?.data ?? body;
-
-//       const token = data?.token ?? body?.token;
-//       const userPayload = data?.user ?? data;
-//       const user = userPayload ?? (data?.name != null || data?.email != null ? data : null);
-//       dispatch(setCredentials({ token, user }));
-
-//       const role = user?.role ?? data?.role ?? body?.role;
-//       const redirectTo = getRedirectForRole(role);
-//       setMessage({ type: "success", text: "Login successful. Redirecting..." });
-//       navigate(redirectTo, { replace: true });
-//     } catch (err) {
-//       setMessage({
-//         type: "error",
-//         text: err?.message ?? "Login failed. Please try again.",
-//       });
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const switchMode = () => {
-//     setLoginMode((m) => (m === "phone" ? "email" : "phone"));
-//     setMessage({ type: "", text: "" });
-//     setErrors({});
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-6">
-//       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:48px_48px]" />
-//       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
-
-//       <div className="relative w-full max-w-md">
-//         <div className="text-center mb-8">
-//           <img
-//             src="/assets/logo.webp"
-//             alt="Logo"
-//             className="h-34 sm:h-26 w-auto mx-auto mb-6 object-contain"
-//           />
-//           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-//             Welcome Back
-//           </h1>
-//           <p className="text-gray-400 text-sm sm:text-base">
-//             {loginMode === "phone"
-//               ? "Sign in with your phone number and password"
-//               : "Sign in with your email and password"}
-//           </p>
-//         </div>
-
-//         <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm">
-//           <form onSubmit={handleLogin} className="space-y-6">
-//             {loginMode === "phone" ? (
-//               <div>
-//                 <label className="block text-sm font-medium text-gray-300 mb-2">
-//                   Phone Number
-//                 </label>
-//                 <div className="flex rounded-xl overflow-hidden border border-zinc-700 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition-all">
-//                   <span className="flex items-center px-4 bg-zinc-800 text-gray-400 text-sm border-r border-zinc-700">
-//                     +91
-//                   </span>
-//                   <input
-//                     type="tel"
-//                     value={phone}
-//                     onChange={(e) =>
-//                       setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-//                     }
-//                     placeholder="98765 43210"
-//                     className="w-full px-4 py-3.5 bg-transparent text-white placeholder-gray-500 outline-none text-base"
-//                     required={loginMode === "phone"}
-//                   />
-//                 </div>
-//               </div>
-//             ) : (
-//               <div>
-//                 <label className="block text-sm font-medium text-gray-300 mb-2">
-//                   Email Address
-//                 </label>
-//                 <input
-//                   type="email"
-//                   value={email}
-//                   onChange={(e) => setEmail(e.target.value)}
-//                   placeholder="you@example.com"
-//                   className={`w-full px-4 py-3.5 bg-transparent text-white placeholder-gray-500 outline-none text-base rounded-xl border transition-all ${
-//                     errors.email
-//                       ? "border-red-500"
-//                       : "border-zinc-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
-//                   }`}
-//                   required={loginMode === "email"}
-//                 />
-//                 {errors.email && (
-//                   <p className="mt-1.5 text-sm text-red-400">{errors.email}</p>
-//                 )}
-//               </div>
-//             )}
-
-//             <div>
-//               <label className="block text-sm font-medium text-gray-300 mb-2">
-//                 Password
-//               </label>
-//               <div className="relative">
-//                 <input
-//                   type={showPassword ? "text" : "password"}
-//                   value={password}
-//                   onChange={(e) => setPassword(e.target.value)}
-//                   placeholder="Enter your password"
-//                   className={`w-full px-4 py-3.5 pr-12 bg-transparent text-white placeholder-gray-500 outline-none text-base rounded-xl border transition-all ${
-//                     errors.password
-//                       ? "border-red-500"
-//                       : "border-zinc-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
-//                   }`}
-//                   required
-//                 />
-//                 <button
-//                   type="button"
-//                   onClick={() => setShowPassword((p) => !p)}
-//                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors p-1"
-//                   tabIndex={-1}
-//                   aria-label={showPassword ? "Hide password" : "Show password"}
-//                 >
-//                   {showPassword ? (
-//                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-//                     </svg>
-//                   ) : (
-//                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-//                     </svg>
-//                   )}
-//                 </button>
-//               </div>
-//               {errors.password && (
-//                 <p className="mt-1.5 text-sm text-red-400">{errors.password}</p>
-//               )}
-//             </div>
-
-//             <button
-//               type="button"
-//               onClick={switchMode}
-//               className="text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors w-full text-center"
-//             >
-//               {loginMode === "phone"
-//                 ? "Sign in with email instead"
-//                 : "Sign in with phone number instead"}
-//             </button>
-
-//             {message.text && (
-//               <div
-//                 className={`p-3 rounded-lg border ${
-//                   message.type === "success"
-//                     ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
-//                     : "bg-red-500/10 border-red-500/50 text-red-400"
-//                 } text-sm`}
-//               >
-//                 {message.text}
-//               </div>
-//             )}
-
-//             <button
-//               type="submit"
-//               disabled={isLoading}
-//               className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-semibold py-3.5 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25"
-//             >
-//               {isLoading ? "Signing in..." : "Login"}
-//             </button>
-
-//             <p className="text-center text-sm text-gray-400">
-//               Don't have an account?{" "}
-//               <a
-//                 href="/register"
-//                 className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
-//               >
-//                 Register here
-//               </a>
-//             </p>
-//           </form>
-//         </div>
-
-//         <p className="text-center text-xs text-gray-500 mt-6">
-//           Protected by industry-standard encryption
-//         </p>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default LoginPage;
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
@@ -256,26 +10,17 @@ import {
 import { extractAccessToken } from "../utils/authToken.js";
 import {
   useOtpCountdown,
-  formatOtpCountdown,
   defaultOtpExpiresAt,
 } from "../hooks/useOtpCountdown.js";
 import { formatOtpSendError } from "../utils/otpErrorMessage.js";
-import { Eye, EyeOff, ArrowRight, MapPin, Shield } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
 import InstallButton from "../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import KarnatakaOutlineDecor from "../components/KarnatakaOutlineDecor.jsx";
+import { getRedirectForRole } from "../utils/authRedirect.js";
+import LoginBrandHeader from "./login/LoginBrandHeader.jsx";
+import ForgotPasswordPanel from "./login/ForgotPasswordPanel.jsx";
 
-const getRedirectForRole = (role) => {
-  const r = (role || "").toUpperCase();
-  if (r === "SUPER_ADMIN") return "/superadmin";
-  if (r === "ADMIN") return "/superadmin";
-  if (r === "CAD" || r === "CAD_USER") return "/dashboard/cad";
-  if (r === "SURVEYOR") return "/dashboard/user";
-  if (r === "USER" || r === "CUSTOMER") return "/dashboard/user";
-  return "/";
-};
-
-// Surveying crosshair marker SVG
 const Crosshair = ({ size = 20, opacity = 0.18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ opacity, color: "var(--brand-gold)" }}>
     <line x1="10" y1="0" x2="10" y2="7" />
@@ -310,7 +55,16 @@ export default function LoginPage() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setTimeout(() => setMounted(true), 60);
+    setPassword("");
+    setForgotNewPassword("");
+    setForgotOtp("");
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => {
+      clearTimeout(t);
+      setPassword("");
+      setForgotNewPassword("");
+      setForgotOtp("");
+    };
   }, []);
 
   const announceFieldErrors = (nextErrors) => {
@@ -348,8 +102,17 @@ export default function LoginPage() {
       const token = extractAccessToken(data) ?? extractAccessToken(body);
       const userPayload = data?.user ?? data;
       const user = userPayload ?? (data?.name != null || data?.email != null ? data : null);
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Login succeeded but no access token was returned. Please try again.",
+        });
+        requestAnimationFrame(() => errorSummaryRef.current?.focus());
+        return;
+      }
       dispatch(setCredentials({ token, accessToken: token, user }));
       const role = user?.role ?? data?.role ?? body?.role;
+      setPassword("");
       setMessage({ type: "success", text: "Login successful. Redirecting…" });
       navigate(getRedirectForRole(role), { replace: true });
     } catch (err) {
@@ -434,10 +197,11 @@ export default function LoginPage() {
       setForgotNewPassword("");
       if (token) {
         dispatch(setCredentials({ token, accessToken: token, user }));
+        setPassword("");
         setMessage({ type: "success", text: "Password reset successful. Redirecting…" });
         navigate(getRedirectForRole(user?.role), { replace: true });
       } else {
-        setPassword(cleanedPassword);
+        setPassword("");
         setPhone(cleanedPhone);
         setMessage({
           type: "success",
@@ -452,6 +216,16 @@ export default function LoginPage() {
     } finally {
       setForgotLoading(false);
     }
+  };
+
+  const handleCancelForgotPassword = () => {
+    setShowForgotPassword(false);
+    setForgotStep(1);
+    setForgotOtp("");
+    setForgotOtpExpiresAt(null);
+    setForgotNewPassword("");
+    setForgotMessage({ type: "", text: "" });
+    setForgotErrors({});
   };
 
   return (
@@ -510,6 +284,22 @@ export default function LoginPage() {
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
           box-sizing: border-box;
           backdrop-filter: blur(4px);
+        }
+        .lp-phone-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          padding: 13px 14px;
+          font-size: 14.5px;
+          color: var(--text-primary);
+        }
+        /* iOS zooms text inputs below 16px, so bump them up on phones. */
+        @media (max-width: 768px) {
+          .lp-input,
+          .lp-phone-input {
+            font-size: 16px;
+          }
         }
         .lp-input::placeholder { color: color-mix(in srgb, var(--text-secondary) 55%, transparent); }
         .lp-input:focus,
@@ -597,7 +387,6 @@ export default function LoginPage() {
 
       {/* ── BACKGROUND DECORATIONS ── */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
-        {/* Large ambient orbs */}
         <div style={{
           position: "absolute", top: "-120px", left: "-100px",
           width: "600px", height: "600px", borderRadius: "50%",
@@ -611,7 +400,6 @@ export default function LoginPage() {
 
         <KarnatakaOutlineDecor variant="auth" />
 
-        {/* Survey grid */}
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: `
@@ -621,19 +409,16 @@ export default function LoginPage() {
           backgroundSize: "52px 52px",
         }} />
 
-        {/* Corner crosshairs */}
         <div style={{ position: "absolute", top: "28px", left: "28px" }}><Crosshair size={22} opacity={0.22} /></div>
         <div style={{ position: "absolute", top: "28px", right: "28px" }}><Crosshair size={22} opacity={0.22} /></div>
         <div style={{ position: "absolute", bottom: "28px", left: "28px" }}><Crosshair size={22} opacity={0.22} /></div>
         <div style={{ position: "absolute", bottom: "28px", right: "28px" }}><Crosshair size={22} opacity={0.22} /></div>
 
-        {/* Coordinate labels — surveying feel */}
         <span className="coord-label" style={{ top: "18px", left: "56px" }}>12.97°N 77.59°E</span>
         <span className="coord-label" style={{ top: "18px", right: "56px" }}>KARNATAKA · INDIA</span>
         <span className="coord-label" style={{ bottom: "18px", left: "56px" }}>NORTH-COT · PLATFORM</span>
         <span className="coord-label" style={{ bottom: "18px", right: "56px" }}>SURVEY · CAD · QC</span>
 
-        {/* Floating extra crosshairs */}
         {[
           { top: "18%", left: "8%", size: 16, op: 0.12 },
           { top: "60%", left: "5%", size: 14, op: 0.10 },
@@ -647,7 +432,6 @@ export default function LoginPage() {
           </div>
         ))}
 
-        {/* Dashed horizontal guide lines */}
         <div style={{
           position: "absolute", top: "50%", left: 0, right: 0, height: "1px",
           background: "linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.12) 20%, rgba(201,168,76,0.12) 80%, transparent 100%)",
@@ -662,82 +446,7 @@ export default function LoginPage() {
         opacity: mounted ? undefined : 0,
       }}>
 
-        {/* ── LOGO AREA ── */}
-        <div style={{
-          textAlign: "center", marginBottom: "28px",
-          animation: mounted ? "logo-in 0.6s ease 0.1s both" : "none",
-        }}>
-          {/* Logo container with pulsing ring */}
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            aria-label="Go to home"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-              marginBottom: "14px",
-              border: "none",
-              background: "transparent",
-              padding: 0,
-              cursor: "pointer",
-            }}
-          >
-            {/* Outer pulse ring */}
-            <div style={{
-              position: "absolute", inset: "-10px", borderRadius: "50%",
-              border: "1px solid rgba(201,168,76,0.3)",
-              animation: "ping 2.5s ease-out infinite",
-            }} />
-            {/* Inner ring */}
-            <div style={{
-              position: "absolute", inset: "-4px", borderRadius: "50%",
-              border: "1.5px solid rgba(201,168,76,0.25)",
-            }} />
-            {/* Logo image */}
-            <div style={{
-              width: "110px", height: "110px", borderRadius: "50%",
-              background: "var(--homepage-video-chrome)",
-              backdropFilter: "blur(8px)",
-              border: "2px solid rgba(201,168,76,0.35)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 28px rgba(201,168,76,0.18), 0 2px 8px rgba(0,0,0,0.08)",
-              overflow: "hidden",
-            }}>
-              <img
-                src="/assets/logo.webp"
-                alt="North-cot"
-                style={{ width: "80px", height: "80px", objectFit: "contain" }}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.parentElement.innerHTML = `
-                    <span style="font-family:'IBM Plex Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:22px;color:var(--brand-gold);">NC</span>
-                  `;
-                }}
-              />
-            </div>
-          </button>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "6px" }}>
-            <div style={{ height: "1px", width: "32px", background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.5))" }} />
-            <span style={{
-              fontFamily: "'IBM Plex Serif', Georgia, serif",
-              fontStyle: "italic", fontWeight: 700,
-              fontSize: "28px", color: "var(--brand-green-deep)", letterSpacing: "0.02em",
-            }}>
-              North-cot
-            </span>
-            <div style={{ height: "1px", width: "50px", background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-            <MapPin size={10} color="var(--brand-gold-muted)" />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--brand-gold-muted)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-              Land Survey & Revenue Documentation
-            </span>
-          </div>
-        </div>
+        <LoginBrandHeader mounted={mounted} onHomeClick={() => navigate("/")} />
 
         {/* ── FORM CARD ── */}
         <div className="auth-form-card" style={{
@@ -749,13 +458,11 @@ export default function LoginPage() {
           boxShadow: "0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(201,168,76,0.10), 0 0 0 1px rgba(201,168,76,0.08)",
           position: "relative", overflow: "hidden",
         }}>
-          {/* Gold top accent */}
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: "3px",
             background: "linear-gradient(90deg, transparent, var(--brand-gold) 30%, var(--brand-gold) 70%, transparent)",
           }} />
 
-          {/* Card header */}
           <div style={{ marginBottom: "24px" }}>
             <h1 className="auth-card-title" style={{
               fontFamily: "'IBM Plex Serif', Georgia, serif",
@@ -880,10 +587,7 @@ export default function LoginPage() {
                       errors.phone ? "login-phone-error" : null,
                     ].filter(Boolean).join(" ")}
                     disabled={isLoading}
-                    style={{
-                      flex: 1, background: "transparent", border: "none", outline: "none",
-                      padding: "13px 14px", fontSize: "14.5px", color: "var(--text-primary)",
-                    }}
+                    className="lp-phone-input"
                   />
                 </div>
                 <p id="login-phone-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
@@ -896,7 +600,6 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* Password */}
               <div>
                 <label
                   htmlFor="login-password"
@@ -968,250 +671,23 @@ export default function LoginPage() {
               </div>
 
               {showForgotPassword && (
-                <div
-                  id="forgot-password-panel"
-                  role="region"
-                  aria-label="Forgot password"
-                  style={{
-                    border: "1px solid rgba(213,200,178,0.75)",
-                    borderRadius: "12px",
-                    padding: "14px",
-                    background: "rgba(255,255,255,0.52)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                >
-                  <p id="forgot-step-heading" style={{ margin: 0, fontSize: "12px", color: "var(--homepage-body-text)", fontWeight: 600 }}>
-                    {forgotStep === 1 ? "Forgot Password - Step 1: Send OTP" : "Forgot Password - Step 2: Verify OTP"}
-                  </p>
-
-                  {(Object.keys(forgotErrors).length > 0 || forgotMessage.type === "error") && (
-                    <div
-                      ref={forgotErrorSummaryRef}
-                      id="forgot-error-summary"
-                      className="auth-error-summary"
-                      role="alert"
-                      aria-live="assertive"
-                      tabIndex={-1}
-                      style={{
-                        padding: "9px 11px",
-                        borderRadius: "8px",
-                        background: "rgba(192,57,43,0.08)",
-                        border: "1px solid rgba(192,57,43,0.25)",
-                        fontSize: "12px",
-                        color: "color-mix(in srgb, var(--danger) 88%, #000)",
-                      }}
-                    >
-                      {forgotMessage.type === "error" && forgotMessage.text
-                        ? forgotMessage.text
-                        : Object.values(forgotErrors).join(". ")}
-                    </div>
-                  )}
-
-                  <div>
-                    <label
-                      htmlFor="forgot-phone"
-                      style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
-                    >
-                      Phone Number
-                    </label>
-                    <input
-                      id="forgot-phone"
-                      name="forgot-phone"
-                      type="tel"
-                      value={forgotPhone}
-                      onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="10-digit mobile number"
-                      className={`lp-input${forgotErrors.phone ? " error" : ""}`}
-                      maxLength={10}
-                      inputMode="numeric"
-                      autoComplete="tel"
-                      aria-required="true"
-                      aria-invalid={forgotErrors.phone ? "true" : "false"}
-                      aria-describedby={forgotErrors.phone ? "forgot-phone-error" : undefined}
-                      disabled={forgotLoading}
-                    />
-                    {forgotErrors.phone && (
-                      <p id="forgot-phone-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
-                        {forgotErrors.phone}
-                      </p>
-                    )}
-                  </div>
-
-                  {forgotStep === 2 && (
-                    <>
-                      <div>
-                        <label
-                          htmlFor="forgot-otp"
-                          style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
-                        >
-                          One-time code (OTP)
-                        </label>
-                        <input
-                          id="forgot-otp"
-                          name="otp"
-                          type="text"
-                          value={forgotOtp}
-                          onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                          placeholder="6-digit code"
-                          className={`lp-input${forgotErrors.otp ? " error" : ""}`}
-                          inputMode="numeric"
-                          maxLength={6}
-                          autoComplete="one-time-code"
-                          aria-required="true"
-                          aria-invalid={forgotErrors.otp ? "true" : "false"}
-                          aria-describedby={[
-                            "forgot-otp-hint",
-                            forgotErrors.otp ? "forgot-otp-error" : null,
-                            forgotOtpSecondsLeft === 0 ? "forgot-otp-expired" : null,
-                          ].filter(Boolean).join(" ")}
-                          disabled={forgotLoading}
-                        />
-                        <p id="forgot-otp-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
-                          Enter the 6-digit code sent to your phone
-                        </p>
-                        {forgotErrors.otp && (
-                          <p id="forgot-otp-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
-                            {forgotErrors.otp}
-                          </p>
-                        )}
-                        {forgotOtpSecondsLeft > 0 && (
-                          <p style={{ fontSize: "12px", color: "rgba(107,90,58,.65)", margin: "5px 0 0" }} aria-live="polite">
-                            OTP expires in <strong>{formatOtpCountdown(forgotOtpSecondsLeft)}</strong>
-                          </p>
-                        )}
-                        {forgotOtpSecondsLeft === 0 && (
-                          <p id="forgot-otp-expired" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
-                            OTP expired. Send a new OTP to continue.
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="forgot-new-password"
-                          style={{ fontSize: "12px", fontWeight: 700, color: "var(--homepage-label)", letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "7px" }}
-                        >
-                          New Password
-                        </label>
-                        <input
-                          id="forgot-new-password"
-                          name="new-password"
-                          type="password"
-                          value={forgotNewPassword}
-                          onChange={(e) => setForgotNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="••••"
-                          className={`lp-input${forgotErrors.password ? " error" : ""}`}
-                          inputMode="numeric"
-                          maxLength={4}
-                          autoComplete="new-password"
-                          aria-required="true"
-                          aria-invalid={forgotErrors.password ? "true" : "false"}
-                          aria-describedby={[
-                            "forgot-new-password-hint",
-                            forgotErrors.password ? "forgot-new-password-error" : null,
-                          ].filter(Boolean).join(" ")}
-                          disabled={forgotLoading}
-                        />
-                        <p id="forgot-new-password-hint" style={{ fontSize: "12px", color: "var(--homepage-label)", margin: "5px 0 0" }}>
-                          New 4-digit numeric password
-                        </p>
-                        {forgotErrors.password && (
-                          <p id="forgot-new-password-error" role="alert" style={{ fontSize: "12px", color: "var(--danger)", margin: "5px 0 0" }}>
-                            {forgotErrors.password}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {forgotMessage.type === "success" && forgotMessage.text && (
-                    <div
-                      role="status"
-                      aria-live="polite"
-                      style={{
-                        padding: "9px 11px",
-                        borderRadius: "8px",
-                        background: "rgba(42,110,42,0.08)",
-                        border: "1px solid rgba(42,110,42,0.25)",
-                        fontSize: "12px",
-                        color: "var(--success)",
-                      }}
-                    >
-                      {forgotMessage.text}
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {forgotStep === 1 ? (
-                      <button
-                        type="button"
-                        className="submit-btn"
-                        disabled={forgotLoading}
-                        aria-busy={forgotLoading}
-                        aria-describedby={forgotLoading ? "forgot-loading-status" : undefined}
-                        onClick={handleForgotPasswordStart}
-                        style={{ padding: "10px", fontSize: "13px" }}
-                      >
-                        {forgotLoading ? "Sending OTP..." : "Send OTP"}
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="submit-btn"
-                          disabled={forgotLoading || forgotOtpSecondsLeft === 0}
-                          aria-busy={forgotLoading}
-                          title={forgotOtpSecondsLeft === 0 ? "OTP expired — resend a new code first" : undefined}
-                          onClick={handleForgotPasswordReset}
-                          style={{ padding: "10px", fontSize: "13px", flex: 1 }}
-                        >
-                          {forgotLoading ? "Resetting..." : "Verify OTP & Reset"}
-                        </button>
-                        <button
-                          type="button"
-                          className="submit-btn"
-                          disabled={forgotLoading}
-                          aria-busy={forgotLoading}
-                          onClick={handleForgotPasswordStart}
-                          style={{ padding: "10px", fontSize: "13px", flex: 1 }}
-                        >
-                          {forgotLoading ? "Sending..." : "Resend OTP"}
-                        </button>
-                      </>
-                    )}
-
-                    {forgotLoading && (
-                      <span id="forgot-loading-status" className="sr-only">Please wait</span>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForgotPassword(false);
-                        setForgotStep(1);
-                        setForgotOtp("");
-                        setForgotOtpExpiresAt(null);
-                        setForgotNewPassword("");
-                        setForgotMessage({ type: "", text: "" });
-                        setForgotErrors({});
-                      }}
-                      style={{
-                        border: "1px solid rgba(213,200,178,0.8)",
-                        borderRadius: "10px",
-                        padding: "10px 12px",
-                        background: "rgba(255,255,255,0.65)",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "var(--homepage-body-text)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                <ForgotPasswordPanel
+                  forgotStep={forgotStep}
+                  forgotPhone={forgotPhone}
+                  setForgotPhone={setForgotPhone}
+                  forgotOtp={forgotOtp}
+                  setForgotOtp={setForgotOtp}
+                  forgotNewPassword={forgotNewPassword}
+                  setForgotNewPassword={setForgotNewPassword}
+                  forgotLoading={forgotLoading}
+                  forgotOtpSecondsLeft={forgotOtpSecondsLeft}
+                  forgotMessage={forgotMessage}
+                  forgotErrors={forgotErrors}
+                  forgotErrorSummaryRef={forgotErrorSummaryRef}
+                  onStart={handleForgotPasswordStart}
+                  onReset={handleForgotPasswordReset}
+                  onCancel={handleCancelForgotPassword}
+                />
               )}
 
               {isLoading && (
@@ -1220,7 +696,6 @@ export default function LoginPage() {
                 </p>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 className="submit-btn"
@@ -1243,7 +718,6 @@ export default function LoginPage() {
                 )}
               </button>
 
-              {/* Register */}
               <p className="auth-footer-line" style={{ textAlign: "center", fontSize: "13px", color: "var(--homepage-body-text)", margin: 0 }}>
                 Don't have an account?{" "}
                 <a href="/register" style={{
@@ -1260,7 +734,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Bottom trust badge */}
         <div className="auth-below-card" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
           marginTop: "20px",
@@ -1272,7 +745,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Spin keyframe for loader */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

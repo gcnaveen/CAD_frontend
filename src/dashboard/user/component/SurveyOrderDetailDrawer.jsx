@@ -63,6 +63,7 @@ import {
 } from "../../../utils/sketchFileUtils.js";
 
 import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import { humanizeEnumLabel } from "../../../utils/displayLabels.js";
 import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 
 const { Text } = Typography;
@@ -149,6 +150,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
   const [fbMediaRecorder, setFbMediaRecorder] = useState(null);
   const fbTimerRef = useRef(null);
   const fbStreamRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
   const [assignmentId, setAssignmentId] = useState(null);
 
@@ -184,6 +186,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     );
   }, [assignmentId, details?.status]);
 
+  audioUrlRef.current = audioUrl;
+
   useEffect(() => {
     const load = async () => {
       if (!open || !uploadId) return;
@@ -204,8 +208,9 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
             if (prevUrl) URL.revokeObjectURL(prevUrl);
             return null;
           });
-          if (audioUrl) {
-            URL.revokeObjectURL(audioUrl);
+          const prevAudioUrl = audioUrlRef.current;
+          if (prevAudioUrl) {
+            URL.revokeObjectURL(prevAudioUrl);
             setAudioUrl(null);
           }
         } else {
@@ -252,7 +257,7 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
     details?.uploadMode === "single" || hasUploadedFiles(details?.singleUpload);
 
   useEffect(() => {
-    if (!open || !uploadId || !details || !canGiveCadFeedback || !assignmentId) {
+    if (!open || !uploadId || !details?._id || !canGiveCadFeedback || !assignmentId) {
       return;
     }
     let cancelled = false;
@@ -717,7 +722,8 @@ const SurveyOrderDetailDrawer = ({ open, uploadId, onClose }) => {
               </p>
               {details?.sketchPayment?.status && (
                 <p className="text-xs text-fg-muted mb-3">
-                  Payment status: <Tag color="error">{details.sketchPayment.status}</Tag>
+                  Payment status:{" "}
+                  <Tag color="error">{humanizeEnumLabel(details.sketchPayment.status)}</Tag>
                 </p>
               )}
               <SketchPaymentRetryButton uploadId={uploadId} upload={details} showAmount={false} />

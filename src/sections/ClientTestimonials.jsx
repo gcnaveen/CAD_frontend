@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, MapPin, Quote } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
@@ -98,34 +98,71 @@ export default function ClientTestimonials() {
   const sectionRef = useRef(null);
   const testimonials = tr?.items?.length ? tr.items : TESTIMONIALS;
   const totalPages = Math.ceil(testimonials.length / ITEMS_PER_PAGE);
+  const animatingRef = useRef(false);
+  const animTimerRef = useRef(null);
+  const revealTimersRef = useRef([]);
 
+  const clearAnimTimer = () => {
+    if (animTimerRef.current) {
+      clearTimeout(animTimerRef.current);
+      animTimerRef.current = null;
+    }
+  };
+
+  const runPageAnim = useCallback(() => {
+    if (animatingRef.current) return false;
+    animatingRef.current = true;
+    setAnimating(true);
+    clearAnimTimer();
+    animTimerRef.current = setTimeout(() => {
+      animatingRef.current = false;
+      setAnimating(false);
+      animTimerRef.current = null;
+    }, 400);
+    return true;
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (!runPageAnim()) return;
+    setCurrentIndex((p) => (p + 1) % Math.max(totalPages, 1));
+  }, [runPageAnim, totalPages]);
+
+  const handlePrev = useCallback(() => {
+    if (!runPageAnim()) return;
+    setCurrentIndex((p) => (p === 0 ? Math.max(totalPages, 1) - 1 : p - 1));
+  }, [runPageAnim, totalPages]);
+
+  // Continuous autoplay — depends on handleNext (stable via totalPages), not currentIndex
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || totalPages <= 1) return undefined;
     const interval = setInterval(() => {
       handleNext();
     }, 5500);
     return () => clearInterval(interval);
-  }, [isPaused, currentIndex]);
+  }, [isPaused, handleNext, totalPages]);
+
+  useEffect(() => () => clearAnimTimer(), []);
 
   // Header reveal
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section) return;
+    if (!section) return undefined;
     const items = section.querySelectorAll(".test-reveal");
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
-            setTimeout(() => {
+            const timer = setTimeout(() => {
               el.style.opacity = "1";
               el.style.transform = "translateY(0)";
             }, Number(el.dataset.delay || 0));
+            revealTimersRef.current.push(timer);
             observer.unobserve(el);
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     items.forEach((el) => {
       el.style.opacity = "0";
@@ -133,26 +170,16 @@ export default function ClientTestimonials() {
       el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
       observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      revealTimersRef.current.forEach(clearTimeout);
+      revealTimersRef.current = [];
+    };
   }, []);
-
-  const handleNext = () => {
-    if (animating) return;
-    setAnimating(true);
-    setTimeout(() => setAnimating(false), 400);
-    setCurrentIndex((p) => (p + 1) % totalPages);
-  };
-
-  const handlePrev = () => {
-    if (animating) return;
-    setAnimating(true);
-    setTimeout(() => setAnimating(false), 400);
-    setCurrentIndex((p) => (p === 0 ? totalPages - 1 : p - 1));
-  };
 
   const currentCards = testimonials.slice(
     currentIndex * ITEMS_PER_PAGE,
-    currentIndex * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+    currentIndex * ITEMS_PER_PAGE + ITEMS_PER_PAGE,
   );
 
   return (
@@ -168,22 +195,22 @@ export default function ClientTestimonials() {
     >
       <style>{`
         .test-card {
-          background: rgba(255,255,255,0.75);
+          background: color-mix(in srgb, var(--bg-elevated) 75%, transparent);
           backdrop-filter: blur(12px);
-          border: 1px solid rgba(232,226,216,0.85);
+          border: 1px solid color-mix(in srgb, var(--homepage-cream-border) 85%, transparent);
           border-radius: 20px;
           padding: 28px 24px;
           position: relative;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 2px 16px rgba(0,0,0,0.055);
+          box-shadow: 0 2px 16px var(--homepage-card-shadow);
           transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
         .test-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 12px 36px rgba(0,0,0,0.10);
-          border-color: rgba(201,168,76,0.25);
+          box-shadow: 0 12px 36px var(--homepage-card-shadow);
+          border-color: color-mix(in srgb, var(--brand-gold) 25%, var(--border-color));
         }
         .test-cards-wrap {
           opacity: 1;
@@ -194,12 +221,12 @@ export default function ClientTestimonials() {
         }
         .nav-btn {
           width: 44px; height: 44px; border-radius: 50%;
-          background: rgba(255,255,255,0.8);
+          background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
           backdrop-filter: blur(8px);
-          border: 1px solid rgba(232,226,216,0.9);
+          border: 1px solid color-mix(in srgb, var(--homepage-cream-border) 90%, transparent);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+          box-shadow: 0 2px 10px var(--homepage-card-shadow);
           transition: all 0.2s ease;
           color: var(--homepage-cta-bg);
         }
@@ -207,49 +234,63 @@ export default function ClientTestimonials() {
           background: var(--homepage-cta-bg);
           border-color: var(--homepage-cta-bg);
           color: white;
-          box-shadow: 0 4px 16px rgba(21,40,21,0.25);
+          box-shadow: 0 4px 16px var(--homepage-card-shadow);
           transform: scale(1.05);
         }
         .dot-btn {
+          position: relative;
           height: 6px; border-radius: 3px;
           border: none; cursor: pointer;
           transition: all 0.3s ease;
+          min-width: 44px;
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          padding: 0;
+        }
+        .dot-btn::after {
+          content: '';
+          display: block;
+          height: 6px;
+          border-radius: 3px;
+          width: var(--dot-w, 6px);
+          background: var(--dot-bg, color-mix(in srgb, var(--brand-gold) 25%, transparent));
         }
       `}</style>
 
-      {/* Background decorations */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
         <div style={{
           position: "absolute", top: "-80px", left: "50%", transform: "translateX(-50%)",
           width: "800px", height: "400px",
-          background: "radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 65%)",
+          background: "radial-gradient(ellipse, color-mix(in srgb, var(--brand-gold) 7%, transparent) 0%, transparent 65%)",
         }} />
         <div style={{
           position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(circle, rgba(201,168,76,0.10) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--brand-gold) 10%, transparent) 1px, transparent 1px)",
           backgroundSize: "44px 44px", opacity: 0.45,
         }} />
       </div>
 
       <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-
-        {/* HEADER */}
         <div className="test-reveal" data-delay="0" style={{ textAlign: "center", marginBottom: "clamp(36px, 5vw, 60px)" }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
             padding: "6px 18px", borderRadius: "100px",
-            background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)",
+            background: "color-mix(in srgb, var(--brand-gold) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--brand-gold) 30%, transparent)",
             marginBottom: "20px",
           }}>
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-gold)", display: "inline-block" }} />
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
+            <span style={{ fontSize: "var(--text-xs, 11px)", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--brand-gold-muted)" }}>
               {tr?.kicker || "Testimonials"}
             </span>
           </div>
           <h2
             className="home-serif-title"
             style={{
-              fontFamily: "'IBM Plex Serif', Georgia, serif",
+              fontFamily: "var(--font-display, Georgia, serif)",
               fontStyle: "italic", fontWeight: 600,
               fontSize: "clamp(28px, 3.8vw, 50px)", lineHeight: 1.15,
               background: "var(--hero-panel-bg)",
@@ -264,7 +305,6 @@ export default function ClientTestimonials() {
           </p>
         </div>
 
-        {/* TESTIMONIAL CARDS */}
         <div
           className={`test-cards-wrap${animating ? " fading" : ""}`}
           onMouseEnter={() => setIsPaused(true)}
@@ -276,11 +316,11 @@ export default function ClientTestimonials() {
             marginBottom: "32px",
           }}
         >
-          {currentCards.map((t, idx) => {
+          {currentCards.map((tItem, idx) => {
             const color = COLORS[idx % COLORS.length];
+            const keyBase = tItem.name || tItem.initials || idx;
             return (
-              <div key={`${currentIndex}-${idx}`} className="test-card">
-                {/* Ghost quote mark */}
+              <div key={`${currentIndex}-${keyBase}`} className="test-card">
                 <div style={{
                   position: "absolute", top: "12px", right: "16px",
                   opacity: 0.06, color: "var(--homepage-cta-bg)",
@@ -290,30 +330,25 @@ export default function ClientTestimonials() {
                   <Quote size={28} />
                 </div>
 
-                {/* Stars */}
                 <div style={{ display: "flex", gap: "3px", marginBottom: "14px" }}>
-                  {[...Array(5)].map((_, i) => (
+                  {[0, 1, 2, 3, 4].map((i) => (
                     <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="var(--brand-gold)" aria-hidden="true">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                   ))}
                 </div>
 
-                {/* Quote */}
                 <p className="test-quote" style={{
                   fontSize: "13.5px", color: "var(--text-primary)",
                   lineHeight: 1.75, fontStyle: "italic",
                   flex: 1, marginBottom: "20px",
                 }}>
-                  "{t.text}"
+                  &ldquo;{tItem.text}&rdquo;
                 </p>
 
-                {/* Divider */}
-                <div style={{ height: "1px", background: "rgba(232,226,216,0.7)", marginBottom: "16px" }} />
+                <div style={{ height: "1px", background: "color-mix(in srgb, var(--homepage-cream-border) 70%, transparent)", marginBottom: "16px" }} />
 
-                {/* Author */}
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  {/* Avatar */}
                   <div style={{
                     width: "38px", height: "38px", borderRadius: "50%", flexShrink: 0,
                     background: color.bg, border: `1.5px solid ${color.border}`,
@@ -321,25 +356,24 @@ export default function ClientTestimonials() {
                   }}>
                     <span style={{
                       fontSize: "11px", fontWeight: 700, color: color.text,
-                      fontFamily: "'IBM Plex Serif', Georgia, serif",
+                      fontFamily: "var(--font-display, Georgia, serif)",
                     }}>
-                      {t.initials}
+                      {tItem.initials}
                     </span>
                   </div>
                   <div>
-                    <p className="test-author-name" style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--brand-green-deep)", margin: 0 }}>{t.name}</p>
+                    <p className="test-author-name" style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--brand-green-deep)", margin: 0 }}>{tItem.name}</p>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                       <MapPin size={10} color="var(--text-brown-soft)" />
-                      <p className="test-author-meta" style={{ fontSize: "11.5px", color: "var(--text-brown-soft)", margin: 0 }}>{t.location}</p>
+                      <p className="test-author-meta" style={{ fontSize: "11.5px", color: "var(--text-brown-soft)", margin: 0 }}>{tItem.location}</p>
                     </div>
                   </div>
-                  {/* Role badge */}
                   <div style={{
                     marginLeft: "auto", padding: "3px 9px",
                     background: color.bg, border: `1px solid ${color.border}`,
                     borderRadius: "20px",
                   }}>
-                    <span style={{ fontSize: "10px", fontWeight: 600, color: color.text }}>{t.role}</span>
+                    <span style={{ fontSize: "10px", fontWeight: 600, color: color.text }}>{tItem.role}</span>
                   </div>
                 </div>
               </div>
@@ -347,33 +381,36 @@ export default function ClientTestimonials() {
           })}
         </div>
 
-        {/* NAVIGATION */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
-          <button className="nav-btn" onClick={handlePrev} aria-label="Previous">
+          <button type="button" className="nav-btn" onClick={handlePrev} aria-label="Previous">
             <ChevronLeft size={18} />
           </button>
 
-          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "2px", alignItems: "center" }}>
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
+                type="button"
                 className="dot-btn"
                 onClick={() => setCurrentIndex(i)}
                 style={{
-                  width: i === currentIndex ? "28px" : "6px",
-                  background: i === currentIndex ? "var(--brand-gold)" : "rgba(201,168,76,0.25)",
+                  "--dot-w": i === currentIndex ? "28px" : "6px",
+                  "--dot-bg":
+                    i === currentIndex
+                      ? "var(--brand-gold)"
+                      : "color-mix(in srgb, var(--brand-gold) 25%, transparent)",
                 }}
                 aria-label={`Go to page ${i + 1}`}
+                aria-current={i === currentIndex ? "true" : undefined}
               />
             ))}
           </div>
 
-          <button className="nav-btn" onClick={handleNext} aria-label="Next">
+          <button type="button" className="nav-btn" onClick={handleNext} aria-label="Next">
             <ChevronRight size={18} />
           </button>
         </div>
 
-        {/* Page label */}
         <p style={{
           textAlign: "center", marginTop: "12px",
           fontSize: "11px", fontWeight: 600, color: "var(--text-brown-soft)",
@@ -381,7 +418,6 @@ export default function ClientTestimonials() {
         }}>
           {currentIndex + 1} / {totalPages}
         </p>
-
       </div>
     </section>
   );

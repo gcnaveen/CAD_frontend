@@ -13,6 +13,7 @@ import {
   getSketchStatusLabel,
 } from "../../utils/lifecycleQc.js";
 import { resolveManualAssignUi } from "../../utils/autoAssignManualGate.js";
+import { isSketchBookingUnpaid } from "../../utils/sketchPaymentUtils.js";
 import SlaStatus from "../sla/SlaStatus.jsx";
 import { getSlaRiskTone, resolveSla } from "../../utils/sla.js";
 
@@ -94,8 +95,15 @@ export default function SketchTable({
           <tbody className="divide-y divide-line">
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-fg-muted" colSpan={colCount}>
-                  Loading…
+                <td className="px-4 py-6" colSpan={colCount}>
+                  <div className="space-y-3" aria-busy="true" aria-label="Loading sketches">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-10 animate-pulse rounded-lg bg-[color-mix(in_srgb,var(--border-color)_55%,transparent)]"
+                      />
+                    ))}
+                  </div>
                 </td>
               </tr>
             ) : errorText ? (
@@ -120,10 +128,11 @@ export default function SketchTable({
                 const status = row?.status;
                 const stUp = canonicalizeSketchStatus(status);
                 const isPending = stUp === "PENDING";
+                const bookingUnpaid = isSketchBookingUnpaid(row);
                 const uploadId = row?._id ?? row?.id;
                 const gateKey = uploadId != null ? String(uploadId) : null;
                 const gate = gateKey ? manualGates[gateKey] : null;
-                const assignUi = isPending
+                let assignUi = isPending
                   ? resolveManualAssignUi(
                       gatesLoading && !gate
                         ? null
@@ -133,7 +142,16 @@ export default function SketchTable({
                           }
                     )
                   : { showAssign: false, disabled: false, badge: null, hint: null };
-                const canEdit = ["ASSIGNED", "UNDER_REVISION"].includes(stUp);
+                if (bookingUnpaid && assignUi.showAssign) {
+                  assignUi = {
+                    ...assignUi,
+                    disabled: true,
+                    hint:
+                      "Booking payment required before assign (SKETCH_PAYMENT_PENDING).",
+                  };
+                }
+                const canEdit =
+                  ["ASSIGNED", "UNDER_REVISION"].includes(stUp) && !bookingUnpaid;
                 const rowFeedback = extractFeedbackFromEntity(row);
                 const canFeedback = Boolean(onFeedbackClick) && canViewAssignmentFeedback(row);
                 const sla = resolveSla(row);

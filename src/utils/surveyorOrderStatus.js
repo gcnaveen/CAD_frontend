@@ -31,18 +31,19 @@ export const SURVEYOR_ORDER_STATUS_STYLES = {
 };
 
 /**
- * Status bucket rules for surveyor dashboard / requests tabs.
- * - active: PAYMENT_PENDING, PENDING, ASSIGNED, UNDER_REVISION
- * - completed: CAD_DELIVERED, APPROVED
+ * Status bucket rules for surveyor dashboard / requests tabs (BIZ-10 terminals).
+ * - active: PAYMENT_PENDING, PENDING, ASSIGNED, CAD_DELIVERED, UNDER_REVISION
+ * - completed: APPROVED
  * - cancelled: REJECTED
  */
 export const SURVEYOR_ACTIVE_STATUSES = [
   "PAYMENT_PENDING",
   "PENDING",
   "ASSIGNED",
+  "CAD_DELIVERED",
   "UNDER_REVISION",
 ];
-export const SURVEYOR_COMPLETED_STATUSES = ["CAD_DELIVERED", "APPROVED"];
+export const SURVEYOR_COMPLETED_STATUSES = ["APPROVED"];
 export const SURVEYOR_CANCELLED_STATUSES = ["REJECTED"];
 
 const ACTIVE_STATUSES = new Set(SURVEYOR_ACTIVE_STATUSES);
@@ -84,8 +85,8 @@ export function matchesSurveyorOrderBucket(apiStatus, tab) {
 
 /**
  * Resolve tab counts from API meta.counts.
- * Prefers byStatus so CAD_DELIVERED counts as completed even if the API
- * still buckets it under active. Legacy UNDER_REVIEW rolls into UNDER_REVISION.
+ * Prefers byStatus so CAD_DELIVERED stays in active until admin APPROVED.
+ * Legacy UNDER_REVIEW rolls into UNDER_REVISION (active).
  */
 export function resolveSurveyorOrderCounts(counts = {}) {
   const byStatus = counts?.byStatus;
@@ -102,13 +103,10 @@ export function resolveSurveyorOrderCounts(counts = {}) {
     return { all, active, completed, cancelled };
   }
 
-  // Fallback when byStatus is missing: move CAD_DELIVERED out of active if present only in active totals
-  const active = Number(counts?.active || 0);
-  const completed = Number(counts?.completed || 0);
   return {
     all: Number(counts?.all || 0),
-    active,
-    completed,
+    active: Number(counts?.active || 0),
+    completed: Number(counts?.completed || 0),
     cancelled: Number(counts?.cancelled || 0),
   };
 }

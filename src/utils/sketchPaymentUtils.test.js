@@ -4,6 +4,8 @@ import {
   isSketchPaymentCompleted,
   isBalancePaymentCompleted,
   isCadBalancePaymentPurpose,
+  isSketchBookingUnpaid,
+  isSketchBookingPaymentSatisfied,
   resolveSketchPaymentUploadId,
   formatSketchPayableRupees,
   normalizeSketchPaymentPageState,
@@ -71,6 +73,46 @@ describe("isSketchPaymentCompleted / isBalancePaymentCompleted", () => {
     expect(
       isBalancePaymentCompleted({
         downloadEntitlement: { balancePaymentStatus: "PENDING" },
+      })
+    ).toBe(false);
+  });
+});
+
+describe("isSketchBookingUnpaid (BIZ-10 payment gate)", () => {
+  it("treats PAYMENT_PENDING as unpaid", () => {
+    expect(isSketchBookingUnpaid({ status: "PAYMENT_PENDING" })).toBe(true);
+  });
+
+  it("treats amountPaise > 0 without COMPLETED as unpaid", () => {
+    expect(
+      isSketchBookingUnpaid({
+        status: "PENDING",
+        sketchPayment: { amountPaise: 50000, status: "PENDING" },
+      })
+    ).toBe(true);
+  });
+
+  it("treats amountPaise > 0 with COMPLETED as paid", () => {
+    expect(
+      isSketchBookingUnpaid({
+        status: "PENDING",
+        sketchPayment: { amountPaise: 50000, status: "COMPLETED" },
+      })
+    ).toBe(false);
+    expect(
+      isSketchBookingPaymentSatisfied({
+        status: "PENDING",
+        sketchPayment: { amountPaise: 50000, status: "COMPLETED" },
+      })
+    ).toBe(true);
+  });
+
+  it("treats zero / missing amount as satisfied when not PAYMENT_PENDING", () => {
+    expect(isSketchBookingUnpaid({ status: "PENDING" })).toBe(false);
+    expect(
+      isSketchBookingUnpaid({
+        status: "PENDING",
+        sketchPayment: { amountPaise: 0, status: "PENDING" },
       })
     ).toBe(false);
   });

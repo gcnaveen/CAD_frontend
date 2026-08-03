@@ -1,4 +1,8 @@
 import apiClient from "../apiClient.js";
+import {
+  handleMasterWriteError,
+  masterWriteAuthConfig,
+} from "./masterAuth.js";
 
 const BASE = "/api/masters/districts";
 
@@ -7,13 +11,13 @@ function handleError(error, fallbackMessage) {
   throw new Error(message);
 }
 
-/** POST /api/masters/districts - Create District */
+/** POST /api/masters/districts - Create District (Bearer + SUPER_ADMIN) */
 export async function createDistrict(payload) {
   try {
-    const { data } = await apiClient.post(BASE, payload);
+    const { data } = await apiClient.post(BASE, payload, masterWriteAuthConfig());
     return data;
   } catch (error) {
-    handleError(error, "Failed to create district");
+    handleMasterWriteError(error, "Failed to create district");
   }
 }
 
@@ -75,12 +79,16 @@ export async function getDistrictById(districtId) {
   }
 }
 
-/** PATCH /api/masters/districts/{districtId} - Update District */
+/** PATCH /api/masters/districts/{districtId} - Update District (Bearer + SUPER_ADMIN) */
 export async function updateDistrict(districtId, payload) {
   try {
-    const { data } = await apiClient.patch(`${BASE}/${districtId}`, payload);
+    const { data } = await apiClient.patch(
+      `${BASE}/${districtId}`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to update district");
+    handleMasterWriteError(error, "Failed to update district");
   }
 }

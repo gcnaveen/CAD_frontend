@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
-import { Phone, Mail, MapPin, ArrowUpRight } from "lucide-react";
+import { Phone, Mail, MapPin, ArrowUpRight, MessageCircle } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
+import { SUPPORT_EMAIL, getWhatsAppSupportUrl } from "../constants/siteMeta.js";
+import usePublicBusinessRules from "../hooks/usePublicBusinessRules.js";
+import { formatSupportPhoneDisplay } from "../services/public/businessRulesService.js";
 
 const QUICK_LINKS = [
   { name: "How It Works", href: "#how-it-works" },
@@ -27,6 +30,15 @@ const LEGAL_BOTTOM_LINKS = [
 export default function Footer() {
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.footer;
+  const [logoFailed, setLogoFailed] = useState(false);
+  const { rules } = usePublicBusinessRules();
+  const support = rules?.supportContact || {};
+  const email = support.email || SUPPORT_EMAIL;
+  const phoneDisplay = formatSupportPhoneDisplay(support.whatsappNumber);
+  const phoneHref = support.whatsappNumber
+    ? `tel:+${String(support.whatsappNumber).replace(/\D/g, "")}`
+    : null;
+  const whatsappUrl = support.whatsappUrl || getWhatsAppSupportUrl();
 
   const scrollTo = (id) => {
     const el = document.getElementById(id.replace("#", ""));
@@ -54,8 +66,17 @@ export default function Footer() {
           display: inline-flex;
           align-items: center;
           gap: 4px;
+          min-height: 44px;
         }
         .footer-link:hover { color: var(--brand-gold); }
+        @media (max-width: 768px) {
+          .footer-link { padding: 10px 0; }
+          .footer-legal-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+          }
+        }
         .footer-link-icon { opacity: 0; transition: opacity 0.2s ease; }
         .footer-link:hover .footer-link-icon { opacity: 1; }
         .contact-item {
@@ -112,22 +133,43 @@ export default function Footer() {
           {/* BRAND */}
           <div style={{ gridColumn: "span 1" }}>
             <div style={{ marginBottom: "16px" }}>
-              <img
-                src="/assets/logo.webp"
-                alt="North-cot"
-                style={{ height: "52px", width: "auto" }}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.parentElement.innerHTML = `
-                    <div style="display:inline-flex;align-items:center;gap:8px;">
-                      <div style="width:32px;height:32px;borderRadius:8px;background:rgba(201,168,76,0.15);display:flex;align-items:center;justify-content:center;">
-                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='var(--brand-gold)' strokeWidth='2'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg>
-                      </div>
-                      <span style='font-family:IBM Plex Serif,serif;font-style:italic;font-weight:700;font-size:18px;color:white;'>North-cot</span>
-                    </div>
-                  `;
-                }}
-              />
+              {logoFailed ? (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "rgba(201,168,76,0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <MapPin size={14} color="var(--brand-gold)" aria-hidden />
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display, Georgia, serif)",
+                      fontStyle: "italic",
+                      fontWeight: 700,
+                      fontSize: "18px",
+                      color: "white",
+                    }}
+                  >
+                    North-cot
+                  </span>
+                </div>
+              ) : (
+                <img
+                  src="/assets/logo.webp"
+                  alt="North-cot"
+                  width={160}
+                  height={52}
+                  style={{ height: "52px", width: "auto" }}
+                  onError={() => setLogoFailed(true)}
+                />
+              )}
             </div>
             <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", lineHeight: 1.75, maxWidth: "220px" }}>
               {tr?.tagline}
@@ -189,6 +231,7 @@ export default function Footer() {
           <div>
             <p className="footer-col-label">{tr?.contactTitle || "Contact Us"}</p>
             <div>
+              {phoneDisplay && phoneHref ? (
               <div className="contact-item">
                 <div style={{
                   width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
@@ -197,12 +240,13 @@ export default function Footer() {
                 }}>
                   <Phone size={13} color="var(--brand-gold)" />
                 </div>
-                <a href="tel:+918045099227" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
+                <a href={phoneHref} style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
-                  +91 80450 99227
+                  {phoneDisplay}
                 </a>
               </div>
+              ) : null}
               <div className="contact-item">
                 <div style={{
                   width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
@@ -211,12 +255,28 @@ export default function Footer() {
                 }}>
                   <Mail size={13} color="var(--brand-gold)" />
                 </div>
-                <a href="mailto:northcot.we4@gmail.com" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
+                <a href={`mailto:${email}`} style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease", wordBreak: "break-all" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
-                  northcot.we4@gmail.com
+                  {email}
                 </a>
               </div>
+              {whatsappUrl ? (
+              <div className="contact-item">
+                <div style={{
+                  width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
+                  background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <MessageCircle size={13} color="var(--brand-gold)" />
+                </div>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", textDecoration: "none", paddingTop: "6px", transition: "color 0.2s ease" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--brand-gold)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.42)"; }}>
+                  WhatsApp
+                </a>
+              </div>
+              ) : null}
               {/* <div className="contact-item">
                 <div style={{
                   width: "30px", height: "30px", borderRadius: "8px", flexShrink: 0,
@@ -314,6 +374,7 @@ export default function Footer() {
                 <Link
                   key={legal.anchorKey}
                   to={legal.to}
+                  className="footer-legal-link"
                   style={{
                     fontSize: "12px",
                     color: "rgba(255,255,255,0.22)",

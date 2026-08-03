@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { completeEnrollment } from "../services/user/userService.js";
 
 /**
  * Public one-time enrollment page (M-04).
- * Operators open the invite link, set a 4-digit PIN, then sign in.
+ * Operators open the invite link, set a 4-digit password, then sign in.
  * Query: /enroll?token=...
  */
 export default function EnrollmentPage() {
@@ -18,6 +18,9 @@ export default function EnrollmentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const redirectTimeoutRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(redirectTimeoutRef.current), []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +43,11 @@ export default function EnrollmentPage() {
     try {
       await completeEnrollment({ token, password });
       setDone(true);
-      setTimeout(() => navigate("/login-email", { replace: true }), 1600);
+      clearTimeout(redirectTimeoutRef.current);
+      redirectTimeoutRef.current = setTimeout(
+        () => navigate("/login-email", { replace: true }),
+        1600,
+      );
     } catch (err) {
       setError(err?.message || "Failed to complete enrollment");
     } finally {
@@ -111,7 +118,7 @@ export default function EnrollmentPage() {
                 maxLength={4}
                 value={password}
                 onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="4-digit PIN"
+                placeholder="4-digit password"
                 style={{
                   width: "100%",
                   padding: "10px 44px 10px 12px",
@@ -149,7 +156,7 @@ export default function EnrollmentPage() {
               maxLength={4}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="Confirm 4-digit PIN"
+              placeholder="Confirm 4-digit password"
               style={{
                 width: "100%",
                 padding: "10px 12px",

@@ -11,12 +11,8 @@ const storage = {
   removeItem: (key) => Promise.resolve(localStorage.removeItem(key)),
 };
 
-const authPersistConfig = {
-  key: "auth",
-  storage,
-  whitelist: ["token", "user", "role"],
-};
-
+// M-02: do NOT persist auth (token/user/role). Access token is memory-only;
+// session renewal uses HttpOnly refresh cookies.
 const languagePersistConfig = {
   key: "language",
   storage,
@@ -25,7 +21,7 @@ const languagePersistConfig = {
 
 export const store = configureStore({
   reducer: {
-    auth: persistReducer(authPersistConfig, authReducer),
+    auth: authReducer,
     language: persistReducer(languagePersistConfig, languageReducer),
   },
   middleware: (getDefaultMiddleware) =>

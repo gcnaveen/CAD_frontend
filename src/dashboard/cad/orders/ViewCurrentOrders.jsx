@@ -15,6 +15,7 @@ import {
 } from "../../../services/assignmentApi";
 import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 import { getSlaRiskTone, resolveSla } from "../../../utils/sla.js";
+import { resolveCadWorkflowUi } from "../../../utils/cadWorkflowModes.js";
 import {
   uploadCadDeliverableToS3,
   validateCadDeliverableFiles,
@@ -157,11 +158,20 @@ const ViewCurrentOrders = () => {
     const assignmentId = resolveCadAssignmentId(assignment);
     const assignmentStatus = resolveCadAssignmentStatus(assignment);
     const isAccepted = isCadAssignmentAccepted(assignment);
+    const primaryMode =
+      assignment.primaryMode ?? sketchData.primaryMode ?? null;
+    const workflowPhase =
+      assignment.workflowPhase ?? sketchData.workflowPhase ?? null;
+    const exclusiveModes =
+      assignment.exclusiveModes ?? sketchData.exclusiveModes ?? null;
 
     return {
       id: assignmentId || assignment._id || assignment.id,
       assignmentId,
       isAccepted,
+      primaryMode,
+      workflowPhase,
+      exclusiveModes,
       rawAssignment: assignment,
       uploadId:
         typeof assignment.surveyorSketchUpload === "string"
@@ -494,15 +504,19 @@ const ViewCurrentOrders = () => {
       width: 200,
       fixed: "right",
       render: (_, record) => {
+        const workflow = resolveCadWorkflowUi(record);
         const status = String(record?.status || "").toUpperCase();
-        const expired = status === "ASSIGNED" && !isWithinAcceptWindow(record);
+        const expired =
+          workflow.showAcceptActions &&
+          status === "ASSIGNED" &&
+          !isWithinAcceptWindow(record);
 
         return (
           <Space size={[6, 6]} wrap className="cad-action-cell">
             {expired && (
               <BilingualStatusTag label={cadBi.orders.expired} color="default" />
             )}
-            {status === "ASSIGNED" && !expired && (
+            {workflow.showAcceptActions && !expired && (
               <>
                 <Button
                   size="small"
@@ -525,7 +539,7 @@ const ViewCurrentOrders = () => {
               </>
             )}
 
-            {status === "IN_PROGRESS" && (
+            {workflow.showUploadAction && (
               <Button
                 size="small"
                 type="primary"

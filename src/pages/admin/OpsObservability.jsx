@@ -21,7 +21,7 @@ import {
   ReloadOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { ROLES } from "../../constants/roles.js";
+import { ROLES, normalizeRoleKey, resolveStoredUserRole } from "../../constants/roles.js";
 import {
   getOpsHealth,
   getOpsObservability,
@@ -40,16 +40,6 @@ import {
 const { Title, Text, Paragraph } = Typography;
 
 const POLL_INTERVAL_MS = 60_000;
-
-function getCurrentRole(roleFromRedux) {
-  if (roleFromRedux) return roleFromRedux;
-  try {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored)?.role : null;
-  } catch {
-    return null;
-  }
-}
 
 function alertBadgeStatus(level) {
   const l = String(level || "").toLowerCase();
@@ -70,7 +60,10 @@ function formatStatusLabel(status) {
 export default function OpsObservability() {
   const navigate = useNavigate();
   const roleFromRedux = useSelector((s) => s.auth?.role);
-  const currentRole = getCurrentRole(roleFromRedux);
+  const userRoleFromRedux = useSelector((s) => s.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromRedux, userRoleFromRedux)
+  );
   const allowed =
     currentRole === ROLES.SUPER_ADMIN || currentRole === ROLES.ADMIN;
 
@@ -360,6 +353,7 @@ export default function OpsObservability() {
               columns={funnelColumns}
               dataSource={snapshot?.funnel?.byStatus || []}
               pagination={false}
+              scroll={{ x: "max-content" }}
               locale={{ emptyText: "No funnel data" }}
             />
           </Card>
@@ -463,6 +457,7 @@ export default function OpsObservability() {
               columns={flagColumns}
               dataSource={snapshot?.payments?.flags || []}
               pagination={false}
+              scroll={{ x: "max-content" }}
               locale={{ emptyText: "No payment flags" }}
             />
           </Card>
@@ -479,7 +474,7 @@ export default function OpsObservability() {
               dataSource={snapshot?.payments?.recentPaymentMismatches || []}
               pagination={{ pageSize: 8 }}
               locale={{ emptyText: "No recent mismatches" }}
-              scroll={{ x: true }}
+              scroll={{ x: "max-content" }}
             />
           </Card>
         </Col>
@@ -496,7 +491,7 @@ export default function OpsObservability() {
           dataSource={snapshot?.sla?.items || []}
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: "No SLA items" }}
-          scroll={{ x: true }}
+          scroll={{ x: "max-content" }}
           onRow={(row) => {
             const tone = getSlaRiskTone(row?.state || row?.sla?.state);
             if (!tone) return {};

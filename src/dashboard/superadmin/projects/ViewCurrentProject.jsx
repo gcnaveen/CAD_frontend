@@ -16,6 +16,11 @@ import {
 import SlaStatus from "../../../components/sla/SlaStatus.jsx";
 import { getSlaRiskTone, resolveSla } from "../../../utils/sla.js";
 import { normalizeAssignmentFlow } from "../../../services/admin/autoAssignAdminService.js";
+import {
+  ROLES,
+  normalizeRoleKey,
+  resolveStoredUserRole,
+} from "../../../constants/roles.js";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -41,18 +46,12 @@ const EDIT_STATUS_OPTIONS = [
 
 const ViewCurrentProject = () => {
   const navigate = useNavigate();
-  const userRole = useSelector((state) => state.auth?.role);
-  const currentRole =
-    userRole ||
-    (() => {
-      try {
-        const stored = localStorage.getItem("user");
-        return stored ? JSON.parse(stored)?.role : null;
-      } catch {
-        return null;
-      }
-    })();
-  const isSuperAdmin = currentRole === "SUPER_ADMIN";
+  const roleFromStore = useSelector((state) => state.auth?.role);
+  const userRoleFromStore = useSelector((state) => state.auth?.user?.role);
+  const currentRole = normalizeRoleKey(
+    resolveStoredUserRole(roleFromStore, userRoleFromStore)
+  );
+  const isSuperAdmin = currentRole === ROLES.SUPER_ADMIN;
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -80,7 +79,7 @@ const ViewCurrentProject = () => {
 
   // Check role access - only ADMIN and SUPER_ADMIN
   useEffect(() => {
-    if (currentRole !== "ADMIN" && currentRole !== "SUPER_ADMIN") {
+    if (currentRole !== ROLES.ADMIN && currentRole !== ROLES.SUPER_ADMIN) {
       message.error("Access denied. Admin or Super Admin access required.");
       navigate("/superadmin/home");
     }
@@ -265,7 +264,7 @@ const ViewCurrentProject = () => {
         if (!cancelled) setEditLoading(false);
       });
     return () => { cancelled = true; };
-  }, [editDrawerOpen, editingAssignmentId]);
+  }, [editDrawerOpen, editingAssignmentId, editForm]);
 
   const handleEditDrawerClose = () => {
     setEditDrawerOpen(false);

@@ -1,3 +1,5 @@
+import { assertSafeCheckoutRedirect } from "./paymentRedirectUrls.js";
+
 const LAST_PAYMENT_KEY = "cad:lastPayment";
 
 /**
@@ -25,6 +27,37 @@ export function isSketchPaymentCompleted(upload) {
     return true;
   }
   return false;
+}
+
+/**
+ * Booking amount in paise (server-priced). 0 / missing → free or unknown.
+ */
+export function getSketchBookingAmountPaise(upload) {
+  const n = Number(
+    upload?.sketchPayment?.amountPaise ??
+      upload?.sketchPayment?.amount_paise ??
+      upload?.amountPaise ??
+      0
+  );
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * BIZ-10 payment gate: unpaid when lifecycle is PAYMENT_PENDING, or amountPaise > 0
+ * and sketchPayment.status is not COMPLETED (SUCCESS/PAID/paidAt also count as paid).
+ */
+export function isSketchBookingUnpaid(upload) {
+  if (!upload || typeof upload !== "object") return false;
+  const orderStatus = String(upload?.status || "").toUpperCase();
+  if (orderStatus === "PAYMENT_PENDING") return true;
+  const amountPaise = getSketchBookingAmountPaise(upload);
+  if (amountPaise > 0 && !isSketchPaymentCompleted(upload)) return true;
+  return false;
+}
+
+/** Inverse of {@link isSketchBookingUnpaid} — safe for Assign / Approve. */
+export function isSketchBookingPaymentSatisfied(upload) {
+  return !isSketchBookingUnpaid(upload);
 }
 
 /**
@@ -70,6 +103,15 @@ export function getPaymentCheckoutUrl(paymentMeta) {
     typeof paymentMeta?.checkoutPageUrl === "string" ? paymentMeta.checkoutPageUrl.trim() : "";
   const redirect = typeof paymentMeta?.redirectUrl === "string" ? paymentMeta.redirectUrl.trim() : "";
   return checkout || redirect || "";
+}
+
+/**
+ * UX-01: resolve checkout URL and block localhost redirects in production builds.
+ */
+export function getSafePaymentCheckoutUrl(paymentMeta) {
+  const raw = getPaymentCheckoutUrl(paymentMeta);
+  if (!raw) return "";
+  return assertSafeCheckoutRedirect(raw);
 }
 
 export function formatSketchPayableRupees(upload, paymentMeta) {
@@ -149,8 +191,15 @@ export function clearSketchPaymentContext() {
  * @returns {boolean} true if redirect was started
  */
 export function redirectToSketchCheckout(paymentMeta, uploadId, options = {}) {
-  const redirectUrl = getPaymentCheckoutUrl(paymentMeta);
+  let redirectUrl = getPaymentCheckoutUrl(paymentMeta);
   if (!redirectUrl) return false;
+
+  try {
+    redirectUrl = getSafePaymentCheckoutUrl(paymentMeta);
+  } catch (err) {
+    console.error(err?.message || err);
+    return false;
+  }
 
   saveSketchPaymentContext({
     uploadId: uploadId ?? paymentMeta?.uploadId ?? null,

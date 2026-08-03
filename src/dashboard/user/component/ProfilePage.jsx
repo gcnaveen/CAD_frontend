@@ -1,8 +1,11 @@
 // src/dashboard/user/pages/ProfilePage.jsx
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../../features/auth/authSlice";
+import { performFullLogout } from "../../../utils/performFullLogout.js";
+import { getWhatsAppSupportUrl } from "../../../constants/siteMeta.js";
+import { getSupportContact } from "../../../services/public/businessRulesService.js";
+import { humanizeEnumLabel } from "../../../utils/displayLabels.js";
 
 /* ── Icons ── */
 const UserIcon = ({ className = "" }) => (
@@ -62,9 +65,20 @@ const Card = ({ children, className = "" }) => (
 const ProfilePage = () => {
   const navigate  = useNavigate();
   const dispatch  = useDispatch();
+  const [whatsappUrl, setWhatsappUrl] = useState(() => getWhatsAppSupportUrl());
 
-  const WHATSAPP_URL =
-    "https://api.whatsapp.com/send/?phone=919945831469&text=Hi+North-cot+Support&type=phone_number&app_absent=0";
+  useEffect(() => {
+    let cancelled = false;
+    getSupportContact()
+      .then((contact) => {
+        if (cancelled) return;
+        if (contact?.whatsappUrl) setWhatsappUrl(contact.whatsappUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const authSlice = useSelector((s) => s.auth);
   const storedUser = useMemo(() => {
@@ -104,7 +118,10 @@ const ProfilePage = () => {
     ADMIN:    "Administrator",
   }[userRole] || userRole;
 
-  const handleLogout = () => { dispatch(logout()); navigate("/login", { replace: true }); };
+  const handleLogout = async () => {
+    await performFullLogout(dispatch);
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[var(--user-accent-soft)] via-[color-mix(in_srgb,var(--brand-gold)_08%,var(--bg-secondary))] to-[var(--bg-primary)]">
@@ -132,7 +149,7 @@ const ProfilePage = () => {
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-[11px] font-bold text-fg-muted">Status</span>
                 <span className="px-2.5 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)] text-[11px] font-extrabold">
-                  {userStatus}
+                  {humanizeEnumLabel(userStatus)}
                 </span>
               </div>
             </div>
@@ -152,7 +169,7 @@ const ProfilePage = () => {
             iconBg="bg-[color-mix(in_srgb,var(--success)_12%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--success)_28%,var(--border-color))]"
             label="ಸಹಾಯ / Contact Support"
             sublabel="Chat with us on WhatsApp"
-            onClick={() => window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer")}
+            onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
           />
           <Divider />
           <MenuItem

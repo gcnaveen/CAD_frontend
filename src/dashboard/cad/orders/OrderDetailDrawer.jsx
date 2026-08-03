@@ -29,9 +29,10 @@ import {
   normalizeSingleFile,
 } from "../../../utils/sketchFileUtils";
 import RevisionRequestsCard from "../../../components/orders/RevisionRequestsCard";
-import { CAD_DELIVERABLE_ACCEPT } from "../../../services/upload/upload.constants.js";
+import { CAD_DELIVERABLE_ACCEPT, CAD_DELIVERABLE_MAX_SIZE_BYTES, CAD_DELIVERABLE_MAX_SIZE_LABEL } from "../../../services/upload/upload.constants.js";
 import { resolveCadDeliverableRole } from "../../../services/upload/cadDeliverable.utils.js";
 import { getSketchStatusLabel } from "../../../utils/lifecycleQc.js";
+import { resolveCadWorkflowUi } from "../../../utils/cadWorkflowModes.js";
 import { cadBi, cadBiFmt } from "../cadBilingual";
 
 const { Text } = Typography;
@@ -113,7 +114,7 @@ const OrderDetailDrawer = ({
     if (!open) setFileList([]);
   }, [open]);
 
-  const sketch = order?.sketchUpload || {};
+  const sketch = useMemo(() => order?.sketchUpload || {}, [order?.sketchUpload]);
 
   const singleModeSelectedLabels = useMemo(
     () =>
@@ -146,8 +147,9 @@ const OrderDetailDrawer = ({
 
   if (!order) return null;
 
+  const workflow = resolveCadWorkflowUi(order);
   const assignmentStatus = String(order.status || "").toUpperCase();
-  const detailsLocked = assignmentStatus === "ASSIGNED" || order.isAccepted === false;
+  const detailsLocked = workflow.detailsLocked;
   const assignmentTag =
     ASSIGNMENT_STATUS_TAG[assignmentStatus] || ASSIGNMENT_STATUS_TAG.PENDING;
   const sketchStatus = sketch.status ? String(sketch.status).toUpperCase() : "";
@@ -166,6 +168,12 @@ const OrderDetailDrawer = ({
       const role = resolveCadDeliverableRole(file);
       if (!role) {
         message.error(cadBi.drawer.invalidCadFileType);
+        return Upload.LIST_IGNORE;
+      }
+      if ((Number(file.size) || 0) > CAD_DELIVERABLE_MAX_SIZE_BYTES) {
+        message.error(
+          `${file.name}: file too large. Maximum size is ${CAD_DELIVERABLE_MAX_SIZE_LABEL}.`
+        );
         return Upload.LIST_IGNORE;
       }
       setFileList((prev) => [...prev, file]);
@@ -231,16 +239,11 @@ const OrderDetailDrawer = ({
       open={open}
       destroyOnClose
       extra={
-        onSave && (
-          <Space>
-            <Button onClick={onClose}>{cadBi.drawer.close}</Button>
-            {fileList.length > 0 && (
-              <Button type="primary" loading={isUploading} onClick={handleUploadSubmit}>
-                {cadBi.drawer.uploadCadFiles}
-              </Button>
-            )}
-          </Space>
-        )
+        onSave && workflow.showUploadPanel && fileList.length > 0 ? (
+          <Button type="primary" loading={isUploading} onClick={handleUploadSubmit}>
+            {cadBi.drawer.uploadCadFiles}
+          </Button>
+        ) : null
       }
       styles={{ body: { paddingBottom: 24 } }}
     >
@@ -619,7 +622,9 @@ const OrderDetailDrawer = ({
           )}
         </Card>
 
-        {Array.isArray(sketch.revisionRequests) && sketch.revisionRequests.length > 0 && (
+        {workflow.showRevisionPanel &&
+          Array.isArray(sketch.revisionRequests) &&
+          sketch.revisionRequests.length > 0 && (
           <>
             <Divider style={{ margin: "8px 0" }} />
             <RevisionRequestsCard
@@ -639,6 +644,8 @@ const OrderDetailDrawer = ({
           </>
         )}
 
+        {workflow.showDeliverables ? (
+          <>
         <Divider style={{ margin: "8px 0" }} />
 
         <Card size="small" title={cadBi.drawer.cadDeliverables}>
@@ -693,7 +700,11 @@ const OrderDetailDrawer = ({
             <Text type="secondary">{cadBi.drawer.noCadYet}</Text>
           )}
         </Card>
+          </>
+        ) : null}
 
+        {workflow.showUploadPanel ? (
+          <>
         <Divider style={{ margin: "8px 0" }} />
 
         <Card size="small" title={cadBi.drawer.uploadCadFile}>
@@ -717,6 +728,8 @@ const OrderDetailDrawer = ({
             </Text>
           )}
         </Card>
+          </>
+        ) : null}
         </>
         )}
       </Space>

@@ -33,7 +33,6 @@ const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) =>
 
   useEffect(() => {
     if (!selectedDistrict) {
-      setTalukas([]);
       return;
     }
     getTalukasByDistrict(selectedDistrict)
@@ -43,13 +42,15 @@ const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) =>
 
   useEffect(() => {
     if (!selectedTaluka) {
-      setHoblis([]);
       return;
     }
     getHoblisByTaluka(selectedTaluka)
       .then((res) => setHoblis(normalizeList(res)))
       .catch(() => setHoblis([]));
   }, [selectedTaluka]);
+
+  const talukaOptions = selectedDistrict ? talukas : [];
+  const hobliOptions = selectedTaluka ? hoblis : [];
 
   useEffect(() => {
     if (initialValues && districts.length) {
@@ -123,8 +124,8 @@ const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) =>
   }, [initialValues, hoblis, form]);
 
   const handleSubmit = (values) => {
+    // Do not reset here — parent closes drawer only after successful API response.
     onSubmit?.(values);
-    form.resetFields();
   };
 
   const handleCancel = () => {
@@ -198,7 +199,7 @@ const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) =>
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            options={talukas.map((t) => ({
+            options={talukaOptions.map((t) => ({
               value: t._id ?? t.id,
               label: labelTaluka(t),
             }))}
@@ -218,7 +219,7 @@ const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) =>
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            options={hoblis.map((h) => ({
+            options={hobliOptions.map((h) => ({
               value: h._id ?? h.id,
               label: labelHobli(h),
             }))}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
@@ -7,7 +7,7 @@ import {
   Check, Shield, RefreshCw, Clock
 } from "lucide-react";
 import { FALLBACK_QC, getQcIncludedBullet } from "../utils/lifecycleQc.js";
-import { getQcRules } from "../services/public/businessRulesService.js";
+import usePublicBusinessRules from "../hooks/usePublicBusinessRules.js";
 
 const BENEFIT_ICONS = [IndianRupee, FileText, Link2, Bell];
 
@@ -27,46 +27,53 @@ function buildIncluded(qcBullet) {
   );
 }
 
+function formatRupee(n) {
+  if (n == null || !Number.isFinite(Number(n))) return null;
+  return `₹${Number(n)}`;
+}
+
 export default function Benefits() {
   const navigate = useNavigate();
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.benefits;
   const sectionRef = useRef(null);
-  const [qcBullet, setQcBullet] = useState(getQcIncludedBullet(FALLBACK_QC));
+  const { rules, fromApi } = usePublicBusinessRules();
+  const earnings = rules?.cadOperatorEarnings;
+  const refundSummary = rules?.refundPolicy?.summary;
+  const refundTitle = rules?.refundPolicy?.title;
+
+  const totalPrice = fromApi ? formatRupee(earnings?.standardOrderGrossRupees) : null;
+  const bookingFee = fromApi ? formatRupee(earnings?.bookingRupees) : null;
+  const downloadFee = fromApi ? formatRupee(earnings?.balanceRupees) : null;
+  const revisionFee = fromApi ? formatRupee(earnings?.bookingRupees) : null;
+
+  const qcBullet = useMemo(
+    () => getQcIncludedBullet(rules?.qc || FALLBACK_QC),
+    [rules?.qc]
+  );
   const included = useMemo(() => {
     const base = tr?.includedItems?.length
       ? [...tr.includedItems]
       : buildIncluded(qcBullet);
-    // Keep the QC line aligned with M-08 qc.includedBullet (never 3/6-point copy).
     if (base.length >= 3) base[2] = qcBullet;
     return base;
   }, [tr, qcBullet]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getQcRules()
-      .then((rules) => {
-        if (!cancelled && rules) setQcBullet(getQcIncludedBullet(rules));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
     const items = section.querySelectorAll(".ben-reveal");
+    const timers = [];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const el = entry.target;
-            setTimeout(() => {
-              el.style.opacity = "1";
-              el.style.transform = "translateY(0) scale(1)";
-            }, Number(el.dataset.delay || 0));
+            timers.push(
+              setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateY(0) scale(1)";
+              }, Number(el.dataset.delay || 0)),
+            );
             observer.unobserve(el);
           }
         });
@@ -79,7 +86,10 @@ export default function Benefits() {
       el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
       observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, [lang]);
 
   const cards = (tr?.cards || []).map((c, i) => ({ ...c, Icon: BENEFIT_ICONS[i] }));
@@ -265,7 +275,7 @@ export default function Benefits() {
                     fontStyle: "italic", fontWeight: 700,
                     fontSize: "clamp(52px, 8vw, 72px)", color: "white", lineHeight: 1,
                   }}>
-                    ₹500
+                    {totalPrice || tr?.priceFromLabel || "See checkout"}
                   </span>
                   <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.5)", paddingBottom: "10px", fontWeight: 500 }}>
                     /drawing
@@ -294,7 +304,9 @@ export default function Benefits() {
                       {tr?.bookingFeeSubtitle || "At order submission (Step 1)"}
                     </p>
                   </div>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹100</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>
+                    {bookingFee || "—"}
+                  </span>
                 </div>
                 <div className="fee-row">
                   <div>
@@ -305,13 +317,17 @@ export default function Benefits() {
                       {tr?.downloadFeeSubtitle || "When drawing is ready (Step 4)"}
                     </p>
                   </div>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>₹400</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "17px", color: "var(--brand-green-deep)" }}>
+                    {downloadFee || "—"}
+                  </span>
                 </div>
                 <div className="total-row">
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--brand-green-deep)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
                     {tr?.totalLabel || "Total"}
                   </span>
-                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "20px", color: "var(--brand-gold)" }}>₹500</span>
+                  <span style={{ fontFamily: "'IBM Plex Serif', Georgia, serif", fontWeight: 700, fontSize: "20px", color: "var(--brand-gold)" }}>
+                    {totalPrice || "—"}
+                  </span>
                 </div>
               </div>
 
@@ -344,8 +360,10 @@ export default function Benefits() {
                       {tr?.separateChargesTitle || "Separate Charges"}
                     </p>
                     <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
-                      {tr?.separateChargesDesc ||
-                        "Drawing revision (if corrections needed after delivery): ₹100"}
+                      {revisionFee
+                        ? `Drawing revision (if corrections needed after delivery): ${revisionFee}`
+                        : tr?.separateChargesDescNoPrice ||
+                          "Drawing revision fees are shown at checkout when a revision is required."}
                     </p>
                   </div>
                 </div>
@@ -353,11 +371,12 @@ export default function Benefits() {
                   <Shield size={14} color="var(--brand-gold-muted)" style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div>
                     <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-brown)", margin: "0 0 2px" }}>
-                      {tr?.refundPolicyTitle || "Refund Policy"}
+                      {refundTitle || tr?.refundPolicyTitle || "Refund Policy"}
                     </p>
                     <p style={{ fontSize: "12px", color: "var(--accent-brown-muted)", margin: 0, lineHeight: 1.5 }}>
-                      {tr?.refundPolicyDesc ||
-                        "Full refund available unless assigned to a CAD operator. No refund after drawing is completed."}
+                      {refundSummary ||
+                        tr?.refundPolicyDescFallback ||
+                        "Refund terms are published in our Terms of Service and confirmed at checkout."}
                     </p>
                   </div>
                 </div>
@@ -370,8 +389,10 @@ export default function Benefits() {
               </button>
 
               <p className="ben-footnote" style={{ fontSize: "11px", color: "var(--text-brown-soft)", textAlign: "center", marginTop: "12px", lineHeight: 1.5 }}>
-                {tr?.footnote ||
-                  "1st revision free within 48 hours. After that: ₹100 per revision."}
+                {revisionFee
+                  ? `1st revision free within 48 hours. After that: ${revisionFee} per revision.`
+                  : tr?.footnoteNoPrice ||
+                    "1st revision free within 48 hours. Later revision fees are confirmed at checkout."}
               </p>
             </div>
           </div>

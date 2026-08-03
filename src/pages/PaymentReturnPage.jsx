@@ -12,6 +12,7 @@ import {
   readSketchPaymentContext,
   resolveSketchPaymentUploadId,
 } from "../utils/sketchPaymentUtils";
+import { getSketchStatusLabel } from "../utils/lifecycleQc.js";
 
 const { Paragraph, Text } = Typography;
 
@@ -188,7 +189,8 @@ export default function PaymentReturnPage() {
               <Text strong>Application ID:</Text> {upload?.applicationId || "—"}
             </Paragraph>
             <Paragraph className="mb-0">
-              <Text strong>Order status:</Text> {upload?.status || "—"}
+              <Text strong>Order status:</Text>{" "}
+              {getSketchStatusLabel(upload?.status) || upload?.status || "—"}
             </Paragraph>
             {isBalanceCheckout && (
               <Paragraph className="mb-0">

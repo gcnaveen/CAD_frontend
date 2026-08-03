@@ -7,6 +7,29 @@ export const BRAND_NAME = "North-cot";
 export const BRAND_NAME_FULL = "North-cot — Land Survey & CAD Documentation";
 export const BRAND_SHORT_NAME = "North-cot";
 
+/** Canonical support email (CONTACT-01) — use everywhere in the SPA. */
+export const SUPPORT_EMAIL = "support@northcot.in";
+export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
+
+/** Default WhatsApp support number (digits only, country code included). Override via env. */
+export const DEFAULT_SUPPORT_WHATSAPP_PHONE = "919945831469";
+
+/**
+ * SUPPORT-01 — WhatsApp chat URL.
+ * Prefer VITE_WHATSAPP_URL; otherwise build from VITE_SUPPORT_WHATSAPP_PHONE (or default).
+ */
+export function getWhatsAppSupportUrl() {
+  const fromEnv = (import.meta.env.VITE_WHATSAPP_URL || "").trim();
+  if (fromEnv) return fromEnv;
+  const phone = (
+    import.meta.env.VITE_SUPPORT_WHATSAPP_PHONE || DEFAULT_SUPPORT_WHATSAPP_PHONE
+  )
+    .trim()
+    .replace(/\D/g, "");
+  const text = encodeURIComponent("Hi North-cot Support");
+  return `https://api.whatsapp.com/send/?phone=${phone}&text=${text}&type=phone_number&app_absent=0`;
+}
+
 export const SITE_DESCRIPTION =
   "North-cot helps licensed land surveyors in Karnataka order CAD drawings and revenue documentation online — upload sketches, track orders, and get QC-assured deliverables.";
 

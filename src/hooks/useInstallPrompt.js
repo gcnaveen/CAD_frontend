@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+function isStandaloneDisplay() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
 /**
  * Captures the PWA `beforeinstallprompt` event and exposes install controls.
  * @param {object} [options]
@@ -20,17 +28,8 @@ export function useInstallPrompt(options = {}) {
   }, [onUserChoice]);
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(isStandaloneDisplay);
   const deferredRef = useRef(null);
-
-  useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-    if (standalone) {
-      setInstalled(true);
-    }
-  }, []);
 
   useEffect(() => {
     const handler = (e) => {

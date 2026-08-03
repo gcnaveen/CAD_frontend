@@ -1,4 +1,8 @@
 import apiClient from "../apiClient.js";
+import {
+  handleMasterWriteError,
+  masterWriteAuthConfig,
+} from "./masterAuth.js";
 
 const BASE = "/api/masters/villages";
 
@@ -7,13 +11,13 @@ function handleError(error, fallbackMessage) {
   throw new Error(message);
 }
 
-/** POST /api/masters/villages - Create Village */
+/** POST /api/masters/villages - Create Village (Bearer + SUPER_ADMIN) */
 export async function createVillage(payload) {
   try {
-    const { data } = await apiClient.post(BASE, payload);
+    const { data } = await apiClient.post(BASE, payload, masterWriteAuthConfig());
     return data;
   } catch (error) {
-    handleError(error, "Failed to create village");
+    handleMasterWriteError(error, "Failed to create village");
   }
 }
 
@@ -37,12 +41,16 @@ export async function getVillageById(villageId) {
   }
 }
 
-/** PATCH /api/masters/villages/{villageId} - Update Village */
+/** PATCH /api/masters/villages/{villageId} - Update Village (Bearer + SUPER_ADMIN) */
 export async function updateVillage(villageId, payload) {
   try {
-    const { data } = await apiClient.patch(`${BASE}/${villageId}`, payload);
+    const { data } = await apiClient.patch(
+      `${BASE}/${villageId}`,
+      payload,
+      masterWriteAuthConfig()
+    );
     return data;
   } catch (error) {
-    handleError(error, "Failed to update village");
+    handleMasterWriteError(error, "Failed to update village");
   }
 }

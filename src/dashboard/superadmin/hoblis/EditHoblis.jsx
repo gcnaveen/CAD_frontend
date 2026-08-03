@@ -26,7 +26,6 @@ const EditHoblis = ({ initialValues, onCancel, onSubmit, loading = false }) => {
 
   useEffect(() => {
     if (!selectedDistrict) {
-      setTalukas([]);
       return;
     }
     // Ensure selectedDistrict is a string ID, not an object
@@ -34,13 +33,14 @@ const EditHoblis = ({ initialValues, onCancel, onSubmit, loading = false }) => {
       ? selectedDistrict 
       : selectedDistrict?._id ?? selectedDistrict?.id ?? String(selectedDistrict);
     if (!districtIdStr || districtIdStr === "[object Object]") {
-      setTalukas([]);
       return;
     }
     getTalukasByDistrict(districtIdStr)
       .then((res) => setTalukas(normalizeList(res)))
       .catch(() => setTalukas([]));
   }, [selectedDistrict]);
+
+  const talukaOptions = selectedDistrict ? talukas : [];
 
   useEffect(() => {
     if (initialValues && districts.length) {
@@ -93,8 +93,8 @@ const EditHoblis = ({ initialValues, onCancel, onSubmit, loading = false }) => {
   }, [initialValues, talukas, form]);
 
   const handleSubmit = (values) => {
+    // Do not reset here — parent closes drawer only after successful API response.
     onSubmit?.(values);
-    form.resetFields();
   };
 
   const handleCancel = () => {
@@ -162,7 +162,7 @@ const EditHoblis = ({ initialValues, onCancel, onSubmit, loading = false }) => {
             size="large"
             showSearch
             optionFilterProp="label"
-            options={talukas.map((t) => ({
+            options={talukaOptions.map((t) => ({
               value: t._id ?? t.id,
               label: t.name,
             }))}

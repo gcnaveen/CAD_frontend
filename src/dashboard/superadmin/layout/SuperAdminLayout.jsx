@@ -24,11 +24,11 @@ import {
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../../features/auth/authSlice";
 import {
   normalizeRoleKey,
   resolveStoredUserRole,
 } from "../../../constants/roles";
+import { performFullLogout } from "../../../utils/performFullLogout.js";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
@@ -126,6 +126,7 @@ const masterPaths = ["/superadmin/districts", "/superadmin/talukas", "/superadmi
 
 const SuperAdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [openKeys, setOpenKeys] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -166,6 +167,7 @@ const SuperAdminLayout = () => {
   const handleMenuClick = (e) => {
     if (e.key === MASTER_DATA_KEY) return;
     navigate(e.key);
+    if (isMobile) setCollapsed(true);
   };
 
   const handleOpenChange = (keys) => {
@@ -183,27 +185,39 @@ const SuperAdminLayout = () => {
     }),
   });
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await performFullLogout(dispatch);
     navigate("/login", { replace: true });
   };
 
-  const siderWidth = collapsed ? 80 : 260;
+  const collapsedWidth = isMobile ? 0 : 80;
+  const siderWidth = collapsed ? collapsedWidth : 260;
+  const mainMarginLeft = isMobile ? 0 : siderWidth;
   const isAdmin = currentRole === "ADMIN";
   const displayTitle = isAdmin ? "Admin" : "Super Admin";
 
   return (
     <Layout className="superadmin-layout theme-animate-surface" style={{ minHeight: "100vh" }}>
+      {isMobile && !collapsed ? (
+        <button
+          type="button"
+          className="superadmin-sider-backdrop"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => setCollapsed(true)}
+        />
+      ) : null}
       <Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
         breakpoint="lg"
         onBreakpoint={(broken) => {
+          setIsMobile(broken);
           if (broken) setCollapsed(true);
         }}
         width={260}
-        collapsedWidth={80}
+        collapsedWidth={collapsedWidth}
         className="superadmin-sider"
         style={{
           background: "var(--layout-sider-bg)",
@@ -304,7 +318,7 @@ const SuperAdminLayout = () => {
       <Layout
         className="superadmin-main"
         style={{
-          marginLeft: siderWidth,
+          marginLeft: mainMarginLeft,
           transition: "margin-left 0.2s ease",
           minHeight: "100vh",
         }}

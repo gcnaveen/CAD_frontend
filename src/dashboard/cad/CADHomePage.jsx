@@ -68,6 +68,9 @@ const EMPTY_OVERVIEW = {
     acceptedOrders: 0,
     rejectedOrders: 0,
     inProgressOrders: 0,
+    pendingAcceptOrders: 0,
+    completedOrders: 0,
+    countSemantics: null,
   },
 };
 
@@ -99,15 +102,27 @@ const CADHomePage = () => {
 
   const { wallet, orders } = overview;
   const chartData = [
+    { label: cadBi.home.chartPendingAccept, value: orders.pendingAcceptOrders },
     { label: cadBi.home.chartAccepted, value: orders.acceptedOrders },
     { label: cadBi.home.chartInProgress, value: orders.inProgressOrders },
+    { label: cadBi.home.chartCompleted, value: orders.completedOrders },
     { label: cadBi.home.chartRejected, value: orders.rejectedOrders },
   ];
-  const chartColors = ["var(--success)", "var(--accent-color)", "var(--danger)"];
+  const chartColors = [
+    "var(--warning)",
+    "var(--success)",
+    "var(--accent-color)",
+    "var(--brand-gold, #c9a84c)",
+    "var(--danger)",
+  ];
   const acceptancePct =
     orders.totalOrders > 0
       ? Math.round((orders.acceptedOrders / orders.totalOrders) * 100)
       : 0;
+  const semanticsNote =
+    typeof orders.countSemantics?.note === "string"
+      ? orders.countSemantics.note
+      : null;
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -189,8 +204,13 @@ const CADHomePage = () => {
       <Title level={5} style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
         {cadBi.home.orderStats}
       </Title>
+      {semanticsNote ? (
+        <Text type="secondary" style={{ display: "block", marginBottom: 12, fontSize: 12 }}>
+          {semanticsNote}
+        </Text>
+      ) : null}
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={8} xl={4}>
           <Card size="small" style={{ height: "100%" }}>
             {loading ? (
               <Skeleton active paragraph={{ rows: 1 }} />
@@ -203,7 +223,20 @@ const CADHomePage = () => {
             )}
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={8} xl={4}>
+          <Card size="small" style={{ height: "100%" }}>
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title={cadBi.home.pendingAcceptOrders}
+                value={orders.pendingAcceptOrders}
+                prefix={<ClockCircleOutlined style={{ color: "var(--warning)" }} />}
+              />
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={8} xl={4}>
           <Card size="small" style={{ height: "100%" }}>
             {loading ? (
               <Skeleton active paragraph={{ rows: 1 }} />
@@ -225,7 +258,33 @@ const CADHomePage = () => {
             )}
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={8} xl={4}>
+          <Card size="small" style={{ height: "100%" }}>
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title={cadBi.home.inProgress}
+                value={orders.inProgressOrders}
+                prefix={<SyncOutlined style={{ color: "var(--accent-color)" }} />}
+              />
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={8} xl={4}>
+          <Card size="small" style={{ height: "100%" }}>
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title={cadBi.home.completedOrders}
+                value={orders.completedOrders}
+                prefix={<CheckCircleOutlined style={{ color: "var(--brand-gold, #c9a84c)" }} />}
+              />
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={8} xl={4}>
           <Card size="small" style={{ height: "100%" }}>
             {loading ? (
               <Skeleton active paragraph={{ rows: 1 }} />
@@ -249,19 +308,6 @@ const CADHomePage = () => {
             )}
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" style={{ height: "100%" }}>
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 1 }} />
-            ) : (
-              <Statistic
-                title={cadBi.home.inProgress}
-                value={orders.inProgressOrders}
-                prefix={<SyncOutlined style={{ color: "var(--accent-color)" }} />}
-              />
-            )}
-          </Card>
-        </Col>
       </Row>
 
       <Divider style={{ margin: "24px 0" }} />
@@ -282,18 +328,30 @@ const CADHomePage = () => {
                 <Space split={<Divider type="vertical" />} style={{ marginTop: 12 }} wrap>
                   <Text>
                     <span style={{ color: chartColors[0], fontWeight: 600 }}>
+                      {orders.pendingAcceptOrders}
+                    </span>{" "}
+                    {cadBi.home.chartPendingAccept}
+                  </Text>
+                  <Text>
+                    <span style={{ color: chartColors[1], fontWeight: 600 }}>
                       {orders.acceptedOrders}
                     </span>{" "}
                     {cadBi.home.chartAccepted}
                   </Text>
                   <Text>
-                    <span style={{ color: chartColors[1], fontWeight: 600 }}>
+                    <span style={{ color: chartColors[2], fontWeight: 600 }}>
                       {orders.inProgressOrders}
                     </span>{" "}
                     {cadBi.home.chartInProgress}
                   </Text>
                   <Text>
-                    <span style={{ color: chartColors[2], fontWeight: 600 }}>
+                    <span style={{ color: chartColors[3], fontWeight: 600 }}>
+                      {orders.completedOrders}
+                    </span>{" "}
+                    {cadBi.home.chartCompleted}
+                  </Text>
+                  <Text>
+                    <span style={{ color: chartColors[4], fontWeight: 600 }}>
                       {orders.rejectedOrders}
                     </span>{" "}
                     {cadBi.home.chartRejected}
