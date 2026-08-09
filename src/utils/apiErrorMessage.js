@@ -1,11 +1,12 @@
-import { getCorrelationId } from "./correlationId.js";
-
 /**
  * Extract a user-facing message from API error responses.
  * Supports { message } and { errors: [{ message }] } shapes.
  * Never surfaces secret names/values (H-01: SECRETS_MISCONFIGURED).
  * H-07/H-10: FILE_QUARANTINED → do not treat as a usable upload URL.
- * M-07: appends X-Correlation-Id when present (support / incident ref).
+ *
+ * Correlation IDs stay on the request (`X-Correlation-Id`) for backend logs.
+ * They are not appended to UI copy — users should only see the real error text
+ * (e.g. "Invalid credentials"), not a support UUID.
  */
 const GENERIC_SERVICE_UNAVAILABLE =
   "Service temporarily unavailable. Please try again later.";
@@ -31,13 +32,6 @@ function isFileQuarantined(body, error) {
   return String(body.message ?? "").includes("FILE_QUARANTINED");
 }
 
-function withCorrelationRef(message, error) {
-  const cid = getCorrelationId(error);
-  if (!cid || !message) return message;
-  if (String(message).includes(cid)) return message;
-  return `${message} (ref: ${cid})`;
-}
-
 export function getApiErrorMessage(error, fallback = "Request failed") {
   const body = error?.response?.data;
   let message;
@@ -61,5 +55,5 @@ export function getApiErrorMessage(error, fallback = "Request failed") {
   } else {
     message = fallback;
   }
-  return withCorrelationRef(message, error);
+  return message;
 }
