@@ -9,6 +9,7 @@ export default function LazySection({
   rootMargin = "80px 0px",
   minHeight = 240,
   className = "",
+  anchorId,
 }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(
@@ -37,6 +38,7 @@ export default function LazySection({
     <div
       ref={ref}
       className={className}
+      data-anchor-id={anchorId}
       style={visible ? undefined : { minHeight }}
     >
       {visible ? children : null}

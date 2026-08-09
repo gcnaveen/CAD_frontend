@@ -53,7 +53,7 @@ describe("normalizeOpsObservability", () => {
 });
 
 describe("getApiErrorMessage correlation", () => {
-  it("appends response correlation id for support refs", () => {
+  it("keeps correlation id on the error but does not show it in UI copy", () => {
     const error = {
       response: {
         data: { message: "Payment failed" },
@@ -61,6 +61,6 @@ describe("getApiErrorMessage correlation", () => {
       },
     };
     expect(getCorrelationId(error)).toBe("abc-123");
-    expect(getApiErrorMessage(error)).toBe("Payment failed (ref: abc-123)");
+    expect(getApiErrorMessage(error)).toBe("Payment failed");
   });
 });

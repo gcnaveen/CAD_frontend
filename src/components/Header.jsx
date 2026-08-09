@@ -50,8 +50,24 @@ const Header = () => {
   };
 
   const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) element.scrollIntoView({ behavior: "smooth" });
+    const scrollTarget =
+      document.getElementById(sectionId) ||
+      document.querySelector(`[data-anchor-id="${sectionId}"]`);
+
+    if (location.pathname !== "/") {
+      navigate(`/#${sectionId}`);
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    if (window.location.hash !== `#${sectionId}`) {
+      window.history.replaceState(null, "", `#${sectionId}`);
+    }
+
+    if (scrollTarget) {
+      scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     setIsMobileMenuOpen(false);
   };
 
