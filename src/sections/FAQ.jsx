@@ -1,14 +1,38 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useSelector } from "react-redux";
 import { translations } from "../constants/translation";
+import usePublicBusinessRules from "../hooks/usePublicBusinessRules.js";
+import {
+  applyCanonicalFaqAnswers,
+  formatRevisionFeeLabel,
+  revisionRupeesFromRules,
+} from "../utils/publicMarketingCopy.js";
 
 const DEFAULT_ITEMS = [];
 
 export default function FAQ() {
   const lang = useSelector((state) => state.language?.lang || "en");
   const tr = translations[lang]?.faq;
-  const items = tr?.items?.length ? tr.items : DEFAULT_ITEMS;
+  const benefitsTr = translations[lang]?.benefits;
+  const { rules, fromApi } = usePublicBusinessRules();
+  const items = useMemo(() => {
+    const raw = tr?.items?.length ? tr.items : DEFAULT_ITEMS;
+    const refundSummary = fromApi ? rules?.refundPolicy?.summary : null;
+    const revisionFeeLabel = fromApi
+      ? formatRevisionFeeLabel(revisionRupeesFromRules(rules))
+      : null;
+    return applyCanonicalFaqAnswers(raw, {
+      refundSummary,
+      revisionFeeLabel,
+      refundFallback:
+        benefitsTr?.refundPolicyDescFallback ||
+        "Refund terms are published in our Terms of Service and confirmed at checkout.",
+      revisionFallback:
+        benefitsTr?.footnoteNoPrice ||
+        "1st revision free within 48 hours. Later revision fees are confirmed at checkout.",
+    });
+  }, [tr, benefitsTr, rules, fromApi]);
   const [openIndex, setOpenIndex] = useState(0);
   const [prevLang, setPrevLang] = useState(lang);
   const sectionRef = useRef(null);
