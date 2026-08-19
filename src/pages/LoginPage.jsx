@@ -89,6 +89,8 @@ export default function LoginPage() {
       announceFieldErrors({ password: "Password is required" });
       return;
     }
+    // N10: current approved surveyor policy remains 4 numeric digits
+    // (aligned with backend PASSWORD_MIN_LENGTH default). Do not change without a policy update.
     if (!/^\d{4}$/.test(password)) {
       announceFieldErrors({ password: "Password must be exactly 4 digits" });
       return;
@@ -639,7 +641,7 @@ export default function LoginPage() {
                       color: "rgba(100,90,70,0.5)", padding: "4px",
                       transition: "color 0.2s ease",
                     }}
-                    className="auth-input-eye"
+                    className="auth-input-eye touch-target"
                     onMouseEnter={(e) => { e.currentTarget.style.color = "var(--brand-gold-muted)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(100,90,70,0.5)"; }}
                     disabled={isLoading}

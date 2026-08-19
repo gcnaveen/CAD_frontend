@@ -781,9 +781,13 @@ body,
   /* P2-V01 — global minimum touch targets for interactive controls on mobile */
   .touch-target,
   button.touch-target,
-  a.touch-target {
+  a.touch-target,
+  .auth-input-eye {
     min-width: 44px;
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* P2-V02 — prevent iOS zoom on focus */

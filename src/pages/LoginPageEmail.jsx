@@ -528,7 +528,7 @@ export default function LoginPageEmail() {
                     onClick={() => setShowPassword((p) => !p)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     aria-pressed={showPassword}
-                    className="auth-input-eye"
+                    className="auth-input-eye touch-target"
                     style={{
                       position: "absolute",
                       right: "13px",

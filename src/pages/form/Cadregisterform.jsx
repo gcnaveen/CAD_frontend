@@ -17,7 +17,7 @@ import {
   getUploadErrorMessage,
   UploadAuthRequiredError,
 } from "../../services/upload/upload.errors.js";
-import { TOKEN_KEY } from "../../services/apiClient.js";
+import { getAccessToken } from "../../utils/authToken.js";
 
 const STEPS = [
   { key: 1, label: "Profile", short: "You", Icon: User },
@@ -103,8 +103,8 @@ export default function Cadregisterform() {
     setIsResumeUploading(true);
 
     try {
-      // H-10: anonymous presign returns 401 — resume upload needs a signed-in user
-      if (!localStorage.getItem(TOKEN_KEY)) {
+      // H-10 / REG-01: presign needs the in-memory access token (M-02 — never localStorage).
+      if (!getAccessToken()) {
         throw new UploadAuthRequiredError(
           "Resume upload requires a signed-in account. You can submit without a resume, or sign in first."
         );

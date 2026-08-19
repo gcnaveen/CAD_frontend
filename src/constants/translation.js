@@ -254,12 +254,18 @@ export const translations = {
       ],
       separateChargesTitle: "Separate Charges",
       separateChargesDesc:
-        "Drawing revision (if corrections needed after delivery): ₹100",
+        "Drawing revision fees are shown at checkout when a revision is required.",
+      separateChargesDescNoPrice:
+        "Drawing revision fees are shown at checkout when a revision is required.",
       refundPolicyTitle: "Refund Policy",
       refundPolicyDesc:
-        "Full refund available unless assigned to a CAD operator. No refund after drawing is completed.",
+        "Refund terms are published in our Terms of Service and confirmed at checkout.",
+      refundPolicyDescFallback:
+        "Refund terms are published in our Terms of Service and confirmed at checkout.",
       ctaUpload: "Upload Your Drawing",
-      footnote: "1st revision free within 48 hours. After that: ₹100 per revision.",
+      footnote: "1st revision free within 48 hours. Later revision fees are confirmed at checkout.",
+      footnoteNoPrice:
+        "1st revision free within 48 hours. Later revision fees are confirmed at checkout.",
     },
     testimonials: {
       title: "What Surveyors Say",
@@ -352,12 +358,12 @@ export const translations = {
         {
           question: "What if I am not satisfied and need revisions?",
           answer:
-            "The first revision after delivery is free if you request it within 48 hours. After that, each additional revision costs ₹100. Request changes clearly so we can update the drawing quickly and avoid extra rounds.",
+            "The first revision after delivery is free if you request it within 48 hours. Later revision fees are confirmed at checkout. Request changes clearly so we can update the drawing quickly and avoid extra rounds.",
         },
         {
           question: "What is your refund policy?",
           answer:
-            "A full refund is available only if your order has not yet been assigned to a CAD operator. After assignment, or once the drawing is completed and paid for download, we do not offer refunds. Revision fees, once paid, are also not refundable.",
+            "Refund terms are published in our Terms of Service and confirmed at checkout. When the live refund policy is available from the platform, it is shown here.",
         },
         {
           question: "How long does delivery take?",
@@ -628,12 +634,19 @@ export const translations = {
         "24/7 ಆರ್ಡರ್ ಸ್ವೀಕಾರ — ಯಾವಾಗ ಬೇಕಾದರೂ ಆರ್ಡರ್ ಮಾಡಿ",
       ],
       separateChargesTitle: "ಪ್ರತ್ಯೇಕ ಶುಲ್ಕಗಳು",
-      separateChargesDesc: "ಡ್ರಾಯಿಂಗ್ ಪರಿಷ್ಕರಣೆ (ಡಿಲಿವರಿಯ ನಂತರ ತಿದ್ದುಪಡಿ ಬೇಕಾದರೆ): ₹100",
+      separateChargesDesc:
+        "ಪರಿಷ್ಕರಣೆ ಬೇಕಾದಾಗ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕ ತೋರಿಸಲಾಗುತ್ತದೆ.",
+      separateChargesDescNoPrice:
+        "ಪರಿಷ್ಕರಣೆ ಬೇಕಾದಾಗ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕ ತೋರಿಸಲಾಗುತ್ತದೆ.",
       refundPolicyTitle: "ರಿಫಂಡ್ ಪಾಲಿಸಿ",
       refundPolicyDesc:
-        "CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸದಿದ್ದರೆ ಸಂಪೂರ್ಣ ರಿಫಂಡ್ ಲಭ್ಯ. ಡ್ರಾಯಿಂಗ್ ಪೂರ್ಣವಾದ ನಂತರ ರಿಫಂಡ್ ಇರುವುದಿಲ್ಲ.",
+        "ರಿಫಂಡ್ ನಿಯಮಗಳು ನಮ್ಮ ಸೇವಾ ನಿಯಮಗಳಲ್ಲಿ ಪ್ರಕಟವಾಗಿವೆ ಮತ್ತು ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ.",
+      refundPolicyDescFallback:
+        "ರಿಫಂಡ್ ನಿಯಮಗಳು ನಮ್ಮ ಸೇವಾ ನಿಯಮಗಳಲ್ಲಿ ಪ್ರಕಟವಾಗಿವೆ ಮತ್ತು ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ.",
       ctaUpload: "ನಿಮ್ಮ ಡ್ರಾಯಿಂಗ್ ಅಪ್ಲೋಡ್ ಮಾಡಿ",
-      footnote: "ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ಉಚಿತ. ನಂತರ: ಪ್ರತಿ ಪರಿಷ್ಕರಣೆಗೆ ₹100.",
+      footnote: "ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ಉಚಿತ. ನಂತರದ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ.",
+      footnoteNoPrice:
+        "ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ಉಚಿತ. ನಂತರದ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ.",
     },
     testimonials: {
       title: "ಭೂಮಾಪಕರು ಏನು ಹೇಳುತ್ತಾರೆ",
@@ -726,12 +739,12 @@ export const translations = {
         {
           question: "ಕೆಲಸ ತೃಪ್ತಿಕರವಾಗಿಲ್ಲದಿದ್ದರೆ ಪರಿಷ್ಕರಣೆ ಬೇಕಾದರೆ?",
           answer:
-            "ಡಿಲಿವರಿಯ ನಂತರ ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ವಿನಂತಿಸಿದರೆ ಉಚಿತ. ಅದರ ನಂತರ ಪ್ರತಿ ಹೆಚ್ಚುವರಿ ಪರಿಷ್ಕರಣೆಗೆ ₹100. ಬದಲಾವಣೆಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿದರೆ ನಾವು ತ್ವರಿತವಾಗಿ ತಿದ್ದುಪಡಿ ಮಾಡಲು ಸಾಧ್ಯ.",
+            "ಡಿಲಿವರಿಯ ನಂತರ ಮೊದಲ ಪರಿಷ್ಕರಣೆ 48 ಗಂಟೆಯೊಳಗೆ ವಿನಂತಿಸಿದರೆ ಉಚಿತ. ನಂತರದ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ. ಬದಲಾವಣೆಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿದರೆ ನಾವು ತ್ವರಿತವಾಗಿ ತಿದ್ದುಪಡಿ ಮಾಡಲು ಸಾಧ್ಯ.",
         },
         {
           question: "ರಿಫಂಡ್ ನೀತಿ ಏನು?",
           answer:
-            "ನಿಮ್ಮ ಆರ್ಡರ್ ಇನ್ನೂ CAD ಆಪರೇಟರ್‌ಗೆ ನಿಯೋಜಿಸದಿದ್ದರೆ ಮಾತ್ರ ಸಂಪೂರ್ಣ ರಿಫಂಡ್ ಲಭ್ಯ. ನಿಯೋಜನೆಯ ನಂತರ, ಅಥವಾ ಡ್ರಾಯಿಂಗ್ ಪೂರ್ಣಗೊಂಡು ಡೌನ್‌ಲೋಡ್ ಶುಲ್ಕ ಪಾವತಿಸಿದ ನಂತರ ರಿಫಂಡ್ ಇರುವುದಿಲ್ಲ. ಪಾವತಿಸಿದ ಪರಿಷ್ಕರಣೆ ಶುಲ್ಕಗಳೂ ರಿಫಂಡ್ ಆಗುವುದಿಲ್ಲ.",
+            "ರಿಫಂಡ್ ನಿಯಮಗಳು ನಮ್ಮ ಸೇವಾ ನಿಯಮಗಳಲ್ಲಿ ಪ್ರಕಟವಾಗಿವೆ ಮತ್ತು ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ ದೃಢೀಕರಿಸಲಾಗುತ್ತದೆ. ಪ್ಲಾಟ್‌ಫಾರ್ಮ್‌ನ ಲೈವ್ ರಿಫಂಡ್ ನೀತಿ ಲಭ್ಯವಾದಾಗ ಅದನ್ನು ಇಲ್ಲಿ ತೋರಿಸಲಾಗುತ್ತದೆ.",
         },
         {
           question: "ಡೆಲಿವರಿ ಎಷ್ಟು ಬೇಗ?",

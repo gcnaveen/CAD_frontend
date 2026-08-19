@@ -231,7 +231,7 @@ export default function RegisterStepPanels({
                   aria-invalid={f.err ? "true" : "false"}
                   aria-describedby={[`${f.id}-hint`, f.err ? `${f.id}-error` : null].filter(Boolean).join(" ")}
                 />
-                <button type="button" onClick={f.toggle} aria-label={f.show ? `Hide ${f.label}` : `Show ${f.label}`} aria-pressed={f.show} className="auth-input-eye" style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
+                <button type="button" onClick={f.toggle} aria-label={f.show ? `Hide ${f.label}` : `Show ${f.label}`} aria-pressed={f.show} className="auth-input-eye touch-target" style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(100,90,70,.5)", padding:"3px", transition:"color .2s" }} onMouseEnter={e=>{e.currentTarget.style.color="var(--brand-gold-muted)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(100,90,70,.5)";}}>
                   {f.show ? <EyeOff size={17} aria-hidden="true"/> : <Eye size={17} aria-hidden="true"/>}
                 </button>
               </div>

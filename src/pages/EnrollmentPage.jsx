@@ -131,6 +131,8 @@ export default function EnrollmentPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
+                className="touch-target"
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 style={{
                   position: "absolute",
                   right: 8,

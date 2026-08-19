@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { FALLBACK_QC, getQcIncludedBullet } from "../utils/lifecycleQc.js";
 import usePublicBusinessRules from "../hooks/usePublicBusinessRules.js";
+import {
+  formatRevisionFeeLabel,
+  revisionRupeesFromRules,
+} from "../utils/publicMarketingCopy.js";
 
 const BENEFIT_ICONS = [IndianRupee, FileText, Link2, Bell];
 
@@ -45,7 +49,9 @@ export default function Benefits() {
   const totalPrice = fromApi ? formatRupee(earnings?.standardOrderGrossRupees) : null;
   const bookingFee = fromApi ? formatRupee(earnings?.bookingRupees) : null;
   const downloadFee = fromApi ? formatRupee(earnings?.balanceRupees) : null;
-  const revisionFee = fromApi ? formatRupee(earnings?.bookingRupees) : null;
+  const revisionFee = fromApi
+    ? formatRevisionFeeLabel(revisionRupeesFromRules(rules))
+    : null;
 
   const qcBullet = useMemo(
     () => getQcIncludedBullet(rules?.qc || FALLBACK_QC),

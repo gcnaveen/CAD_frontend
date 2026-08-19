@@ -49,6 +49,45 @@ describe("normalizeOpsObservability", () => {
     expect(snap.operatorCapacity).toEqual({ available: 3, busy: 2, offline: 1 });
     expect(snap.alerts.level).toBe("warning");
     expect(snap.alerts.message).toBe("SLA pressure");
+    expect(snap.alerts.count).toBe(4);
+  });
+
+  it("maps backend slaBreach / slaEscalated / slaWarning / paymentFlags / noAvailableCad", () => {
+    const snap = normalizeOpsObservability({
+      slaBreach: 2,
+      slaEscalated: 1,
+      slaWarning: 3,
+      paymentFlags: { MISSING: 1, MISMATCHED: 2 },
+      noAvailableCad: true,
+    });
+
+    expect(snap.sla.breached).toBe(2);
+    expect(snap.sla.escalated).toBe(1);
+    expect(snap.sla.warning).toBe(3);
+    expect(snap.payments.flags).toEqual([
+      { flag: "MISSING", count: 1 },
+      { flag: "MISMATCHED", count: 2 },
+    ]);
+    expect(snap.alerts.count).toBe(2 + 1 + 3 + 3 + 1);
+    expect(snap.alerts.level).toBe("critical");
+    expect(snap.alerts.message).toMatch(/2 SLA breaches/i);
+    expect(snap.alerts.message).toMatch(/1 SLA escalation/i);
+    expect(snap.alerts.message).toMatch(/3 SLA warnings/i);
+    expect(snap.alerts.message).toMatch(/3 payment flags/i);
+    expect(snap.alerts.message).toMatch(/No available CAD/i);
+  });
+
+  it("treats zero / missing / null alert fields as no pressure", () => {
+    const snap = normalizeOpsObservability({
+      slaBreach: 0,
+      slaEscalated: null,
+      slaWarning: undefined,
+      paymentFlags: {},
+      noAvailableCad: false,
+    });
+    expect(snap.alerts.count).toBe(0);
+    expect(snap.alerts.level).toBe("ok");
+    expect(snap.alerts.message).toBe("No active alerts.");
   });
 });
 
