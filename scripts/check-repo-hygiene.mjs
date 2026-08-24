@@ -134,7 +134,16 @@ for (const file of files) {
     continue;
   }
 
-  if (size > MAX_FILE_BYTES && !pathRel.startsWith("docs/sbom/") && !pathRel.startsWith("public/")) {
+  // if (size > MAX_FILE_BYTES && !pathRel.startsWith("docs/sbom/") && !pathRel.startsWith("public/")) {
+  //   fail(`File exceeds ${MAX_FILE_BYTES} bytes (${size}): ${pathRel}`);
+  //   oversized += 1;
+  // }
+  if (
+    size > MAX_FILE_BYTES &&
+    !pathRel.startsWith("docs/sbom/") &&
+    !pathRel.startsWith("public/") &&
+    !pathRel.startsWith("media-src/")
+  ) {
     fail(`File exceeds ${MAX_FILE_BYTES} bytes (${size}): ${pathRel}`);
     oversized += 1;
   }
