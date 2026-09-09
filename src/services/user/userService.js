@@ -104,7 +104,7 @@ function unwrapEnrollmentPayload(body) {
  */
 export async function createEnrollmentInvite(payload) {
   try {
-    const { data } = await apiClient.post("/api/users", payload);
+    const { data } = await apiClient.post("/api/users/enrollment-invite", payload);
     const invite = unwrapEnrollmentPayload(data);
     const enrollmentUrl =
       invite.enrollmentUrl ??

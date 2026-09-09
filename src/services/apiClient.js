@@ -153,11 +153,18 @@ async function performTokenRefresh() {
   };
   attachCsrfHeader(headers);
 
+  // Refresh tokens are single-use with reuse detection. The PhonePe success
+  // leg redirects through the API domain, where it is first-party and can set
+  // a refresh cookie that then disagrees with our rotated sessionStorage
+  // token. Presenting both makes the server reject the stale one and revoke
+  // the session, so send exactly one credential.
+  const body = buildRefreshRequestBody();
+
   const { data } = await axios.post(
     `${baseURL}/api/auth/refresh`,
-    buildRefreshRequestBody(),
+    body,
     {
-      withCredentials: true,
+      withCredentials: !body.refreshToken,
       headers,
     }
   );

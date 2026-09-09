@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { performFullLogout } from "../../../utils/performFullLogout.js";
 import { useTheme } from "../../../theme/useTheme.js";
 import NotificationBell from "../../../components/Notifications/NotificationBell.jsx";
+import PaymentReturnNotice from "./PaymentReturnNotice.jsx";
 import InstallButton from "../../../components/pwa/InstallButton.jsx";
 import ThemeToggle from "../../../components/ThemeToggle.jsx";
 import { useUserDisplayName } from "../../../hooks/useUserDisplayName.js";
@@ -239,6 +240,7 @@ const DashboardLayout = () => {
 
         {/* MAIN */}
         <main className="lg:pl-64 px-4 sm:px-6 pb-24">
+          <PaymentReturnNotice />
           <Outlet />
         </main>
       </div>
