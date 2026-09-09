@@ -4,7 +4,7 @@ import { Form, Upload, Checkbox, Input, message, Modal } from "antd";
 import { Upload as UploadIcon } from "lucide-react";
 import { deleteUploadedFile } from "../../../../services/upload/upload.api.js";
 import {
-  uploadImageToS3,
+  uploadSurveyDocumentToS3,
   uploadAudioToS3,
 } from "../../../../services/upload/upload.service.js";
 import { getUploadErrorMessage } from "../../../../services/upload/upload.errors.js";
@@ -166,7 +166,7 @@ const DocumentsStep = ({
       // H-10: JWT + fileSizeBytes + confirm; FILE_QUARANTINED throws (do not attach URL)
       const { fileUrl, key } = isAudio(actual)
         ? await uploadAudioToS3(actual, villageId)
-        : await uploadImageToS3(actual, villageId);
+        : await uploadSurveyDocumentToS3(actual, villageId);
       const uid = file.uid || `upload-${Date.now()}`;
       const mimeType = file.type || actual.type;
       const isImage = typeof mimeType === "string" && mimeType.startsWith("image/");

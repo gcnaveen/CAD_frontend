@@ -51,6 +51,28 @@ export async function getImagePresignedUrl(payload) {
 }
 
 /**
+ * Get presigned URL for survey document upload (PDF + images).
+ * POST /api/upload/document
+ * Falls back to /api/upload/image when the document route is not deployed.
+ */
+export async function getDocumentPresignedUrl(payload) {
+  try {
+    const { data } = await apiClient.post(
+      `${UPLOAD_BASE}/document`,
+      payload,
+      bearerConfig()
+    );
+    return unwrap(data);
+  } catch (err) {
+    const status = err?.response?.status;
+    if (status === 404 || status === 405) {
+      return getImagePresignedUrl(payload);
+    }
+    throw err;
+  }
+}
+
+/**
  * Get presigned URL for audio upload (H-10: Bearer required).
  * POST /api/upload/audio
  * Prefer base MIME without `;codecs=` (e.g. audio/webm).

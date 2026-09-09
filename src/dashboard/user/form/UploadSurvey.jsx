@@ -3,7 +3,7 @@ import { Form, Upload, Input, message, Button, Typography, Space, Radio, Checkbo
 import { Upload as UploadIcon, Music, Mic, Square, Trash2, Upload as UploadIcon2 } from "lucide-react";
 import { deleteUploadedFile } from "../../../services/upload/upload.api.js";
 import {
-  uploadImageToS3,
+  uploadSurveyDocumentToS3,
   uploadAudioToS3,
   toVoiceNoteFile,
   pickVoiceRecorderMimeType,
@@ -137,7 +137,7 @@ const UploadSurvey = ({
       // H-10: JWT + fileSizeBytes + confirm; FILE_QUARANTINED throws (do not attach URL)
       const { fileUrl, key } = isAudioFile(actualFile)
         ? await uploadAudioToS3(actualFile, village)
-        : await uploadImageToS3(actualFile, village);
+        : await uploadSurveyDocumentToS3(actualFile, village);
 
       const currentValue = form.getFieldValue(fieldName) || [];
       const fileUid = file.uid || `rc-upload-${Date.now()}-${String(file.name || "file").slice(0, 40)}`;

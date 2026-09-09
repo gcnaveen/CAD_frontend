@@ -50,6 +50,71 @@ export async function seedAuth(page, opts) {
 }
 
 /**
+ * Seed a tab that logged in and was then refreshed (F5).
+ *
+ * Unlike seedAuth, no in-memory JWT is injected: only the sessionStorage side
+ * channel survives a reload, so the app must actually run POST /api/auth/refresh
+ * followed by GET /api/auth/me. seedAuth re-injects its window token on every
+ * navigation, which silently skips that path.
+ *
+ * Register this AFTER stubApi so the auth routes win (last route wins).
+ * @param {import('@playwright/test').Page} page
+ * @param {{ role: string, profileCompleted?: boolean, name?: string }} opts
+ */
+export async function seedRestorableSession(page, opts) {
+  const role = opts.role;
+  const user = {
+    id: `e2e-${String(role).toLowerCase()}`,
+    role,
+    profileCompleted: opts.profileCompleted ?? true,
+    name: { first: opts.name || "E2E", last: "User" },
+    phone: "9999999999",
+  };
+  const token = `e2e-refreshed-token-${role}`;
+
+  await page.addInitScript((seedUser) => {
+    try {
+      sessionStorage.setItem("cad_session_hint", "1");
+      sessionStorage.setItem("cad_refresh_body", "e2e-body-refresh-token");
+      sessionStorage.setItem("cad_csrf_token", "e2e-csrf-token");
+      sessionStorage.setItem("cad_user_snapshot", JSON.stringify(seedUser));
+      localStorage.removeItem("persist:auth");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch {
+      /* ignore */
+    }
+  }, user);
+
+  await page.route("**/api/auth/refresh", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        data: {
+          token,
+          accessToken: token,
+          refreshToken: "e2e-body-refresh-token",
+          csrfToken: "e2e-csrf-token",
+          expiresIn: "15m",
+        },
+      }),
+    });
+  });
+
+  await page.route("**/api/auth/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, data: { user, role } }),
+    });
+  });
+
+  return user;
+}
+
+/**
  * Default API stub: avoid 401 logout; override specific routes in tests.
  * @param {import('@playwright/test').Page} page
  * @param {(url: string, method: string) => object | null | undefined} [override]

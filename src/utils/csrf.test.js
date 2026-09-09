@@ -1,19 +1,29 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   readCsrfTokenFromCookie,
   withCsrfHeaders,
 } from "./csrf.js";
+import { captureAuthSideChannel, clearAuthSideChannel } from "./authSideChannel.js";
 
 describe("csrf helpers", () => {
   const originalCookie = Object.getOwnPropertyDescriptor(Document.prototype, "cookie")
     || Object.getOwnPropertyDescriptor(document, "cookie");
 
+  beforeEach(() => {
+    clearAuthSideChannel();
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
   afterEach(() => {
     if (originalCookie) {
       Object.defineProperty(document, "cookie", originalCookie);
     }
+    clearAuthSideChannel();
+    sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("reads cad_csrf from cookie string", () => {
@@ -43,13 +53,24 @@ describe("csrf helpers", () => {
     });
   });
 
-  it("omits CSRF header when cookie absent", () => {
+  it("omits CSRF header when cookie and stored token are absent", () => {
     Object.defineProperty(document, "cookie", {
       configurable: true,
       get: () => "",
     });
     expect(withCsrfHeaders({ Accept: "application/json" })).toEqual({
       Accept: "application/json",
+    });
+  });
+
+  it("adds X-CSRF-Token from login body when cookie is not readable", () => {
+    Object.defineProperty(document, "cookie", {
+      configurable: true,
+      get: () => "",
+    });
+    captureAuthSideChannel({ data: { csrfToken: "from-login" } });
+    expect(withCsrfHeaders({})).toEqual({
+      [CSRF_HEADER_NAME]: "from-login",
     });
   });
 });

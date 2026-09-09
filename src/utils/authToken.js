@@ -1,6 +1,7 @@
 /**
- * M-02: Access JWT lives in memory only (never localStorage / sessionStorage).
- * Session renewal uses HttpOnly refresh cookies via POST /api/auth/refresh.
+ * M-02: Access JWT is memory-only. Browser refresh restores the session via
+ * POST /api/auth/refresh (HttpOnly cookie + bodyCompat refresh token + CSRF).
+ * Access tokens are never written to localStorage.
  */
 
 /** Legacy key names — cleared on logout; never written for new sessions. */
@@ -13,6 +14,20 @@ export const E2E_USER_KEY = "__CAD_E2E_USER__";
 
 /** @type {string | null} */
 let accessTokenMemory = null;
+
+/** True when a user object is enough to restore a role-guarded session. */
+export function isUsableTabUser(user) {
+  if (!user || typeof user !== "object") return false;
+  return Boolean(
+    user.role ||
+      user.id ||
+      user._id ||
+      user.userId ||
+      user.email ||
+      user.phone ||
+      user.auth?.phone
+  );
+}
 
 /**
  * Pull Bearer JWT from auth API payloads (login / register / reset / refresh).
@@ -63,7 +78,7 @@ export function getAccessToken() {
   return null;
 }
 
-/** @deprecated Use getAccessToken — kept for call-site compatibility during migration. */
+/** @deprecated Use getAccessToken */
 export function getStoredAccessToken() {
   return getAccessToken();
 }

@@ -12,7 +12,13 @@ import {
   clearAccessToken,
   clearLegacyAuthStorage,
 } from "../utils/authToken.js";
-import { CSRF_HEADER_NAME, readCsrfTokenFromCookie } from "../utils/csrf.js";
+import { CSRF_HEADER_NAME, resolveCsrfToken } from "../utils/csrf.js";
+import {
+  captureAuthSideChannel,
+  isAuthSideChannelUrl,
+  buildRefreshRequestBody,
+  clearAuthSideChannel,
+} from "../utils/authSideChannel.js";
 
 // Prefer VITE_API_BASE_URL when set; otherwise config.js stage API Gateway URL.
 const baseURL =
@@ -38,6 +44,23 @@ export function setAxiosStore(store) {
   storeRef = store;
 }
 
+/** While > 0, 401 + failed refresh must not wipe a restoring tab session. */
+let authBootstrapLock = 0;
+export function beginAuthBootstrap() {
+  authBootstrapLock += 1;
+}
+export function endAuthBootstrap() {
+  authBootstrapLock = Math.max(0, authBootstrapLock - 1);
+}
+
+function resolveClientAccessToken() {
+  return (
+    getAccessToken() ||
+    storeRef?.getState?.()?.auth?.token ||
+    null
+  );
+}
+
 export { getCorrelationId, newCorrelationId };
 
 function attachCorrelationId(error) {
@@ -58,7 +81,7 @@ function setRequestHeader(headers, name, value) {
 }
 
 function attachCsrfHeader(headers) {
-  const csrf = readCsrfTokenFromCookie();
+  const csrf = resolveCsrfToken();
   if (csrf) {
     setRequestHeader(headers, CSRF_HEADER_NAME, csrf);
   }
@@ -67,7 +90,7 @@ function attachCsrfHeader(headers) {
 // Request interceptor: auth + CSRF (cookie auth) + correlation id on mutating calls
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
+    const token = resolveClientAccessToken();
     if (token) {
       setRequestHeader(config.headers, "Authorization", `Bearer ${token}`);
     }
@@ -113,16 +136,7 @@ function isAuth401Exempt(url = "") {
 /** Single-flight refresh so parallel 401s share one cookie renewal. */
 let refreshPromise = null;
 
-async function performTokenRefresh() {
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  attachCsrfHeader(headers);
-
-  const { data } = await axios.post(`${baseURL}/api/auth/refresh`, {}, {
-    withCredentials: true,
-    headers,
-  });
+function extractAccessTokenFromRefresh(data) {
   const nested = data?.data ?? data;
   const token =
     (typeof nested?.accessToken === "string" && nested.accessToken.trim()) ||
@@ -130,6 +144,25 @@ async function performTokenRefresh() {
     (typeof nested?.token === "string" && nested.token.trim()) ||
     (typeof data?.accessToken === "string" && data.accessToken.trim()) ||
     "";
+  return token;
+}
+
+async function performTokenRefresh() {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  attachCsrfHeader(headers);
+
+  const { data } = await axios.post(
+    `${baseURL}/api/auth/refresh`,
+    buildRefreshRequestBody(),
+    {
+      withCredentials: true,
+      headers,
+    }
+  );
+  captureAuthSideChannel(data);
+  const token = extractAccessTokenFromRefresh(data);
   if (!token) {
     throw new Error("No access token in refresh response");
   }
@@ -152,13 +185,27 @@ function refreshAccessTokenSingleFlight() {
   return refreshPromise;
 }
 
+/** Used by session bootstrap — same single-flight as the 401 interceptor. */
+export function refreshSession() {
+  return refreshAccessTokenSingleFlight();
+}
+
+function isPaymentReturnPath(path = "") {
+  return path.startsWith("/payment");
+}
+
 function forceClientLogout() {
+  const path = window.location?.pathname || "";
+  // PhonePe return / session restore: keep the tab session.
+  if (isPaymentReturnPath(path) || authBootstrapLock > 0) {
+    return;
+  }
   clearAccessToken();
   clearLegacyAuthStorage();
+  clearAuthSideChannel();
   if (storeRef?.dispatch) {
     storeRef.dispatch({ type: "auth/logout" });
   }
-  const path = window.location?.pathname || "";
   if (!path.startsWith("/login")) {
     window.location.assign("/login");
   }
@@ -171,6 +218,9 @@ apiClient.interceptors.response.use(
     if (cid) {
       response.correlationId = cid;
     }
+    if (isAuthSideChannelUrl(response.config?.url)) {
+      captureAuthSideChannel(response.data);
+    }
     return response;
   },
   async (error) => {
@@ -180,6 +230,28 @@ apiClient.interceptors.response.use(
     const config = error.config || {};
 
     if (status === 401 && !isAuth401Exempt(config.url) && !config.skipAuthRefresh) {
+      const stored = resolveClientAccessToken();
+      if (stored && !config._retryWithStoredToken) {
+        const sent = String(
+          config.headers?.Authorization ||
+            config.headers?.authorization ||
+            (typeof config.headers?.get === "function"
+              ? config.headers.get("Authorization") ||
+                config.headers.get("authorization")
+              : "") ||
+            ""
+        );
+        if (!sent.includes(stored)) {
+          config._retryWithStoredToken = true;
+          setAccessToken(stored);
+          setRequestHeader(
+            config.headers || (config.headers = {}),
+            "Authorization",
+            `Bearer ${stored}`
+          );
+          return apiClient.request(config);
+        }
+      }
       if (config._retryAfterRefresh) {
         forceClientLogout();
         return Promise.reject(error);

@@ -1,5 +1,6 @@
 import {
   getImagePresignedUrl,
+  getDocumentPresignedUrl,
   getAudioPresignedUrl,
   getCadDeliverablePresignedUrl,
   startCadDeliverableMultipart,
@@ -63,6 +64,7 @@ export function extensionForContentType(contentType) {
   if (ct.startsWith("image/")) {
     return ct.slice("image/".length).replace("jpeg", "jpg") || "bin";
   }
+  if (ct === "application/pdf") return "pdf";
   return "bin";
 }
 
@@ -283,6 +285,42 @@ export async function toUploadImageFile(blob, fileName) {
   return new File([blob], name, { type: contentType });
 }
 
+const SURVEY_DOCUMENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+]);
+
+/**
+ * Align a survey document (JPEG/PNG/GIF/WebP or PDF) to magic-byte MIME/extension.
+ * @param {Blob | File} blob
+ * @param {string} [fileName]
+ * @returns {Promise<File>}
+ */
+export async function toUploadSurveyDocumentFile(blob, fileName) {
+  if (!blob || !blob.size) {
+    throw new Error("Document file is empty. Choose another file and try again.");
+  }
+
+  const { contentType, fromSniff } = await resolveImageContentType(blob);
+
+  if (!contentType || !SURVEY_DOCUMENT_TYPES.has(contentType)) {
+    throw new Error(
+      fromSniff
+        ? "This file is not a supported document (PDF, JPEG, PNG, GIF, or WebP). Re-export or pick another file."
+        : "This file is not a supported document (PDF, JPEG, PNG, GIF, or WebP). Re-export or pick another file."
+    );
+  }
+
+  const name = ensureUploadFileName(
+    fileName || blob?.name || `document-${Date.now()}`,
+    contentType
+  );
+  return new File([blob], name, { type: contentType });
+}
+
 /**
  * Ensure fileName extension matches content type (fixes voice-*.webm + audio/mp4).
  * @param {string} fileName
@@ -298,9 +336,12 @@ export function ensureUploadFileName(fileName, contentType) {
   const currentExt = (match?.[2] || "").slice(1).toLowerCase();
 
   const audioExts = new Set(["webm", "m4a", "mp4", "ogg", "wav", "mp3", "mpeg"]);
-  const imageExts = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+  const imageExts = new Set(["jpg", "jpeg", "png", "gif", "webp", "pdf"]);
 
   if (!currentExt) return `${base}.${wantExt}`;
+  if (ct === "application/pdf") {
+    return `${base}.pdf`;
+  }
   if (ct.startsWith("audio/") && audioExts.has(currentExt) && currentExt !== wantExt) {
     // .mp4 container for AAC → prefer .m4a
     if (wantExt === "m4a" && currentExt === "mp4") return `${base}.m4a`;
@@ -656,6 +697,34 @@ export async function uploadImageToS3(file, entityId) {
   const { uploadUrl, fileUrl, key, uploadHeaders } = normalizePresignResponse(
     await getImagePresignedUrl(payload)
   );
+  const putHeaders = buildS3PutHeaders(aligned, uploadHeaders);
+  await putFileToS3(uploadUrl, aligned, uploadHeaders);
+  const confirmed = await confirmUploadedFile({
+    key,
+    contentType: contentTypeFromPutHeaders(putHeaders, payload.contentType),
+    fileName: payload.fileName,
+    fileSizeBytes: aligned.size || payload.fileSizeBytes,
+  });
+  return { fileUrl: confirmed.fileUrl || fileUrl, key: confirmed.key || key };
+}
+
+/**
+ * Upload a survey document (image or PDF) via document presign, then confirm.
+ * Images still use /api/upload/image. PDFs use /api/upload/document (falls back to image).
+ * @param {File} file
+ * @param {string} [entityId]
+ * @returns {Promise<{ fileUrl: string, key: string }>}
+ */
+export async function uploadSurveyDocumentToS3(file, entityId) {
+  assertUploadAuth();
+  const aligned = await toUploadSurveyDocumentFile(file, file?.name);
+  const payload = buildPresignPayload(aligned, entityId);
+  const presign =
+    aligned.type === "application/pdf"
+      ? await getDocumentPresignedUrl(payload)
+      : await getImagePresignedUrl(payload);
+  const { uploadUrl, fileUrl, key, uploadHeaders } =
+    normalizePresignResponse(presign);
   const putHeaders = buildS3PutHeaders(aligned, uploadHeaders);
   await putFileToS3(uploadUrl, aligned, uploadHeaders);
   const confirmed = await confirmUploadedFile({

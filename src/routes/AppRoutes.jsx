@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router";
 import { useSelector } from "react-redux";
-import ProtectedRoute from "./ProtectedRoute";
+import ProtectedRoute, { OptionalAuthRoute } from "./ProtectedRoute";
 import RouteFallback from "./RouteFallback";
 import {
   getRedirectForRole,
@@ -183,31 +183,31 @@ export default function AppRoutes() {
       <Route
         path="/payment/return"
         element={
-          <ProtectedRoute>
+          <OptionalAuthRoute>
             <Lazy>
               <PaymentReturnPage />
             </Lazy>
-          </ProtectedRoute>
+          </OptionalAuthRoute>
         }
       />
       <Route
         path="/payment-success"
         element={
-          <ProtectedRoute>
+          <OptionalAuthRoute>
             <Lazy>
               <PaymentSuccessPage />
             </Lazy>
-          </ProtectedRoute>
+          </OptionalAuthRoute>
         }
       />
       <Route
         path="/payment-failure"
         element={
-          <ProtectedRoute>
+          <OptionalAuthRoute>
             <Lazy>
               <PaymentFailurePage />
             </Lazy>
-          </ProtectedRoute>
+          </OptionalAuthRoute>
         }
       />
       <Route

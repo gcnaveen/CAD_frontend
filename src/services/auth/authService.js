@@ -1,6 +1,5 @@
-import apiClient from "../apiClient.js";
+import apiClient, { refreshSession } from "../apiClient.js";
 import { getApiErrorMessage } from "../../utils/apiErrorMessage.js";
-import { extractAccessToken } from "../../utils/authToken.js";
 
 function unwrapResponse(body) {
   return body?.data ?? body;
@@ -43,13 +42,16 @@ export async function staffLogin(payload) {
  * GET /api/auth/me → { user, role } (canonical role) or nested data.
  * @returns {Promise<{ user: object, role?: string }>}
  */
-export async function getCurrentUser() {
+export async function getCurrentUser(config = {}) {
   try {
-    const { data } = await apiClient.get("/api/auth/me");
+    const { data } = await apiClient.get("/api/auth/me", config);
     return normalizeMeResponse(data);
   } catch (error) {
     const message = error.response?.data?.message ?? error.message ?? "Failed to get current user";
-    throw new Error(message);
+    const wrapped = new Error(message);
+    wrapped.status = error.response?.status;
+    wrapped.cause = error;
+    throw wrapped;
   }
 }
 
@@ -77,24 +79,13 @@ export function normalizeMeResponse(body) {
 
 
 /**
- * M-02: Renew access token using HttpOnly refresh cookie (credentials included).
- * POST /api/auth/refresh
+ * M-02: Renew access token via POST /api/auth/refresh
+ * (HttpOnly cookie + bodyCompat refreshToken + X-CSRF-Token).
+ * Shares single-flight with the API 401 interceptor.
  * @returns {Promise<string>} new access token
  */
 export async function refreshAccessToken() {
-  const { data } = await apiClient.post(
-    "/api/auth/refresh",
-    {},
-    {
-      // Mark so 401 interceptor does not recurse
-      skipAuthRefresh: true,
-    }
-  );
-  const token = extractAccessToken(data);
-  if (!token) {
-    throw new Error("Refresh response missing access token");
-  }
-  return token;
+  return refreshSession();
 }
 
 /**

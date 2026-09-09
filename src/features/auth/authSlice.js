@@ -7,10 +7,10 @@ import {
   consumeE2EUserSeed,
   getAccessToken,
 } from "../../utils/authToken.js";
+import { clearAuthSideChannel, setUserSnapshot } from "../../utils/authSideChannel.js";
 import { normalizeRoleKey } from "../../constants/roles.js";
 
 function initialAuthState() {
-  // E2E: memory token + optional user seeded before first paint (never from localStorage).
   const e2eUser = consumeE2EUserSeed();
   const token = getAccessToken();
   if (e2eUser) {
@@ -48,6 +48,7 @@ const authSlice = createSlice({
       if (user) {
         state.user = user;
         state.role = normalizeRoleKey(user.role) ?? user.role ?? null;
+        setUserSnapshot(user);
       }
       state.bootstrapped = true;
     },
@@ -57,7 +58,8 @@ const authSlice = createSlice({
         state.token = nextToken;
         setAccessToken(nextToken);
       }
-      state.bootstrapped = true;
+      // Do not mark bootstrapped here. Refresh JSON has no role; flipping
+      // bootstrapped with token-only sends /dashboard/user to /403.
     },
     setBootstrapped: (state, action) => {
       state.bootstrapped = Boolean(action.payload);
@@ -69,6 +71,7 @@ const authSlice = createSlice({
       state.bootstrapped = true;
       clearAccessToken();
       clearLegacyAuthStorage();
+      clearAuthSideChannel();
     },
   },
 });

@@ -7,6 +7,7 @@ import {
   getStoredAccessToken,
   storeAccessToken,
   clearLegacyAuthStorage,
+  isUsableTabUser,
   TOKEN_KEY,
   USER_KEY,
 } from "./authToken.js";
@@ -64,12 +65,19 @@ describe("in-memory setAccessToken / getAccessToken / clearAccessToken", () => {
     expect(getStoredAccessToken()).toBe(null);
   });
 
-  it("does not write to localStorage or sessionStorage", () => {
+  it("does not write the access token to localStorage", () => {
     setAccessToken("memory-only");
     expect(localStorage.getItem(TOKEN_KEY)).toBe(null);
     expect(localStorage.getItem(USER_KEY)).toBe(null);
     expect(sessionStorage.getItem(TOKEN_KEY)).toBe(null);
     expect(localStorage.getItem("persist:auth")).toBe(null);
+  });
+
+  it("isUsableTabUser accepts id, userId, role, or auth.phone", () => {
+    expect(isUsableTabUser({ role: "SURVEYOR" })).toBe(true);
+    expect(isUsableTabUser({ userId: "abc" })).toBe(true);
+    expect(isUsableTabUser({ auth: { phone: "7676561769" } })).toBe(true);
+    expect(isUsableTabUser({ name: "Only name" })).toBe(false);
   });
 
   it("clearLegacyAuthStorage removes legacy token/user/persist keys", () => {

@@ -6,6 +6,7 @@ import {
   ensureUploadFileName,
   toVoiceNoteFile,
   toUploadImageFile,
+  toUploadSurveyDocumentFile,
   sniffAudioContentType,
   sniffImageContentType,
   extensionForContentType,
@@ -52,6 +53,11 @@ describe("sniffImageContentType", () => {
     ]);
     expect(sniffImageContentType(header)).toBe("image/webp");
   });
+
+  it("detects PDF magic", () => {
+    const header = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);
+    expect(sniffImageContentType(header)).toBe("application/pdf");
+  });
 });
 
 describe("toUploadImageFile", () => {
@@ -91,6 +97,23 @@ describe("toUploadImageFile", () => {
     await expect(toUploadImageFile(blob, "th.jpg")).rejects.toThrow(/supported image/i);
   });
 
+  it("rejects PDF for image-only uploads", async () => {
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
+    const blob = {
+      size: pdfBytes.length,
+      type: "application/pdf",
+      name: "doc.pdf",
+      arrayBuffer: async () =>
+        pdfBytes.buffer.slice(
+          pdfBytes.byteOffset,
+          pdfBytes.byteOffset + pdfBytes.byteLength
+        ),
+    };
+    await expect(toUploadImageFile(blob, "doc.pdf")).rejects.toThrow(
+      /PDF cannot be uploaded as an image/i
+    );
+  });
+
   it("keeps matching jpeg bytes + .jpg", async () => {
     const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
     expect(sniffImageContentType(jpegBytes)).toBe("image/jpeg");
@@ -108,6 +131,25 @@ describe("toUploadImageFile", () => {
     const aligned = await toUploadImageFile(blob, "th.jpg");
     expect(aligned.type).toBe("image/jpeg");
     expect(aligned.name).toBe("th.jpg");
+  });
+});
+
+describe("toUploadSurveyDocumentFile", () => {
+  it("accepts PDF for survey document uploads", async () => {
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
+    const blob = {
+      size: pdfBytes.length,
+      type: "application/pdf",
+      name: "tippani.pdf",
+      arrayBuffer: async () =>
+        pdfBytes.buffer.slice(
+          pdfBytes.byteOffset,
+          pdfBytes.byteOffset + pdfBytes.byteLength
+        ),
+    };
+    const aligned = await toUploadSurveyDocumentFile(blob, "tippani.pdf");
+    expect(aligned.type).toBe("application/pdf");
+    expect(aligned.name).toBe("tippani.pdf");
   });
 });
 
