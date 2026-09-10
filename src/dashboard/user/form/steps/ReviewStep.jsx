@@ -73,7 +73,10 @@ const ReviewStep = ({
       : null;
 
   const otherDocsList = form.getFieldValue("other_documents");
-  const otherCount    = Array.isArray(otherDocsList) ? otherDocsList.filter((f) => f.status === "done").length : 0;
+  const otherCount =
+    uploadMode === "normal" && Array.isArray(otherDocsList)
+      ? otherDocsList.filter((f) => f.status === "done").length
+      : 0;
 
   return (
     <div>

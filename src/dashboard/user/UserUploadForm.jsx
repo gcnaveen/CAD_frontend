@@ -460,7 +460,9 @@ const UserUploadForm = ({
             return;
           }
         }
-        try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
+        if (uploadMode === "normal") {
+          try { processOtherDocuments(payload); } catch { message.error("Other documents still uploading"); return; }
+        }
       }
       if (uploadMode === "single") {
         const singleDoc = uploadedDocs.singleUpload || toMeta(values.singleUpload?.[0]);
@@ -495,6 +497,7 @@ const UserUploadForm = ({
         delete payload.other_documents;
       } else if (uploadMode === "single") {
         DOCUMENT_FIELDS.forEach((k) => { delete payload[k]; });
+        delete payload.other_documents;
       } else {
         delete payload.singleUpload;
         delete payload.documentTypes;
@@ -564,7 +567,12 @@ const UserUploadForm = ({
       }
     }
     const otherList = values.other_documents;
-    if ((!isPublicSurveyorCategory || publicHasDocuments) && Array.isArray(otherList) && otherList.length > 0) {
+    if (
+      mode === "normal" &&
+      (!isPublicSurveyorCategory || publicHasDocuments) &&
+      Array.isArray(otherList) &&
+      otherList.length > 0
+    ) {
       const processed = [];
       for (const file of otherList) {
         const m = (file?.uid && uploadedOther[file.uid]) || toMeta(file);
@@ -582,6 +590,7 @@ const UserUploadForm = ({
       delete p.other_documents;
     } else if (mode === "single") {
       DOCUMENT_FIELDS.forEach((k) => { delete p[k]; });
+      delete p.other_documents;
     } else {
       delete p.singleUpload;
       delete p.documentTypes;
@@ -679,7 +688,7 @@ const UserUploadForm = ({
           }
         }
         const otherDocs = Array.isArray(draft.other_documents) ? draft.other_documents : [];
-        if (otherDocs.length) {
+        if (uploadMode === "normal" && otherDocs.length) {
           const list = [];
           const om = {};
           otherDocs.forEach((d, i) => {

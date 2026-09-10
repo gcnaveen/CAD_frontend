@@ -74,31 +74,42 @@ const DocumentsStep = ({
   const NORMAL_DOC_FIELDS = ["moolaTippani", "hissaTippani", "atlas", "rrPakkabook", "kharabu"];
   const SINGLE_FIELDS = ["singleUpload", "documentTypes"];
 
+  const clearField = (fieldName) => {
+    const list = form.getFieldValue(fieldName) || [];
+    if (Array.isArray(list)) {
+      list.forEach((f) => {
+        revokeLocalPreviewUrl(f?.previewUrl);
+        if (f?.thumbUrl && f.thumbUrl !== f?.previewUrl) revokeLocalPreviewUrl(f.thumbUrl);
+      });
+    }
+    if (fieldName === "other_documents") {
+      if (Array.isArray(list) && list.length) {
+        list.forEach((f) => onOtherDocumentRemove?.(f?.uid));
+      }
+    } else {
+      onDocumentRemove?.(fieldName);
+    }
+    form.setFieldValue(fieldName, []);
+  };
+
   const hasAnyUploads = () => {
-    const single = form.getFieldValue("singleUpload");
     const types = form.getFieldValue("documentTypes");
-
-    if (Array.isArray(single) && single.length > 0) return true;
     if (Array.isArray(types) && types.length > 0) return true;
-
-    return NORMAL_DOC_FIELDS.some((f) => {
-      const list = form.getFieldValue(f);
+    return ["singleUpload", "other_documents", ...NORMAL_DOC_FIELDS].some((fieldName) => {
+      const list = form.getFieldValue(fieldName);
       return Array.isArray(list) && list.length > 0;
     });
   };
 
   const clearForMode = (nextMode) => {
     if (nextMode === "single") {
-      // clear normal docs ONLY
-      NORMAL_DOC_FIELDS.forEach((field) => {
-        form.setFieldValue(field, []);
-        onDocumentRemove?.(field);
-      });
+      // clear normal docs INCLUDING other_documents (normal-mode only)
+      NORMAL_DOC_FIELDS.forEach((field) => clearField(field));
+      clearField("other_documents");
     } else {
       // clear single mode ONLY
-      form.setFieldValue("singleUpload", []);
+      clearField("singleUpload");
       form.setFieldValue("documentTypes", []);
-      onDocumentRemove?.("singleUpload");
     }
 
     onClearUploads?.(nextMode);
@@ -107,7 +118,8 @@ const DocumentsStep = ({
   };
 
   const handleUploadModeChange = (nextMode) => {
-    if (nextMode === uploadMode) return;
+    const currentMode = form.getFieldValue("uploadMode") ?? uploadMode;
+    if (nextMode === currentMode) return;
 
     const proceed = () => {
       clearForMode(nextMode);
@@ -236,24 +248,6 @@ const DocumentsStep = ({
   const isImageUrl = (file) => {
     const t = file?.mimeType || file?.type;
     return typeof t === "string" && t.startsWith("image/");
-  };
-
-  const clearField = (fieldName) => {
-    const list = form.getFieldValue(fieldName) || [];
-    if (Array.isArray(list)) {
-      list.forEach((f) => {
-        revokeLocalPreviewUrl(f?.previewUrl);
-        if (f?.thumbUrl && f.thumbUrl !== f?.previewUrl) revokeLocalPreviewUrl(f.thumbUrl);
-      });
-    }
-    if (fieldName === "other_documents") {
-      if (Array.isArray(list) && list.length) {
-        list.forEach((f) => onOtherDocumentRemove?.(f?.uid));
-      }
-    } else {
-      onDocumentRemove?.(fieldName);
-    }
-    form.setFieldValue(fieldName, []);
   };
 
   const toggleEnabled = (fieldName, nextChecked) => {
