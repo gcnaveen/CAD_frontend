@@ -267,7 +267,7 @@ const ViewHoblis = () => {
             }
             options={districts.map((d) => ({
               value: d.id ?? d._id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
           <Select
@@ -285,7 +285,7 @@ const ViewHoblis = () => {
             }
             options={talukas.map((t) => ({
               value: t.id ?? t._id,
-              label: t.code ? `${t.name} (${t.code})` : t.name,
+              label: t.name,
             }))}
           />
           {canWrite ? (

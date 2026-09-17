@@ -81,7 +81,7 @@ const AddTalukas = ({ onCancel, onSubmit, loading = false, districtId }) => {
             }
             options={districts.map((d) => ({
               value: d._id ?? d.id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
         </Form.Item>

@@ -180,14 +180,17 @@ const DashboardLayout = () => {
             </button>
           </div>
 
-          {/* Mobile: theme → language → hamburger */}
+          {/* Mobile: theme → notifications → hamburger */}
           <div className="flex lg:hidden items-center gap-1.5 shrink-0">
             <ThemeToggle variant="compact" />
+            <NotificationBell layout="user" />
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
               className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-line bg-[color-mix(in_srgb,var(--bg-secondary)_90%,transparent)] text-fg"
               aria-label="Open menu"
+              aria-expanded={mobileDrawerOpen}
+              aria-controls="surveyor-mobile-menu"
             >
               <Menu className="h-5 w-5" strokeWidth={2} />
             </button>
@@ -245,82 +248,90 @@ const DashboardLayout = () => {
         </main>
       </div>
 
-      {/* Mobile drawer: more + nav (lg:hidden) */}
-      {mobileDrawerOpen && (
-        <>
+      {/* Mobile drawer: full-screen overlay + right-to-left panel */}
+      <button
+        type="button"
+        className={`fixed inset-0 z-[60] bg-black/45 lg:hidden transition-opacity duration-300 ease-out ${
+          mobileDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={() => setMobileDrawerOpen(false)}
+      />
+      <div
+        id="surveyor-mobile-menu"
+        role={mobileDrawerOpen ? "dialog" : undefined}
+        aria-modal={mobileDrawerOpen ? "true" : undefined}
+        aria-hidden={!mobileDrawerOpen}
+        aria-label={mobileDrawerOpen ? "Menu" : undefined}
+        inert={!mobileDrawerOpen}
+        className={`fixed inset-y-0 right-0 z-[70] flex h-dvh w-[min(100vw-2rem,320px)] flex-col border-l border-line bg-[color-mix(in_srgb,var(--bg-elevated)_98%,transparent)] shadow-xl backdrop-blur-md lg:hidden transition-transform duration-300 ease-out ${
+          mobileDrawerOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+        }`}
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <span className="text-sm font-bold text-fg">Menu</span>
           <button
             type="button"
-            className="fixed inset-0 z-55 bg-black/45 lg:hidden"
-            aria-hidden="true"
-            tabIndex={-1}
             onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="fixed top-14 right-0 z-56 flex h-[calc(100dvh-3.5rem)] w-[min(100vw-2rem,320px)] flex-col border-l border-line bg-[color-mix(in_srgb,var(--bg-elevated)_98%,transparent)] shadow-xl backdrop-blur-md lg:hidden">
-            <div className="flex items-center justify-between border-b border-line px-4 py-3">
-              <span className="text-sm font-bold text-fg">Menu</span>
-              <button
-                type="button"
-                onClick={() => setMobileDrawerOpen(false)}
-                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-line text-fg"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-3 py-3">
-              <div className="text-[11px] font-extrabold tracking-wider text-fg-muted uppercase px-2 mb-2">
-                Navigation
-              </div>
-              <div className="flex flex-col gap-1">
-                {NAV_ITEMS.map((item) => {
-                  const active = isActive(item);
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => goTo(item.path)}
-                      className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-extrabold transition-colors ${
-                        active
-                          ? "bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-(--user-accent)"
-                          : "text-fg-muted hover:bg-(--bg-hover)"
-                      }`}
-                    >
-                      <Icon active={active} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs font-semibold text-fg-muted">Notifications</span>
-                  <NotificationBell layout="user" />
-                </div>
-                <InstallButton
-                  type="default"
-                  size="middle"
-                  className="border-line text-accent hover:text-accent-soft w-full"
-                />
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-(--user-accent) px-4 py-3 text-sm font-bold text-white"
-                  onClick={() => goTo("/dashboard/user/profile")}
-                >
-                  <ProfileIcon active={false} />
-                  Profile ({userInitial})
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-danger/30 py-3 text-sm font-bold text-danger"
-                  onClick={handleLogout}
-                >
-                  <LogOutIcon /> Logout
-                </button>
-              </div>
-            </div>
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-line text-fg"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-3 py-3">
+          <div className="text-[11px] font-extrabold tracking-wider text-fg-muted uppercase px-2 mb-2">
+            Navigation
           </div>
-        </>
-      )}
+          <div className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item);
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => goTo(item.path)}
+                  className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-extrabold transition-colors ${
+                    active
+                      ? "bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] text-(--user-accent)"
+                      : "text-fg-muted hover:bg-(--bg-hover)"
+                  }`}
+                >
+                  <Icon active={active} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+            <InstallButton
+              type="default"
+              size="middle"
+              className="border-line text-accent hover:text-accent-soft w-full"
+            />
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-(--user-accent) px-4 py-3 text-sm font-bold text-white"
+              onClick={() => goTo("/dashboard/user/profile")}
+            >
+              <ProfileIcon active={false} />
+              Profile ({userInitial})
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-danger/30 py-3 text-sm font-bold text-danger"
+              onClick={handleLogout}
+            >
+              <LogOutIcon /> Logout
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* BOTTOM TABS (mobile) */}
       <nav className="theme-animate-surface lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] backdrop-blur border-t border-line">

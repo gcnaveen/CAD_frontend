@@ -1,6 +1,6 @@
 // src/dashboard/user/UserUploadForm.jsx
 // Full redesign — 4-step wizard. All original logic preserved.
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Checkbox, Form, Modal, message } from "antd";
 import { useSelector } from "react-redux";
@@ -155,6 +155,7 @@ const UserUploadForm = ({
   const [audioData,     setAudioData]     = useState(null);
   const [uploadedDocs,  setUploadedDocs]  = useState({});
   const [uploadedOther, setUploadedOther] = useState({});
+  const drawingStepRef = useRef(null);
 
   const draftIdFromUrl = useMemo(() => {
     const raw = searchParams.get("draftId");
@@ -274,6 +275,13 @@ const UserUploadForm = ({
     setUploadedOther({});
   };
 
+  const flushDrawingAudio = async () => {
+    if (step !== 1) return true;
+    const flush = drawingStepRef.current?.flushPendingAudio;
+    if (typeof flush !== "function") return true;
+    return (await flush()) !== false;
+  };
+
   /* ── Navigation ── */
   const goNext = async () => {
     if (stepLoading || fileUploading) {
@@ -310,6 +318,8 @@ const UserUploadForm = ({
     };
 
     try {
+      if (!(await flushDrawingAudio())) return;
+
       // Drawing step (previous step): confirm if googleSuperimpose not selected
       if (step === 1) {
         const googleSuperimpose = Boolean(form.getFieldValue("googleSuperimpose"));
@@ -330,7 +340,10 @@ const UserUploadForm = ({
       // `proceed` already handles errors and toasts
     }
   };
-  const goPrev = () => setStep((s) => Math.max(s - 1, 0));
+  const goPrev = async () => {
+    if (!(await flushDrawingAudio())) return;
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
   /* ── Build payload (same logic as original) ── */
   const processOtherDocuments = (payload) => {
@@ -544,14 +557,19 @@ const UserUploadForm = ({
     si("others", values.others); si("uploadMode", resolvedMode);
     if (isPublicSurveyorCategory) si("hasDocuments", publicHasDocuments);
     si("isSuperimpose", Boolean(values.googleSuperimpose));
-    if (audioData?.fileUrl || audioData?.url) {
-      const audioUrl = audioData.fileUrl || audioData.url;
+    // Prefer form audio: flushPendingAudio writes it before draft save, while
+    // parent `audioData` may still be a tick behind.
+    const audioMeta =
+      (values?.audio?.fileUrl || values?.audio?.url ? values.audio : null) ||
+      (audioData?.fileUrl || audioData?.url ? audioData : null);
+    if (audioMeta) {
+      const audioUrl = audioMeta.fileUrl || audioMeta.url;
       p.audio = {
         url: audioUrl,
         fileUrl: audioUrl,
-        fileName: audioData.fileName || "audio",
-        mimeType: audioData.mimeType || "audio/mpeg",
-        size: audioData.size || 0,
+        fileName: audioMeta.fileName || "audio",
+        mimeType: audioMeta.mimeType || "audio/mpeg",
+        size: audioMeta.size || 0,
       };
     }
     const mode = resolvedMode;
@@ -600,6 +618,11 @@ const UserUploadForm = ({
   };
 
   const handleSaveDraft = async () => {
+    if (fileUploading) {
+      message.warning("Please wait for the upload to finish");
+      return;
+    }
+    if (!(await flushDrawingAudio())) return;
     setDraftSaving(true);
     try {
       const payload = buildDraftPayload(form.getFieldsValue(true));
@@ -726,6 +749,7 @@ const UserUploadForm = ({
     <LocationStep  key={0} form={form} prefillEntities={prefillEntities} onLocationLabelsChange={setLocationLabels} />,
     <DrawingStep
       key={1}
+      ref={drawingStepRef}
       form={form}
       onAudioChange={setAudioData}
       audioData={audioData}

@@ -15,19 +15,36 @@ import {
   Upload,
   message,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import { setCredentials } from "../../features/auth/authSlice";
 import { updateUser } from "../../services/user/userService";
-import { uploadImageToS3 } from "../../services/upload/upload.service";
+import {
+  uploadImageToS3,
+  uploadSurveyDocumentToS3,
+} from "../../services/upload/upload.service";
+import { deleteUploadedFile } from "../../services/upload/upload.api.js";
 import { getUploadErrorMessage } from "../../services/upload/upload.errors.js";
 import { cadBi, cadBiFmt } from "./cadBilingual";
+import {
+  ACCOUNT_NUMBER_REGEX,
+  DOCUMENT_UPLOAD_ACCEPT,
+  IFSC_REGEX,
+  IMAGE_UPLOAD_ACCEPT,
+  PHONE_REGEX,
+  fileNameFromUrl,
+  isDocumentUploadField,
+  isWordDocumentFile,
+  normalizeIndianPhone,
+  resolveProfilePhotoUrl,
+  resolveUserEmail,
+  resolveUserPhone,
+  sanitizeIfsc,
+} from "./profileFormUtils.js";
 
 const { Title, Text } = Typography;
 
-const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
-const ACCOUNT_NUMBER_REGEX = /^\d+$/;
 const REQUIRED_FIELDS = [
   "firstName",
   "lastName",
@@ -36,6 +53,8 @@ const REQUIRED_FIELDS = [
   "aadhaarPhotoUrl",
   "accountNumber",
   "accountHolderName",
+  "bankName",
+  "branchName",
   "ifscCode",
   "skills",
   "experienceYears",
@@ -44,7 +63,7 @@ const REQUIRED_FIELDS = [
 const STEP_FIELD_MAP = [
   ["firstName", "lastName", "phone", "address"],
   ["aadhaarPhotoUrl"],
-  ["accountNumber", "accountHolderName", "ifscCode"],
+  ["accountNumber", "accountHolderName", "bankName", "branchName", "ifscCode"],
   [],
   ["skills", "experienceYears"],
   [],
@@ -95,32 +114,39 @@ export default function CompleteProfile() {
   const userId = user?._id;
   const draftKey = `cad_complete_profile_draft_${userId || "unknown"}`;
   const progressPercent = Math.round(((currentStep + 1) / 6) * 100);
+  const lockedEmail = resolveUserEmail(user);
+  const bumpForm = () => setFormVersion((prev) => prev + 1);
 
   useEffect(() => {
     const defaultValues = {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      phone: user?.phone || "",
-      email: user?.email || "",
-      address: user?.address || "",
-      profilePhotoUrl: user?.profilePhotoUrl || "",
-      aadhaarPhotoUrl: user?.aadhaarPhotoUrl || "",
+      firstName: user?.firstName || user?.personalDetails?.firstName || "",
+      lastName: user?.lastName || user?.personalDetails?.lastName || "",
+      phone: resolveUserPhone(user),
+      email: lockedEmail,
+      address: user?.address || user?.personalDetails?.address || "",
+      profilePhotoUrl: resolveProfilePhotoUrl(user),
+      aadhaarPhotoUrl: user?.aadhaarPhotoUrl || user?.kycDetails?.aadhaarPhotoUrl || "",
       accountNumber: user?.accountNumber || user?.bankDetails?.accountNumber || "",
       accountHolderName:
         user?.accountHolderName || user?.bankDetails?.accountHolderName || "",
       bankName: user?.bankName || user?.bankDetails?.bankName || "",
       branchName: user?.branchName || user?.bankDetails?.branchName || "",
-      ifscCode: user?.ifscCode || user?.bankDetails?.ifscCode || "",
-      upiId: user?.upiId || "",
-      skills: Array.isArray(user?.skills) ? user.skills : [],
+      ifscCode: sanitizeIfsc(user?.ifscCode || user?.bankDetails?.ifscCode || ""),
+      upiId: user?.upiId || user?.upiDetails?.upiId || "",
+      skills: Array.isArray(user?.skills)
+        ? user.skills
+        : Array.isArray(user?.professionalDetails?.skills)
+          ? user.professionalDetails.skills
+          : [],
       experienceYears:
         user?.experienceYears ??
         user?.yearsOfExperience ??
+        user?.professionalDetails?.experienceYears ??
         (Number.isFinite(Number(user?.yearsOfExperience))
           ? Number(user?.yearsOfExperience)
           : undefined),
-      resumeUrl: user?.resumeUrl || "",
-      addressProofUrl: user?.addressProofUrl || "",
+      resumeUrl: user?.resumeUrl || user?.professionalDetails?.resumeUrl || "",
+      addressProofUrl: user?.addressProofUrl || user?.documents?.addressProofUrl || "",
     };
 
     try {
@@ -130,12 +156,15 @@ export default function CompleteProfile() {
         return;
       }
       const draft = JSON.parse(raw);
-      form.setFieldsValue({ ...defaultValues, ...draft });
+      const merged = { ...defaultValues, ...draft, email: lockedEmail };
+      if (merged.phone) merged.phone = normalizeIndianPhone(merged.phone);
+      if (merged.ifscCode) merged.ifscCode = sanitizeIfsc(merged.ifscCode);
+      form.setFieldsValue(merged);
       setIsDraftDirty(true);
     } catch {
       form.setFieldsValue(defaultValues);
     }
-  }, [draftKey, form, user]);
+  }, [draftKey, form, lockedEmail, user]);
 
   const isFieldFilled = (name, values) => {
     const value = values?.[name];
@@ -147,15 +176,15 @@ export default function CompleteProfile() {
   };
 
   const isFormReadyForSubmit = useMemo(() => {
-    // formVersion bumps when fields change so readiness re-evaluates.
     void formVersion;
     const values = form.getFieldsValue(true);
     const requiredOk = REQUIRED_FIELDS.every((fieldName) =>
       isFieldFilled(fieldName, values)
     );
-    const ifscOk = IFSC_REGEX.test(String(values?.ifscCode || "").trim());
+    const ifscOk = IFSC_REGEX.test(sanitizeIfsc(values?.ifscCode));
     const accountOk = ACCOUNT_NUMBER_REGEX.test(String(values?.accountNumber || "").trim());
-    return requiredOk && ifscOk && accountOk;
+    const phoneOk = PHONE_REGEX.test(normalizeIndianPhone(values?.phone));
+    return requiredOk && ifscOk && accountOk && phoneOk;
   }, [form, formVersion]);
 
   const isCurrentStepValid = () => {
@@ -166,8 +195,11 @@ export default function CompleteProfile() {
     const requiredOk = fields.every((fieldName) => isFieldFilled(fieldName, values));
     if (!requiredOk) return false;
 
+    if (currentStep === 0) {
+      if (!PHONE_REGEX.test(normalizeIndianPhone(values?.phone))) return false;
+    }
     if (currentStep === 2) {
-      if (!IFSC_REGEX.test(String(values?.ifscCode || "").trim())) return false;
+      if (!IFSC_REGEX.test(sanitizeIfsc(values?.ifscCode))) return false;
       if (!ACCOUNT_NUMBER_REGEX.test(String(values?.accountNumber || "").trim())) return false;
     }
     if (currentStep === 4) {
@@ -188,10 +220,19 @@ export default function CompleteProfile() {
           : file;
     if (!fileObj) return false;
 
+    if (isDocumentUploadField(fieldName) && isWordDocumentFile(fileObj)) {
+      message.warning(cadBi.profile.wordNotSupported);
+      return false;
+    }
+
     setUploading((prev) => ({ ...prev, [fieldName]: true }));
     try {
-      const { fileUrl } = await uploadImageToS3(fileObj, String(userId));
+      const upload = isDocumentUploadField(fieldName)
+        ? uploadSurveyDocumentToS3
+        : uploadImageToS3;
+      const { fileUrl } = await upload(fileObj, String(userId));
       form.setFieldValue(fieldName, fileUrl);
+      bumpForm();
       message.success(cadBi.profile.fileUploaded);
     } catch (error) {
       message.error(getUploadErrorMessage(error) || cadBi.profile.uploadFailed);
@@ -199,6 +240,19 @@ export default function CompleteProfile() {
       setUploading((prev) => ({ ...prev, [fieldName]: false }));
     }
     return false;
+  };
+
+  const handleDeleteFile = async (fieldName) => {
+    const fileUrl = form.getFieldValue(fieldName);
+    if (fileUrl) {
+      try {
+        await deleteUploadedFile({ fileUrl });
+      } catch {
+        /* still clear the form field */
+      }
+    }
+    form.setFieldValue(fieldName, "");
+    bumpForm();
   };
 
   useEffect(() => {
@@ -215,9 +269,9 @@ export default function CompleteProfile() {
 
   const onValuesChange = () => {
     const values = form.getFieldsValue(true);
-    setFormVersion((prev) => prev + 1);
+    bumpForm();
     try {
-      localStorage.setItem(draftKey, JSON.stringify(values));
+      localStorage.setItem(draftKey, JSON.stringify({ ...values, email: lockedEmail }));
       setIsDraftDirty(true);
     } catch {
       // ignore localStorage write errors
@@ -258,8 +312,8 @@ export default function CompleteProfile() {
         personalDetails: {
           firstName: values.firstName,
           lastName: values.lastName,
-          phone: values.phone,
-          email: values.email,
+          phone: normalizeIndianPhone(values.phone),
+          email: lockedEmail || values.email,
           address: values.address,
           profilePhotoUrl: values.profilePhotoUrl || "",
         },
@@ -269,9 +323,9 @@ export default function CompleteProfile() {
         bankDetails: {
           accountNumber: values.accountNumber,
           accountHolderName: values.accountHolderName,
-          bankName: values.bankName || "",
-          branchName: values.branchName || "",
-          ifscCode: values.ifscCode,
+          bankName: values.bankName,
+          branchName: values.branchName,
+          ifscCode: sanitizeIfsc(values.ifscCode),
         },
         upiDetails: {
           upiId: values.upiId || "",
@@ -323,12 +377,15 @@ export default function CompleteProfile() {
     }
   };
 
-  const renderUpload = (name, label, required = false) => {
+  const renderUpload = (name, label, { required = false, kind = "image" } = {}) => {
     const value = form.getFieldValue(name);
+    const accept = kind === "document" ? DOCUMENT_UPLOAD_ACCEPT : IMAGE_UPLOAD_ACCEPT;
+    const showPhoto = kind === "photo" && Boolean(value);
     return (
       <Form.Item
         label={label}
         name={name}
+        extra={kind === "document" ? cadBi.profile.documentHint : undefined}
         rules={
           required
             ? [
@@ -341,20 +398,58 @@ export default function CompleteProfile() {
         }
       >
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Upload
-            maxCount={1}
-            showUploadList={false}
-            beforeUpload={(file) => uploadFieldFile(name, file)}
-            accept=".jpg,.jpeg,.png,.webp,.pdf"
-            disabled={Boolean(uploading[name])}
-          >
-            <Button icon={<UploadOutlined />} loading={Boolean(uploading[name])}>
-              {value ? cadBi.profile.replaceFile : cadBi.profile.uploadFile}
-            </Button>
-          </Upload>
+          {showPhoto ? (
+            <img
+              src={value}
+              alt=""
+              style={{
+                width: 96,
+                height: 96,
+                objectFit: "cover",
+                borderRadius: 12,
+                border: "1px solid #f0f0f0",
+              }}
+            />
+          ) : null}
+          {kind === "image" && value ? (
+            <img
+              src={value}
+              alt=""
+              style={{
+                maxWidth: 220,
+                maxHeight: 140,
+                objectFit: "contain",
+                borderRadius: 8,
+                border: "1px solid #f0f0f0",
+              }}
+            />
+          ) : null}
+          <Space wrap>
+            <Upload
+              maxCount={1}
+              showUploadList={false}
+              beforeUpload={(file) => uploadFieldFile(name, file)}
+              accept={accept}
+              disabled={Boolean(uploading[name])}
+            >
+              <Button icon={<UploadOutlined />} loading={Boolean(uploading[name])}>
+                {value ? cadBi.profile.replaceFile : cadBi.profile.uploadFile}
+              </Button>
+            </Upload>
+            {value ? (
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteFile(name)}
+                disabled={Boolean(uploading[name])}
+              >
+                {cadBi.profile.deleteFile}
+              </Button>
+            ) : null}
+          </Space>
           {value ? (
             <a href={value} target="_blank" rel="noreferrer">
-              {cadBi.profile.previewFile}
+              {kind === "document" ? fileNameFromUrl(value) : cadBi.profile.previewFile}
             </a>
           ) : null}
         </Space>
@@ -404,7 +499,7 @@ export default function CompleteProfile() {
           form={form}
           layout="vertical"
           onValuesChange={onValuesChange}
-          initialValues={{ email: user?.email || "", skills: [] }}
+          initialValues={{ email: lockedEmail, skills: [] }}
           style={{ flex: 1 }}
         >
           {currentStep === 0 ? (
@@ -431,14 +526,29 @@ export default function CompleteProfile() {
                 <Form.Item
                   label={cadBi.profile.phone}
                   name="phone"
-                  rules={[{ required: true, message: cadBi.profile.rules.phone }]}
+                  rules={[
+                    { required: true, message: cadBi.profile.rules.phone },
+                    { pattern: PHONE_REGEX, message: cadBi.profile.rules.phoneInvalid },
+                  ]}
                 >
-                  <Input placeholder={cadBi.profile.placeholders.phone} />
+                  <Input
+                    addonBefore="+91"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder={cadBi.profile.placeholders.phone}
+                    onChange={(event) => {
+                      form.setFieldValue("phone", normalizeIndianPhone(event?.target?.value));
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={cadBi.profile.email} name="email">
-                  <Input disabled />
+                <Form.Item
+                  label={cadBi.profile.email}
+                  name="email"
+                  extra={cadBi.profile.emailLocked}
+                >
+                  <Input disabled readOnly placeholder={lockedEmail || cadBi.profile.email} />
                 </Form.Item>
               </Col>
               <Col xs={24}>
@@ -450,13 +560,20 @@ export default function CompleteProfile() {
                   <Input.TextArea rows={3} placeholder={cadBi.profile.placeholders.address} />
                 </Form.Item>
               </Col>
-              <Col xs={24}>{renderUpload("profilePhotoUrl", cadBi.profile.profilePhoto, false)}</Col>
+              <Col xs={24}>
+                {renderUpload("profilePhotoUrl", cadBi.profile.profilePhoto, { kind: "photo" })}
+              </Col>
             </Row>
           ) : null}
 
           {currentStep === 1 ? (
             <Row gutter={[12, 12]}>
-              <Col xs={24}>{renderUpload("aadhaarPhotoUrl", cadBi.profile.aadhaarPhoto, true)}</Col>
+              <Col xs={24}>
+                {renderUpload("aadhaarPhotoUrl", cadBi.profile.aadhaarPhoto, {
+                  required: true,
+                  kind: "image",
+                })}
+              </Col>
             </Row>
           ) : null}
 
@@ -493,12 +610,20 @@ export default function CompleteProfile() {
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={cadBi.profile.bankName} name="bankName">
+                <Form.Item
+                  label={cadBi.profile.bankName}
+                  name="bankName"
+                  rules={[{ required: true, message: cadBi.profile.rules.bankName }]}
+                >
                   <Input placeholder={cadBi.profile.placeholders.bankName} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={cadBi.profile.branchName} name="branchName">
+                <Form.Item
+                  label={cadBi.profile.branchName}
+                  name="branchName"
+                  rules={[{ required: true, message: cadBi.profile.rules.branchName }]}
+                >
                   <Input placeholder={cadBi.profile.placeholders.branchName} />
                 </Form.Item>
               </Col>
@@ -513,11 +638,9 @@ export default function CompleteProfile() {
                 >
                   <Input
                     placeholder={cadBi.profile.placeholders.ifsc}
+                    maxLength={11}
                     onChange={(event) => {
-                      const sanitized = String(event?.target?.value || "")
-                        .replace(/\s+/g, "")
-                        .toUpperCase();
-                      form.setFieldValue("ifscCode", sanitized);
+                      form.setFieldValue("ifscCode", sanitizeIfsc(event?.target?.value));
                     }}
                   />
                 </Form.Item>
@@ -569,13 +692,17 @@ export default function CompleteProfile() {
                   <InputNumber min={0} max={50} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
-              <Col xs={24}>{renderUpload("resumeUrl", cadBi.profile.resume, false)}</Col>
+              <Col xs={24}>
+                {renderUpload("resumeUrl", cadBi.profile.resume, { kind: "document" })}
+              </Col>
             </Row>
           ) : null}
 
           {currentStep === 5 ? (
             <Row gutter={[12, 12]}>
-              <Col xs={24}>{renderUpload("addressProofUrl", cadBi.profile.addressProof, false)}</Col>
+              <Col xs={24}>
+                {renderUpload("addressProofUrl", cadBi.profile.addressProof, { kind: "document" })}
+              </Col>
               {isDraftDirty ? (
                 <Col xs={24}>
                   <Text type="secondary">{cadBi.profile.draftSave}</Text>

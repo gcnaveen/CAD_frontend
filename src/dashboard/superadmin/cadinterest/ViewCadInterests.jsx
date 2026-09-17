@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Typography, Table, Space, Tag, message, Button, Tooltip, Modal, Input } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
+import ResumeActions from "../../../components/users/ResumeActions.jsx";
 import { getCadInterests } from "../../../services/cadInterestService.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
 import { createEnrollmentInvite } from "../../../services/user/userService.js";
@@ -192,18 +193,11 @@ const ViewCadInterests = () => {
           Number.isFinite(Number(value)) ? Number(value) : <Tag color="default">N/A</Tag>,
       },
       {
-        title: "Resume URL",
+        title: "Resume",
         dataIndex: "resumeUrl",
         key: "resumeUrl",
-        width: 260,
-        render: (value) =>
-          value ? (
-            <a href={value} target="_blank" rel="noopener noreferrer">
-              View Resume
-            </a>
-          ) : (
-            "-"
-          ),
+        width: 180,
+        render: (value) => <ResumeActions url={value} />,
       },
       {
         title: "Submitted At",

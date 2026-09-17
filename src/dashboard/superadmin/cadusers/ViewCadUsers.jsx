@@ -10,6 +10,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import UserFormDrawer from "../../../components/users/UserFormDrawer.jsx";
+import ResumeActions from "../../../components/users/ResumeActions.jsx";
 import { getUsersByRole, deleteUser } from "../../../services/user/userService.js";
 import { mapUserToRow } from "../../../utils/userListUtils.js";
 import { parsePagedListResponse } from "../../../utils/paginationUtils.js";
@@ -120,6 +121,13 @@ const ViewCadUsers = () => {
       sorter: (a, b) => a.email.localeCompare(b.email),
     },
     {
+      title: "Resume",
+      dataIndex: "resumeUrl",
+      key: "resumeUrl",
+      width: 180,
+      render: (value) => <ResumeActions url={value} />,
+    },
+    {
       title: "Action",
       key: "action",
       width: 120,
@@ -175,7 +183,7 @@ const ViewCadUsers = () => {
             showTotal: (total) => `Total ${total} users`,
           }}
           onChange={handleTableChange}
-          scroll={{ x: 600 }}
+          scroll={{ x: 780 }}
         />
       </Spin>
 

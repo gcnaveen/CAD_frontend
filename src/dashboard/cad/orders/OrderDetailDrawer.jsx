@@ -85,10 +85,7 @@ const formatDate = (dateString) => {
 const formatLocationDisplay = (location) => {
   if (!location) return "—";
   if (typeof location === "string") return location;
-  const name = location.name || "";
-  const code = location.code ? ` (${location.code})` : "";
-  const line = `${name}${code}`.trim();
-  return line || "—";
+  return location.name || location.label || "—";
 };
 
 const formatSurveyType = (type) => {

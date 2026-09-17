@@ -1,5 +1,5 @@
 // src/dashboard/user/form/steps/DrawingStep.jsx
-import React, { useRef, useEffect, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Form, Input, Upload, message, Typography } from "antd";
 
 const { Text } = Typography;
@@ -46,8 +46,23 @@ const FieldLabel = ({ kn, en, required, optional }) => (
 );
 
 const audioRemoteUrl = (audio) => audio?.fileUrl || audio?.url || null;
+const STOP_RECORDING_TIMEOUT_MS = 5000;
+const UPLOAD_IDLE_TIMEOUT_MS = 30000;
 
-const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superimposeAddOnRupees = 0 }) => {
+const waitWhile = (predicate, timeoutMs) =>
+  new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      if (!predicate() || Date.now() - start >= timeoutMs) {
+        resolve();
+        return;
+      }
+      setTimeout(tick, 40);
+    };
+    tick();
+  });
+
+const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingChange, superimposeAddOnRupees = 0 }, ref) => {
   const audioField = Form.useWatch("audio", form);
   /** Parent `audioData` survives step unmount; form field may clear when this step is not mounted. */
   const savedAudio = audioRemoteUrl(audioField) ? audioField : audioRemoteUrl(audioData) ? audioData : null;
@@ -58,15 +73,45 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const [uploadingAudio, setUpAudio] = useState(false);
-  const [mediaRecorder, setMediaRec] = useState(null);
   const timerRef = useRef(null);
   const streamRef = useRef(null);
   /** Object URLs owned by this step before they are handed off to saved audio meta. */
   const pendingPreviewRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const isRecordingRef = useRef(false);
+  const audioBlobRef = useRef(null);
+  const audioUrlRef = useRef(null);
+  const uploadingAudioRef = useRef(false);
+  const flushInFlightRef = useRef(false);
+  const stopWaitersRef = useRef([]);
+  const formRef = useRef(form);
+  const onAudioChangeRef = useRef(onAudioChange);
+  formRef.current = form;
+  onAudioChangeRef.current = onAudioChange;
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+  const clearRecordingTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const resolveStopWaiters = (blob) => {
+    const waiters = stopWaitersRef.current;
+    stopWaitersRef.current = [];
+    waiters.forEach((resolve) => resolve(blob));
+  };
+
+  const markRecordingStopped = () => {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    clearRecordingTimer();
+  };
+
   useEffect(() => {
+    uploadingAudioRef.current = uploadingAudio;
     onUploadingChange?.(uploadingAudio);
     return () => onUploadingChange?.(false);
   }, [uploadingAudio, onUploadingChange]);
@@ -88,16 +133,20 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
       recorder.onstop = () => {
         const blob = buildVoiceNoteBlob(chunks, recorder, mime);
         const localUrl = createLocalPreviewUrl(blob);
+        audioBlobRef.current = blob;
+        audioUrlRef.current = localUrl;
+        pendingPreviewRef.current = localUrl;
         setAudioBlob(blob);
         setAudioUrl(localUrl);
-        pendingPreviewRef.current = localUrl;
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
         }
+        resolveStopWaiters(blob);
       };
       recorder.start();
-      setMediaRec(recorder);
+      mediaRecorderRef.current = recorder;
+      isRecordingRef.current = true;
       setIsRecording(true);
       setRecTime(0);
       timerRef.current = setInterval(() => setRecTime((p) => p + 1), 1000);
@@ -111,30 +160,62 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+  const stopRecorderAndWait = () =>
+    new Promise((resolve) => {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder || recorder.state === "inactive") {
+        markRecordingStopped();
+        resolve(audioBlobRef.current);
+        return;
       }
-    }
+      const timeout = setTimeout(() => {
+        resolve(audioBlobRef.current);
+      }, STOP_RECORDING_TIMEOUT_MS);
+      const onStopped = (blob) => {
+        clearTimeout(timeout);
+        resolve(blob);
+      };
+      stopWaitersRef.current.push(onStopped);
+      try {
+        if (recorder.state === "recording" || recorder.state === "paused") {
+          if (typeof recorder.requestData === "function") {
+            try {
+              recorder.requestData();
+            } catch {
+              /* some browsers throw if a data request is already in flight */
+            }
+          }
+          recorder.stop();
+        }
+      } catch {
+        clearTimeout(timeout);
+        stopWaitersRef.current = stopWaitersRef.current.filter((w) => w !== onStopped);
+        resolve(audioBlobRef.current);
+        return;
+      }
+      markRecordingStopped();
+    });
+
+  const stopRecording = () => {
+    if (!isRecordingRef.current && mediaRecorderRef.current?.state === "inactive") return;
+    void stopRecorderAndWait();
   };
 
-  const handleUploadRecorded = async () => {
-    if (!audioBlob) return;
-    const villageId = form.getFieldValue("village");
+  const uploadRecordedBlob = async (blob) => {
+    const source = blob || audioBlobRef.current;
+    if (!source?.size) return true;
+    const villageId = formRef.current?.getFieldValue("village");
     if (!villageId) {
       message.warning("Please select village first");
-      return;
+      return false;
     }
     setUpAudio(true);
+    uploadingAudioRef.current = true;
     try {
-      const file = await toVoiceNoteFile(audioBlob);
+      const file = await toVoiceNoteFile(source);
       const { fileUrl, key } = await uploadAudioToS3(file, villageId);
       // Keep local blob URL so playback works while S3 objects remain private (H-10).
-      const previewUrl = audioUrl || createLocalPreviewUrl(file);
+      const previewUrl = audioUrlRef.current || createLocalPreviewUrl(file);
       pendingPreviewRef.current = null;
       const val = {
         fileUrl,
@@ -144,17 +225,54 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
         size: file.size,
         previewUrl: previewUrl || undefined,
       };
-      form.setFieldsValue({ audio: val });
-      onAudioChange?.(val);
+      formRef.current?.setFieldsValue({ audio: val });
+      onAudioChangeRef.current?.(val);
       message.success("Audio uploaded");
+      audioBlobRef.current = null;
+      audioUrlRef.current = null;
       setAudioBlob(null);
       setAudioUrl(null);
+      return true;
     } catch (e) {
       message.error(getUploadErrorMessage(e) || "Failed to upload audio");
+      return false;
     } finally {
+      uploadingAudioRef.current = false;
       setUpAudio(false);
     }
   };
+
+  const handleUploadRecorded = async () => {
+    await uploadRecordedBlob(audioBlobRef.current);
+  };
+
+  useImperativeHandle(ref, () => ({
+    flushPendingAudio: async () => {
+      if (flushInFlightRef.current) return false;
+      flushInFlightRef.current = true;
+      try {
+        if (uploadingAudioRef.current) {
+          await waitWhile(() => uploadingAudioRef.current, UPLOAD_IDLE_TIMEOUT_MS);
+          if (uploadingAudioRef.current) return false;
+          if (!audioBlobRef.current?.size) return true;
+        }
+        const wasRecording =
+          isRecordingRef.current || mediaRecorderRef.current?.state === "recording";
+        if (wasRecording) {
+          await stopRecorderAndWait();
+          if (!audioBlobRef.current?.size) {
+            message.warning("Could not finish the recording. Please stop and try again.");
+            return false;
+          }
+        }
+        const pending = audioBlobRef.current;
+        if (!pending?.size) return true;
+        return await uploadRecordedBlob(pending);
+      } finally {
+        flushInFlightRef.current = false;
+      }
+    },
+  }));
 
   const handleAudioFile = async (file) => {
     const villageId = form.getFieldValue("village");
@@ -167,6 +285,7 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
       return false;
     }
     setUpAudio(true);
+    uploadingAudioRef.current = true;
     try {
       const actual =
         file instanceof File
@@ -190,6 +309,7 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
     } catch (e) {
       message.error(getUploadErrorMessage(e) || "Failed to upload audio");
     } finally {
+      uploadingAudioRef.current = false;
       setUpAudio(false);
     }
     return false;
@@ -205,9 +325,11 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
       }
     }
     revokeLocalPreviewUrl(d?.previewUrl);
-    revokeLocalPreviewUrl(audioUrl);
+    revokeLocalPreviewUrl(audioUrlRef.current);
     revokeLocalPreviewUrl(pendingPreviewRef.current);
     pendingPreviewRef.current = null;
+    audioBlobRef.current = null;
+    audioUrlRef.current = null;
     setAudioBlob(null);
     setAudioUrl(null);
     setRecTime(0);
@@ -403,6 +525,8 @@ const DrawingStep = ({ form, onAudioChange, audioData, onUploadingChange, superi
       </div>
     </div>
   );
-};
+});
+
+DrawingStep.displayName = "DrawingStep";
 
 export default DrawingStep;

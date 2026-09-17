@@ -10,6 +10,19 @@ export function parseUsersResponse(res) {
 }
 
 /**
+ * Resolve CAD resume URL from top-level or nested professionalDetails.
+ * @param {object|null|undefined} user
+ * @returns {string}
+ */
+export function resolveResumeUrl(user) {
+  const url =
+    user?.resumeUrl ||
+    user?.professionalDetails?.resumeUrl ||
+    "";
+  return typeof url === "string" ? url.trim() : "";
+}
+
+/**
  * Map API user shape to table row (name.first/last, auth.phone/email, _id).
  */
 export function mapUserToRow(user) {
@@ -23,6 +36,7 @@ export function mapUserToRow(user) {
     name,
     email: user.auth?.email ?? "-",
     mobile: user.auth?.phone ?? "-",
+    resumeUrl: resolveResumeUrl(user),
   };
 }
 

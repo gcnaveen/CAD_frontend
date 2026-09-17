@@ -290,7 +290,7 @@ const ViewVillages = () => {
             }
             options={districts.map((d) => ({
               value: d.id ?? d._id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
           <Select
@@ -308,7 +308,7 @@ const ViewVillages = () => {
             }
             options={talukas.map((t) => ({
               value: t.id ?? t._id,
-              label: t.code ? `${t.name} (${t.code})` : t.name,
+              label: t.name,
             }))}
           />
           <Select
@@ -326,7 +326,7 @@ const ViewVillages = () => {
             }
             options={hoblis.map((h) => ({
               value: h.id ?? h._id,
-              label: h.code ? `${h.name} (${h.code})` : h.name,
+              label: h.name,
             }))}
           />
           {canWrite ? (

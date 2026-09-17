@@ -38,6 +38,14 @@ const STEPS = [
   { key: 4, label: "Location",icon: <MapPin size={14} /> },
 ];
 
+const REGISTER_WELCOME_MS = 4000;
+const WELCOME_MESSAGE = "Welcome to North-cot. Your account is ready — we're glad you're here.";
+
+function firstNameOf(name) {
+  const first = String(name || "").trim().split(/\s+/)[0];
+  return first || "";
+}
+
 const Crosshair = ({ size = 20, opacity = 0.18 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
     stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ opacity, color: "var(--brand-gold)" }}>
@@ -85,6 +93,8 @@ export default function RegisterPage() {
   const [message, setMessage]     = useState({ type: "", text: "" });
   const [errors, setErrors]       = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [welcome, setWelcome]     = useState(null);
+  const pendingAuthRef = useRef(null);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
@@ -207,26 +217,31 @@ export default function RegisterPage() {
       const result = await surveyorComplete(payload);
       const token = extractAccessToken(result);
       const user = result?.user;
-      if (token) {
-        dispatch(setCredentials({ token, accessToken: token, user }));
-        setMessage({ type: "success", text: "Registration successful. Redirecting…" });
-        clearTimeout(redirectTimeoutRef.current);
-        redirectTimeoutRef.current = setTimeout(
-          () => navigate(getRedirectForRole(user?.role), { replace: true }),
-          1200,
-        );
-      } else {
-        setMessage({ type: "success", text: "Registration successful. Redirecting to login…" });
-        clearTimeout(redirectTimeoutRef.current);
-        redirectTimeoutRef.current = setTimeout(() => navigate("/login", { replace: true }), 1500);
-      }
+      const greetingName = firstNameOf(user?.firstName || user?.name || f);
+      pendingAuthRef.current = token ? { token, user } : null;
+      setWelcome({ name: greetingName, toDashboard: Boolean(token) });
+      clearTimeout(redirectTimeoutRef.current);
+      redirectTimeoutRef.current = setTimeout(() => {
+        const pending = pendingAuthRef.current;
+        pendingAuthRef.current = null;
+        if (pending?.token) {
+          dispatch(setCredentials({
+            token: pending.token,
+            accessToken: pending.token,
+            user: pending.user,
+          }));
+          navigate(getRedirectForRole(pending.user?.role), { replace: true });
+          return;
+        }
+        navigate("/login", { replace: true });
+      }, REGISTER_WELCOME_MS);
     } catch (err) {
       setMessage({ type: "error", text: err?.message ?? "Registration failed." });
     } finally { setIsSubmitting(false); }
   };
 
-  const districtOptions = districts.map((d) => ({ value: d._id ?? d.id, label: d.code ? `${d.name} (${d.code})` : d.name }));
-  const talukOptions    = talukas.map((t)    => ({ value: t._id ?? t.id, label: t.code ? `${t.name} (${t.code})` : t.name }));
+  const districtOptions = districts.map((d) => ({ value: d._id ?? d.id, label: d.name }));
+  const talukOptions    = talukas.map((t)    => ({ value: t._id ?? t.id, label: t.name }));
 
   return (
     <div className="theme-animate-surface auth-page" style={{
@@ -266,6 +281,8 @@ export default function RegisterPage() {
         @keyframes card-in    { from { opacity:0; transform:translateY(28px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes logo-in    { from { opacity:0; transform:translateY(-14px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin       { to { transform: rotate(360deg); } }
+        @keyframes welcome-in { from { opacity:0; transform:translateY(18px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes welcome-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
         .rp-input {
           width: 100%;
@@ -622,6 +639,114 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      {welcome && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-live="polite"
+          aria-labelledby="register-welcome-title"
+          aria-describedby="register-welcome-body"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "clamp(16px, 4vw, 32px)",
+            background: "color-mix(in srgb, var(--brand-green-deep, #152815) 52%, transparent)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              background: "color-mix(in srgb, var(--bg-elevated) 92%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--brand-gold) 35%, var(--border-color))",
+              borderRadius: "24px",
+              padding: "clamp(28px, 5vw, 36px) clamp(24px, 4vw, 32px) 28px",
+              boxShadow: "0 24px 64px rgba(0,0,0,.22), 0 0 0 1px color-mix(in srgb, var(--brand-gold) 10%, transparent)",
+              textAlign: "center",
+              animation: "welcome-in .45s cubic-bezier(.16,1,.3,1)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, height: "3px",
+              background: "linear-gradient(90deg,transparent,var(--brand-gold) 30%,var(--brand-gold) 70%,transparent)",
+            }} />
+            <div style={{
+              width: "64px", height: "64px", borderRadius: "50%",
+              margin: "0 auto 18px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "color-mix(in srgb, var(--brand-gold) 16%, transparent)",
+              border: "1.5px solid color-mix(in srgb, var(--brand-gold) 45%, var(--border-color))",
+              color: "var(--brand-gold)",
+            }}>
+              <Check size={30} strokeWidth={2.5} />
+            </div>
+            <p style={{
+              fontSize: "11px", fontWeight: 700, letterSpacing: ".14em",
+              textTransform: "uppercase", color: "var(--brand-gold-muted)", margin: "0 0 8px",
+            }}>
+              Registration successful
+            </p>
+            <h2
+              id="register-welcome-title"
+              style={{
+                fontFamily: "'IBM Plex Serif', Georgia, serif",
+                fontStyle: "italic",
+                fontWeight: 700,
+                fontSize: "clamp(22px, 4vw, 28px)",
+                color: "var(--brand-green-deep)",
+                margin: "0 0 10px",
+                lineHeight: 1.25,
+              }}
+            >
+              {welcome.name ? `Welcome, ${welcome.name}` : "Welcome to North-cot"}
+            </h2>
+            <p
+              id="register-welcome-body"
+              style={{
+                fontSize: "15px",
+                lineHeight: 1.6,
+                color: "var(--homepage-body-text)",
+                margin: "0 0 22px",
+              }}
+            >
+              {WELCOME_MESSAGE}
+            </p>
+            <p style={{
+              fontSize: "12px", fontWeight: 600, margin: "0 0 14px",
+              color: "color-mix(in srgb, var(--text-secondary) 80%, transparent)",
+            }}>
+              {welcome.toDashboard
+                ? "Taking you to your dashboard…"
+                : "Taking you to login…"}
+            </p>
+            <div
+              aria-hidden="true"
+              style={{
+                height: "4px",
+                borderRadius: "99px",
+                background: "color-mix(in srgb, var(--brand-gold) 16%, var(--border-color))",
+                overflow: "hidden",
+              }}
+            >
+              <div style={{
+                height: "100%",
+                width: "100%",
+                transformOrigin: "left center",
+                background: "var(--brand-gold)",
+                animation: `welcome-bar ${REGISTER_WELCOME_MS}ms linear forwards`,
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

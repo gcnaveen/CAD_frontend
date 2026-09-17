@@ -12,9 +12,9 @@ function normalizeList(res) {
   return Array.isArray(items) ? items : [];
 }
 
-const labelDistrict = (d) => (d.code ? `${d.name} (${d.code})` : d.name);
-const labelTaluka = (t) => (t.code ? `${t.name} (${t.code})` : t.name);
-const labelHobli = (h) => (h.code ? `${h.name} (${h.code})` : h.name);
+const labelDistrict = (d) => d.name;
+const labelTaluka = (t) => t.name;
+const labelHobli = (h) => h.name;
 
 const EditVillages = ({ initialValues, onCancel, onSubmit, loading = false }) => {
   const [form] = Form.useForm();

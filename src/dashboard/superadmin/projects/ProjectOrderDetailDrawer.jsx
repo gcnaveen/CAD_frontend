@@ -480,13 +480,10 @@ const ProjectOrderDetailDrawer = ({
     return name?.first || name?.last || "-";
   };
 
-  // Get location display (name + code)
   const getLocationDisplay = (location) => {
     if (!location) return "-";
     if (typeof location === "string") return location;
-    const name = location.name || "-";
-    const code = location.code ? ` (${location.code})` : "";
-    return `${name}${code}`;
+    return location.name || "-";
   };
 
   if (!order && !loading) return null;

@@ -27,8 +27,6 @@ const formatRef = (v) => {
   if (typeof v === "string") return v;
   if (typeof v === "object") {
     const name = v.name ?? v.label ?? v.title;
-    const code = v.code;
-    if (name && code) return `${name} (${code})`;
     if (name) return String(name);
   }
   return "—";

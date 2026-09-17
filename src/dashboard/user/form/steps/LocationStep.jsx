@@ -1,10 +1,33 @@
 // src/dashboard/user/form/steps/LocationStep.jsx
 import React, { useEffect, useState } from "react";
-import { Form, Select, Input, message } from "antd";
+import { Form, Select, Input, message, Modal } from "antd";
 import { getActiveDistricts } from "../../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../../services/masters/talukaService.js";
 import { getHoblisByTaluka }   from "../../../../services/masters/hobliService.js";
 import { getVillages }         from "../../../../services/masters/villageService.js";
+
+const SKETCH_TYPE_GUIDE = [
+  {
+    value: "single_flat",
+    en: "Single Sketch",
+    kn: "ಏಕ ನಕ್ಷೆ",
+    descriptionEn: "One survey number converted into a single CAD drawing.",
+    descriptionKn: "ಒಂದು ಸರ್ವೆ ನಂಬರ್‌ಗೆ ಒಂದು CAD ನಕ್ಷೆ.",
+    imageSrc: "/assets/beforeafter/residential-after-B4Pd_a8V-320w.webp",
+    imageAlt: "Example single sketch drawing",
+    priceLabel: "₹500",
+  },
+  {
+    value: "joint_flat",
+    en: "Joint Sketch",
+    kn: "ಜಂಟಿ ನಕ್ಷೆ",
+    descriptionEn: "Two or more survey numbers combined into one CAD drawing.",
+    descriptionKn: "ಎರಡು ಅಥವಾ ಹೆಚ್ಚು ಸರ್ವೆ ನಂಬರ್‌ಗಳನ್ನು ಒಂದೇ ನಕ್ಷೆಯಲ್ಲಿ ಸೇರಿಸಲಾಗುತ್ತದೆ.",
+    imageSrc: "/assets/beforeafter/partition-after-C94SAZFl-320w.webp",
+    imageAlt: "Example joint sketch drawing",
+    priceLabel: "₹700",
+  },
+];
 
 /* ── helpers (same logic as original SurveyInfo) ── */
 function normalizeList(res) {
@@ -47,6 +70,68 @@ const FieldLabel = ({ kn, en, required }) => (
   </span>
 );
 
+function DrawingTypeInfoButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Drawing type information"
+      className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--user-accent)_28%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)] cursor-pointer"
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" d="M12 11.2V16.5" />
+        <circle cx="12" cy="8.2" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+  );
+}
+
+function DrawingTypeInfoModal({ open, onClose }) {
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      centered
+      width={440}
+      title="Drawing type guide"
+      destroyOnHidden
+    >
+      <p className="text-xs text-fg-muted mb-4 leading-relaxed">
+        Example drawings and indicative prices. Your exact amount is confirmed on Review.
+      </p>
+      <div className="space-y-4">
+        {SKETCH_TYPE_GUIDE.map((item) => (
+          <article
+            key={item.value}
+            className="overflow-hidden rounded-2xl border border-line bg-surface"
+          >
+            <img
+              src={item.imageSrc}
+              alt={item.imageAlt}
+              className="h-36 w-full object-cover bg-surface-2"
+            />
+            <div className="p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold text-fg-muted leading-none mb-1">{item.kn}</p>
+                  <p className="text-sm font-extrabold text-fg leading-none">{item.en}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[var(--user-accent-soft)] px-2.5 py-1 text-sm font-extrabold text-[var(--user-accent)]">
+                  {item.priceLabel}
+                </span>
+              </div>
+              <p className="mt-2.5 text-sm font-medium text-fg leading-snug">{item.descriptionEn}</p>
+              <p className="mt-1 text-xs text-fg-muted leading-snug">{item.descriptionKn}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
 function labelOfEntity(entity) {
   return entity?.name ?? entity?.label ?? null;
 }
@@ -57,6 +142,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
   const [hoblis,    setHoblis]     = useState([]);
   const [villages,  setVillages]   = useState([]);
   const [loading,   setLoading]    = useState({ districts: false, talukas: false, hoblis: false, villages: false });
+  const [guideOpen, setGuideOpen]  = useState(false);
 
   const surveyType = Form.useWatch("surveyType", form);
   const district = Form.useWatch("district", form);
@@ -204,14 +290,16 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
         {/* Survey Type */}
         <Form.Item
           name="surveyType"
-          label={<FieldLabel kn="ನಕ್ಷೆ ಪ್ರಕಾರ" en="Drawing Type" required />}
+          label={
+            <span className="flex items-start justify-between gap-2">
+              <FieldLabel kn="ನಕ್ಷೆ ಪ್ರಕಾರ" en="Drawing Type" required />
+              <DrawingTypeInfoButton onClick={() => setGuideOpen(true)} />
+            </span>
+          }
           rules={[{ required: true, message: "Please select drawing type" }]}
         >
           <div className="space-y-2">
-            {[
-              { value: "single_flat", en: "Single Sketch", kn: "ಏಕ ನಕ್ಷೆ" },
-              { value: "joint_flat",  en: "Joint Sketch",  kn: "ಜಂಟಿ ನಕ್ಷೆ" },
-            ].map((opt) => {
+            {SKETCH_TYPE_GUIDE.map((opt) => {
               const active = surveyType === opt.value;
               return (
                 <button
@@ -233,16 +321,18 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
                     <p className="font-extrabold text-sm text-[var(--text-primary)]">{opt.en}</p>
                     <p className="text-xs font-semibold mt-0.5 text-[var(--text-secondary)]">{opt.kn}</p>
                   </div>
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
-                      ${active ? "border-[var(--accent-color)]" : "border-[var(--border-color)]"}
-                    `}
-                    aria-hidden
-                  >
-                  {active ? (
-                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-color)] shadow-[0_1px_4px_color-mix(in_srgb,var(--accent-color)_25%,transparent)]" />
-                  ) : null}
-                </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+                        ${active ? "border-[var(--accent-color)]" : "border-[var(--border-color)]"}
+                      `}
+                      aria-hidden
+                    >
+                      {active ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-color)] shadow-[0_1px_4px_color-mix(in_srgb,var(--accent-color)_25%,transparent)]" />
+                      ) : null}
+                    </div>
+                  </div>
                 </button>
               );
             })}
@@ -259,7 +349,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
             {...sharedSelectProps}
             placeholder="Select district"
             loading={loading.districts}
-            options={districts.map((d) => ({ value: d.id ?? d._id, label: d.code ? `${d.name} (${d.code})` : d.name }))}
+            options={districts.map((d) => ({ value: d.id ?? d._id, label: d.name }))}
             onChange={(_, option) => {
               const selectedLabel = option?.label ?? null;
               form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
@@ -279,7 +369,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
             placeholder={!district && !taluka ? "Select district first" : "Select taluka"}
             disabled={!district && !taluka}
             loading={loading.talukas}
-            options={talukas.map((t) => ({ value: t.id ?? t._id, label: t.code ? `${t.name} (${t.code})` : t.name }))}
+            options={talukas.map((t) => ({ value: t.id ?? t._id, label: t.name }))}
             onChange={(_, option) => {
               const selectedLabel = option?.label ?? null;
               form.setFieldsValue({ hobli: undefined, village: undefined });
@@ -304,7 +394,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
             placeholder={!taluka && !hobli ? "Select taluk first" : "Select hobli"}
             disabled={!taluka && !hobli}
             loading={loading.hoblis}
-            options={hoblis.map((h) => ({ value: h.id ?? h._id, label: h.code ? `${h.name} (${h.code})` : h.name }))}
+            options={hoblis.map((h) => ({ value: h.id ?? h._id, label: h.name }))}
             onChange={(_, option) => {
               const selectedLabel = option?.label ?? null;
               form.setFieldsValue({ village: undefined });
@@ -329,7 +419,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
             placeholder={!hobli && !village ? "Select hobli first" : "Select village"}
             disabled={!hobli && !village}
             loading={loading.villages}
-            options={villages.map((v) => ({ value: v.id ?? v._id, label: v.code ? `${v.name} (${v.code})` : v.name }))}
+            options={villages.map((v) => ({ value: v.id ?? v._id, label: v.name }))}
             onChange={(_, option) => {
               const selectedLabel = option?.label ?? null;
               setLocationLabels({
@@ -355,6 +445,8 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
           />
         </Form.Item>
       </div>
+
+      <DrawingTypeInfoModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 };

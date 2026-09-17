@@ -245,7 +245,7 @@ const ViewTalukas = () => {
             }
             options={districts.map((d) => ({
               value: d.id ?? d._id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
           {canWrite ? (

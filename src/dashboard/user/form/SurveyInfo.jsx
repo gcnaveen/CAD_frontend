@@ -236,7 +236,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
             loading={loading.districts}
             options={districts.map((d) => ({
               value: d.id ?? d._id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
         </Form.Item>
@@ -260,7 +260,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
             loading={loading.talukas}
             options={talukas.map((t) => ({
               value: t.id ?? t._id,
-              label: t.code ? `${t.name} (${t.code})` : t.name,
+              label: t.name,
             }))}
           />
         </Form.Item>
@@ -284,7 +284,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
             loading={loading.hoblis}
             options={hoblis.map((h) => ({
               value: h.id ?? h._id,
-              label: h.code ? `${h.name} (${h.code})` : h.name,
+              label: h.name,
             }))}
           />
         </Form.Item>
@@ -308,7 +308,7 @@ const SurveyInfo = ({ form, prefillEntities = null }) => {
             loading={loading.villages}
             options={villages.map((v) => ({
               value: v.id ?? v._id,
-              label: v.code ? `${v.name} (${v.code})` : v.name,
+              label: v.name,
             }))}
           />
         </Form.Item>

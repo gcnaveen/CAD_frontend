@@ -118,7 +118,7 @@ const AddVillages = ({
             }
             options={districts.map((d) => ({
               value: d._id ?? d.id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
         </Form.Item>
@@ -138,7 +138,7 @@ const AddVillages = ({
             }
             options={talukaOptions.map((t) => ({
               value: t._id ?? t.id,
-              label: t.code ? `${t.name} (${t.code})` : t.name,
+              label: t.name,
             }))}
           />
         </Form.Item>
@@ -158,7 +158,7 @@ const AddVillages = ({
             }
             options={hobliOptions.map((h) => ({
               value: h._id ?? h.id,
-              label: h.code ? `${h.name} (${h.code})` : h.name,
+              label: h.name,
             }))}
           />
         </Form.Item>

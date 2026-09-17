@@ -24,9 +24,8 @@ const EditTalukas = ({ initialValues, onCancel, onSubmit, loading = false }) => 
     if (initialValues && districts.length) {
       let districtVal = initialValues.district ?? initialValues.districtId ?? initialValues.district?._id ?? initialValues.district?.id;
       if (typeof districtVal === "string" && !districtVal.match(/^[0-9a-fA-F]{24}$/)) {
-        const label = (d) => (d.code ? `${d.name} (${d.code})` : d.name);
         const byNameOrLabel = districts.find(
-          (d) => d.name === districtVal || label(d) === districtVal
+          (d) => d.name === districtVal || (d.code && `${d.name} (${d.code})` === districtVal)
         );
         districtVal = byNameOrLabel?._id ?? byNameOrLabel?.id ?? districtVal;
       }
@@ -96,7 +95,7 @@ const EditTalukas = ({ initialValues, onCancel, onSubmit, loading = false }) => 
             }
             options={districts.map((d) => ({
               value: d._id ?? d.id,
-              label: d.code ? `${d.name} (${d.code})` : d.name,
+              label: d.name,
             }))}
           />
         </Form.Item>
