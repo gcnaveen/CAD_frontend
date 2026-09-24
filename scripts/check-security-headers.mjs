@@ -71,6 +71,7 @@ for (const name of REQUIRED) {
       "object-src 'none'",
       "script-src",
       "media-src 'self' blob:",
+      "https://*.s3.ap-south-1.amazonaws.com",
     ];
     for (const token of need) {
       if (!normalize(actual).includes(normalize(token))) {

@@ -1,4 +1,4 @@
-// src/dashboard/user/pages/RequestsPage.jsx
+﻿// src/dashboard/user/pages/RequestsPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { getSurveyorOrders } from "../../../services/surveyor/sketchUploadService.js";
@@ -9,6 +9,12 @@ import {
   matchesSurveyorOrderBucket,
   resolveSurveyorOrderCounts,
 } from "../../../utils/surveyorOrderStatus.js";
+import {
+  buildDatePresetRange,
+  buildSurveyorOrdersListParams,
+  isOrderInDateRange,
+  sortOrdersNewestFirst,
+} from "../../../utils/surveyorRequestsFilters.js";
 import SurveyOrderDetailDrawer from "./SurveyOrderDetailDrawer.jsx";
 
 const PinIcon = ({ className = "" }) => (
@@ -35,6 +41,13 @@ const PlusIcon = ({ className = "" }) => (
 
 const TABS = ["all", "active", "completed", "cancelled"];
 
+const DATE_PRESETS = [
+  { id: "today", label: "Today" },
+  { id: "week", label: "This week" },
+  { id: "month", label: "This month" },
+  { id: "lastMonth", label: "Last month" },
+];
+
 const RequestsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,8 +57,13 @@ const RequestsPage = () => {
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
   const [tab,     setTab]     = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [datePreset, setDatePreset] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUploadId, setSelectedUploadId] = useState(null);
+
+  const hasDateFilter = Boolean(dateFrom?.trim() || dateTo?.trim());
 
   const getEntityName = (value) => {
     if (!value) return "";
@@ -60,31 +78,40 @@ const RequestsPage = () => {
         const activeStatus = getSurveyorOrderStatusQuery("active");
         const completedStatus = getSurveyorOrderStatusQuery("completed");
         const cancelledStatus = getSurveyorOrderStatusQuery("cancelled");
-        const listParams =
-          tab === "all"
-            ? { bucket: "all", page: 1, limit: 50 }
-            : { status: getSurveyorOrderStatusQuery(tab), page: 1, limit: 50 };
+        const listParams = buildSurveyorOrdersListParams({
+          tab,
+          statusQuery: tab === "all" ? "" : getSurveyorOrderStatusQuery(tab),
+          from: dateFrom,
+          to: dateTo,
+        });
 
         const [listRes, activeRes, completedRes, cancelledRes] = await Promise.all([
           getSurveyorOrders(listParams),
           tab === "active"
             ? Promise.resolve(null)
-            : getSurveyorOrders({ status: activeStatus, page: 1, limit: 1 }),
+            : getSurveyorOrders({ status: activeStatus, page: 1, limit: 1, sort: "createdAt", order: "desc" }),
           tab === "completed"
             ? Promise.resolve(null)
-            : getSurveyorOrders({ status: completedStatus, page: 1, limit: 1 }),
+            : getSurveyorOrders({ status: completedStatus, page: 1, limit: 1, sort: "createdAt", order: "desc" }),
           tab === "cancelled"
             ? Promise.resolve(null)
-            : getSurveyorOrders({ status: cancelledStatus, page: 1, limit: 1 }),
+            : getSurveyorOrders({ status: cancelledStatus, page: 1, limit: 1, sort: "createdAt", order: "desc" }),
         ]);
 
         const rows = Array.isArray(listRes?.data) ? listRes.data : [];
-        const filteredRows = rows.filter((row) => matchesSurveyorOrderBucket(row?.status, tab));
+        const filteredRows = sortOrdersNewestFirst(
+          rows.filter(
+            (row) =>
+              matchesSurveyorOrderBucket(row?.status, tab) &&
+              isOrderInDateRange(row, dateFrom, dateTo)
+          )
+        );
         setOrders(
           filteredRows.map((row, index) => ({
             serial: index + 1,
             id: row?.applicationId || row?._id,
             date: new Date(row?.createdAt || Date.now()).toLocaleDateString("en-IN"),
+            createdAt: row?.createdAt,
             apiStatus: row?.status,
             status: getSurveyorOrderStatusLabel(row?.status),
             location: [
@@ -118,7 +145,20 @@ const RequestsPage = () => {
       }
     };
     load();
-  }, [tab]);
+  }, [tab, dateFrom, dateTo]);
+
+  const applyDatePreset = (presetId) => {
+    const range = buildDatePresetRange(presetId);
+    setDateFrom(range.from);
+    setDateTo(range.to);
+    setDatePreset(presetId);
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom("");
+    setDateTo("");
+    setDatePreset(null);
+  };
 
   useEffect(() => {
     const preselect = location?.state?.openOrderId;
@@ -141,18 +181,18 @@ const RequestsPage = () => {
   }), [orders, search]);
 
   return (
-    <div className="theme-animate-surface min-h-screen bg-gradient-to-br from-surface via-surface-2 to-surface">
+    <div className="theme-animate-surface min-h-screen bg-linear-to-br from-surface via-surface-2 to-surface">
       <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-3 mb-6">
           <div>
-            <p className="text-xs font-bold tracking-widest text-[var(--user-accent)] uppercase mb-1">ವಿನಂತಿಗಳು</p>
+            <p className="text-xs font-bold tracking-widest text-(--user-accent) uppercase mb-1">ವಿನಂತಿಗಳು</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-fg">Requests</h1>
           </div>
           <button
             onClick={() => navigate("/dashboard/user/upload")}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[var(--user-accent)] hover:opacity-90 active:opacity-95 text-white px-4 py-2.5 font-extrabold text-sm shadow-[0_8px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors shrink-0"
+            className="inline-flex items-center gap-2 rounded-2xl bg-(--user-accent) hover:opacity-90 active:opacity-95 text-white px-4 py-2.5 font-extrabold text-sm shadow-[0_8px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors shrink-0"
           >
             <PlusIcon className="w-4 h-4" />
             New
@@ -167,25 +207,88 @@ const RequestsPage = () => {
             placeholder="Search order ID, survey no, district…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-surface border border-line rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-fg placeholder:text-fg-muted outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--user-accent)_35%,transparent)] focus:border-[var(--user-accent)] transition shadow-sm"
+            className="w-full bg-surface border border-line rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-fg placeholder:text-fg-muted outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--user-accent)_35%,transparent)] focus:border-(--user-accent) transition shadow-sm"
           />
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-none">
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`shrink-0 px-3.5 py-1.5 rounded-full border text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors ${
                 tab === t
-                  ? "bg-[var(--user-accent)] border-[var(--user-accent)] text-white shadow-[0_4px_12px_color-mix(in_srgb,var(--user-accent)_28%,transparent)]"
-                  : "bg-surface border-line text-fg-muted hover:border-[color-mix(in_srgb,var(--user-accent)_40%,var(--border-color))] hover:text-[var(--user-accent)]"
+                  ? "bg-(--user-accent) border-(--user-accent) text-white shadow-[0_4px_12px_color-mix(in_srgb,var(--user-accent)_28%,transparent)]"
+                  : "bg-surface border-line text-fg-muted hover:border-[color-mix(in_srgb,var(--user-accent)_40%,var(--border-color))] hover:text-(--user-accent)"
               }`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)} ({countFor(t)})
             </button>
           ))}
+        </div>
+
+        {/* ── Date range (mobile-first) ── */}
+        <div className="mb-5 rounded-2xl border border-line bg-surface p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-fg-muted">Date range</p>
+            {hasDateFilter && (
+              <button
+                type="button"
+                onClick={clearDateFilter}
+                className="px-2.5 py-1 rounded-full border border-line bg-surface-2 text-fg-muted text-[11px] font-extrabold"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+            {DATE_PRESETS.map((preset) => {
+              const active = datePreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyDatePreset(preset.id)}
+                  className={`shrink-0 px-2.5 py-1.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-(--user-accent) border-(--user-accent) text-white"
+                      : "border-[color-mix(in_srgb,var(--user-accent)_40%,var(--border-color))] bg-[color-mix(in_srgb,var(--user-accent)_12%,var(--bg-secondary))] text-(--user-accent)"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block min-w-0">
+              <span className="mb-1 block text-[11px] font-bold text-fg-muted">From</span>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  setDatePreset(null);
+                }}
+                className="w-full min-h-11 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--user-accent)_35%,transparent)] focus:border-(--user-accent)"
+              />
+            </label>
+            <label className="block min-w-0">
+              <span className="mb-1 block text-[11px] font-bold text-fg-muted">To</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setDatePreset(null);
+                }}
+                className="w-full min-h-11 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--user-accent)_35%,transparent)] focus:border-(--user-accent)"
+              />
+            </label>
+          </div>
         </div>
 
         {/* ── List ── */}
@@ -207,7 +310,11 @@ const RequestsPage = () => {
           ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-line bg-[color-mix(in_srgb,var(--bg-elevated)_65%,transparent)] py-14 text-center">
               <p className="text-fg-muted font-extrabold text-sm">No requests found.</p>
-              <p className="text-fg-muted/70 text-xs mt-1 font-semibold">Try a different filter or search term</p>
+              <p className="text-fg-muted/70 text-xs mt-1 font-semibold">
+                {hasDateFilter
+                  ? "Try a different date range, filter, or search term"
+                  : "Try a different filter or search term"}
+              </p>
             </div>
           ) : (
             filtered.map((order) => (
@@ -221,7 +328,7 @@ const RequestsPage = () => {
               >
                 <div className="flex items-start gap-3">
                   {/* Serial */}
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] text-[var(--user-accent)] font-extrabold text-sm flex items-center justify-center shrink-0 group-hover:bg-[color-mix(in_srgb,var(--user-accent)_18%,var(--bg-secondary))] transition-colors">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[color-mix(in_srgb,var(--user-accent)_14%,var(--bg-secondary))] border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] text-(--user-accent) font-extrabold text-sm flex items-center justify-center shrink-0 group-hover:bg-[color-mix(in_srgb,var(--user-accent)_18%,var(--bg-secondary))] transition-colors">
                     {order.serial ?? 1}
                   </div>
 
@@ -236,13 +343,13 @@ const RequestsPage = () => {
                         <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-extrabold whitespace-nowrap ${getSurveyorOrderStatusStyle(order.apiStatus)}`}>
                           {order.status}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-fg-muted group-hover:text-[var(--user-accent)] transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-fg-muted group-hover:text-(--user-accent) transition-colors" />
                       </div>
                     </div>
 
                     {/* Location */}
                     <div className="mt-2.5 flex items-start gap-1.5 text-xs sm:text-sm text-fg-muted font-semibold leading-snug">
-                      <PinIcon className="w-3.5 h-3.5 text-[var(--user-accent)] shrink-0 mt-0.5" />
+                      <PinIcon className="w-3.5 h-3.5 text-(--user-accent) shrink-0 mt-0.5" />
                       <span>{order.location}</span>
                     </div>
 
@@ -250,7 +357,7 @@ const RequestsPage = () => {
                     {order.tags?.length > 0 && (
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {order.tags.map((t) => (
-                          <span key={t} className="px-2.5 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--user-accent)_12%,var(--bg-secondary))] text-[var(--user-accent)] text-[11px] font-extrabold">
+                          <span key={t} className="px-2.5 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--user-accent)_12%,var(--bg-secondary))] text-(--user-accent) text-[11px] font-extrabold">
                             {t}
                           </span>
                         ))}

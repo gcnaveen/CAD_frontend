@@ -191,3 +191,18 @@ export async function deleteUploadedFile(payload) {
   );
   return data;
 }
+
+/**
+ * Short-lived signed GET for private objects (draft audio / doc preview).
+ * POST /api/upload/signed-read — see docs/BACKEND_DRAFT_AUDIO_SIGNED_PREVIEW.md
+ * @param {{ key?: string, fileUrl?: string, ttlSeconds?: number }} payload
+ * @returns {Promise<{ url: string, expiresAt?: string, key?: string }>}
+ */
+export async function getSignedReadUrl(payload) {
+  const { data } = await apiClient.post(
+    `${UPLOAD_BASE}/signed-read`,
+    payload,
+    bearerConfig()
+  );
+  return unwrap(data);
+}

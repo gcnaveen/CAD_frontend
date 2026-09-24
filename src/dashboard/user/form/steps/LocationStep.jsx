@@ -1,10 +1,14 @@
-// src/dashboard/user/form/steps/LocationStep.jsx
-import React, { useEffect, useState } from "react";
+﻿// src/dashboard/user/form/steps/LocationStep.jsx
+import React, { useEffect, useRef, useState } from "react";
 import { Form, Select, Input, message, Modal } from "antd";
 import { getActiveDistricts } from "../../../../services/masters/districtService.js";
 import { getTalukasByDistrict } from "../../../../services/masters/talukaService.js";
 import { getHoblisByTaluka }   from "../../../../services/masters/hobliService.js";
 import { getVillages }         from "../../../../services/masters/villageService.js";
+import {
+  normalizeCascadeParentId,
+  shouldClearCascadeChildren,
+} from "../../../../utils/locationCascade.js";
 
 const SKETCH_TYPE_GUIDE = [
   {
@@ -36,11 +40,6 @@ function normalizeList(res) {
   return Array.isArray(items) ? items : [];
 }
 function idOf(e)      { return e?.id ?? e?._id ?? null; }
-function idFromValue(v) {
-  if (!v) return null;
-  if (typeof v === "string") return v;
-  return v.id ?? v._id ?? null;
-}
 function upsertEntity(list, entity) {
   const id = idOf(entity);
   if (!id) return list;
@@ -52,11 +51,11 @@ function upsertEntity(list, entity) {
 /* ── Section header ── */
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-6">
-    <div className="w-9 h-9 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-2xl bg-(--user-accent-soft) border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
       {icon}
     </div>
     <div>
-      <p className="text-[11px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
+      <p className="text-[11px] font-bold text-(--user-accent) uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
       <p className="text-lg font-extrabold text-fg leading-none">{titleEn}</p>
     </div>
   </div>
@@ -66,7 +65,7 @@ const SectionHeader = ({ icon, titleKn, titleEn }) => (
 const FieldLabel = ({ kn, en, required }) => (
   <span className="flex flex-col leading-none mb-1">
     <span className="text-[10px] font-semibold text-fg-muted">{kn}</span>
-    <span className="text-sm font-bold text-fg">{en} {required && <span className="text-[var(--user-accent)]">*</span>}</span>
+    <span className="text-sm font-bold text-fg">{en} {required && <span className="text-(--user-accent)">*</span>}</span>
   </span>
 );
 
@@ -76,7 +75,7 @@ function DrawingTypeInfoButton({ onClick }) {
       type="button"
       onClick={onClick}
       aria-label="Drawing type information"
-      className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--user-accent)_28%,var(--border-color))] bg-[var(--user-accent-soft)] text-[var(--user-accent)] cursor-pointer"
+      className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--user-accent)_28%,var(--border-color))] bg-(--user-accent-soft) text-(--user-accent) cursor-pointer"
     >
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
         <circle cx="12" cy="12" r="9" />
@@ -118,7 +117,7 @@ function DrawingTypeInfoModal({ open, onClose }) {
                   <p className="text-[10px] font-semibold text-fg-muted leading-none mb-1">{item.kn}</p>
                   <p className="text-sm font-extrabold text-fg leading-none">{item.en}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-[var(--user-accent-soft)] px-2.5 py-1 text-sm font-extrabold text-[var(--user-accent)]">
+                <span className="shrink-0 rounded-full bg-(--user-accent-soft) px-2.5 py-1 text-sm font-extrabold text-(--user-accent)">
                   {item.priceLabel}
                 </span>
               </div>
@@ -136,6 +135,13 @@ function labelOfEntity(entity) {
   return entity?.name ?? entity?.label ?? null;
 }
 
+/** Keep Select options able to show the current form value before/while lists load. */
+function stubFromForm(idValue, label) {
+  const id = normalizeCascadeParentId(idValue);
+  if (!id) return null;
+  return { id, name: label || id };
+}
+
 const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) => {
   const [districts, setDistricts] = useState([]);
   const [talukas,   setTalukas]   = useState([]);
@@ -150,9 +156,9 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
   const hobli    = Form.useWatch("hobli",    form);
   const village  = Form.useWatch("village",  form);
 
-  const prefillDistrictId = idFromValue(prefillEntities?.district) || idOf(prefillEntities?.district);
-  const prefillTalukaId   = idFromValue(prefillEntities?.taluka)   || idOf(prefillEntities?.taluka);
-  const prefillHobliId    = idFromValue(prefillEntities?.hobli)    || idOf(prefillEntities?.hobli);
+  const prevDistrictIdRef = useRef(undefined);
+  const prevTalukaIdRef = useRef(undefined);
+  const prevHobliIdRef = useRef(undefined);
 
   /* Districts */
   useEffect(() => {
@@ -169,68 +175,188 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
     };
   }, []);
 
-  /* Talukas */
+  /* Talukas — clear children only when district *changes*, not on remount */
   useEffect(() => {
+    const curDistId = normalizeCascadeParentId(district);
+    const prevDistId = prevDistrictIdRef.current;
+    const keepPrefill =
+      !!prefillEntities &&
+      curDistId != null &&
+      curDistId === normalizeCascadeParentId(prefillEntities.district);
+    const clearChildren = shouldClearCascadeChildren({
+      prevParentId: prevDistId,
+      nextParentId: curDistId,
+      hasExistingChildren: Boolean(
+        form.getFieldValue("taluka") ||
+          form.getFieldValue("hobli") ||
+          form.getFieldValue("village")
+      ),
+      keepPrefill,
+    });
+    prevDistrictIdRef.current = curDistId;
+
+    const talukaStub =
+      stubFromForm(form.getFieldValue("taluka"), form.getFieldValue("talukaLabel")) ||
+      prefillEntities?.taluka;
+
     if (!district) {
       queueMicrotask(() => {
-        setTalukas((p) => upsertEntity(p, prefillEntities?.taluka));
+        setTalukas((p) => upsertEntity(p, talukaStub));
       });
-      const hasDown = !!form.getFieldValue("taluka") || !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
-      if (!hasDown) form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+      if (clearChildren) {
+        form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+      }
       return;
     }
+
+    if (clearChildren) {
+      form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
+    }
+
+    let cancelled = false;
     queueMicrotask(() => setLoading((p) => ({ ...p, talukas: true })));
     getTalukasByDistrict(district)
-      .then((res) => setTalukas(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.taluka)))
-      .catch((err) => { message.error(err.message || "Failed to load talukas"); setTalukas([]); })
-      .finally(() => setLoading((p) => ({ ...p, talukas: false })));
-    const curDistId  = idFromValue(district);
-    const curTalukId = idFromValue(form.getFieldValue("taluka"));
-    const isDraft    = !!prefillEntities && curDistId === prefillDistrictId && curTalukId === prefillTalukaId;
-    if (!isDraft) form.setFieldsValue({ taluka: undefined, hobli: undefined, village: undefined });
-  }, [district, form, prefillEntities, prefillDistrictId, prefillTalukaId]);
+      .then((res) => {
+        if (cancelled) return;
+        setTalukas(
+          upsertEntity(
+            normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })),
+            talukaStub
+          )
+        );
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        message.error(err.message || "Failed to load talukas");
+        setTalukas([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, talukas: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [district, form, prefillEntities]);
 
   /* Hoblis */
   useEffect(() => {
+    const curTalukId = normalizeCascadeParentId(taluka);
+    const prevTalukId = prevTalukaIdRef.current;
+    const keepPrefill =
+      !!prefillEntities &&
+      curTalukId != null &&
+      curTalukId === normalizeCascadeParentId(prefillEntities.taluka);
+    const clearChildren = shouldClearCascadeChildren({
+      prevParentId: prevTalukId,
+      nextParentId: curTalukId,
+      hasExistingChildren: Boolean(
+        form.getFieldValue("hobli") || form.getFieldValue("village")
+      ),
+      keepPrefill,
+    });
+    prevTalukaIdRef.current = curTalukId;
+
+    const hobliStub =
+      stubFromForm(form.getFieldValue("hobli"), form.getFieldValue("hobliLabel")) ||
+      prefillEntities?.hobli;
+
     if (!taluka) {
       queueMicrotask(() => {
-        setHoblis((p) => upsertEntity(p, prefillEntities?.hobli));
+        setHoblis((p) => upsertEntity(p, hobliStub));
       });
-      const hasDown = !!form.getFieldValue("hobli") || !!form.getFieldValue("village");
-      if (!hasDown) form.setFieldsValue({ hobli: undefined, village: undefined });
+      if (clearChildren) {
+        form.setFieldsValue({ hobli: undefined, village: undefined });
+      }
       return;
     }
+
+    if (clearChildren) {
+      form.setFieldsValue({ hobli: undefined, village: undefined });
+    }
+
+    let cancelled = false;
     queueMicrotask(() => setLoading((p) => ({ ...p, hoblis: true })));
     getHoblisByTaluka(taluka)
-      .then((res) => setHoblis(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.hobli)))
-      .catch((err) => { message.error(err.message || "Failed to load hoblis"); setHoblis([]); })
-      .finally(() => setLoading((p) => ({ ...p, hoblis: false })));
-    const curTalukId = idFromValue(taluka);
-    const curHobliId = idFromValue(form.getFieldValue("hobli"));
-    const isDraft    = !!prefillEntities && curTalukId === prefillTalukaId && curHobliId === prefillHobliId;
-    if (!isDraft) form.setFieldsValue({ hobli: undefined, village: undefined });
-  }, [taluka, form, prefillEntities, prefillTalukaId, prefillHobliId]);
+      .then((res) => {
+        if (cancelled) return;
+        setHoblis(
+          upsertEntity(
+            normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })),
+            hobliStub
+          )
+        );
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        message.error(err.message || "Failed to load hoblis");
+        setHoblis([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, hoblis: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taluka, form, prefillEntities]);
 
   /* Villages */
   useEffect(() => {
+    const curHobliId = normalizeCascadeParentId(hobli);
+    const prevHobliId = prevHobliIdRef.current;
+    const keepPrefill =
+      !!prefillEntities &&
+      curHobliId != null &&
+      curHobliId === normalizeCascadeParentId(prefillEntities.hobli);
+    const clearChildren = shouldClearCascadeChildren({
+      prevParentId: prevHobliId,
+      nextParentId: curHobliId,
+      hasExistingChildren: Boolean(form.getFieldValue("village")),
+      keepPrefill,
+    });
+    prevHobliIdRef.current = curHobliId;
+
+    const villageStub =
+      stubFromForm(form.getFieldValue("village"), form.getFieldValue("villageLabel")) ||
+      prefillEntities?.village;
+
     if (!hobli) {
       queueMicrotask(() => {
-        setVillages((p) => upsertEntity(p, prefillEntities?.village));
+        setVillages((p) => upsertEntity(p, villageStub));
       });
-      if (!form.getFieldValue("village")) form.setFieldsValue({ village: undefined });
+      if (clearChildren) {
+        form.setFieldsValue({ village: undefined });
+      }
       return;
     }
+
+    if (clearChildren) {
+      form.setFieldsValue({ village: undefined });
+    }
+
+    let cancelled = false;
     queueMicrotask(() => setLoading((p) => ({ ...p, villages: true })));
     getVillages({ hobliId: hobli })
-      .then((res) => setVillages(upsertEntity(normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })), prefillEntities?.village)))
-      .catch((err) => { message.error(err.message || "Failed to load villages"); setVillages([]); })
-      .finally(() => setLoading((p) => ({ ...p, villages: false })));
-    const curHobliId   = idFromValue(hobli);
-    const curVillageId = idFromValue(form.getFieldValue("village"));
-    const prefVillId   = idFromValue(prefillEntities?.village) || idOf(prefillEntities?.village);
-    const isDraft      = !!prefillEntities && curHobliId === prefillHobliId && curVillageId === prefVillId;
-    if (!isDraft) form.setFieldsValue({ village: undefined });
-  }, [hobli, form, prefillEntities, prefillHobliId]);
+      .then((res) => {
+        if (cancelled) return;
+        setVillages(
+          upsertEntity(
+            normalizeList(res).map((r) => ({ ...r, id: r.id ?? r._id })),
+            villageStub
+          )
+        );
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        message.error(err.message || "Failed to load villages");
+        setVillages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, villages: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hobli, form, prefillEntities]);
 
   /* Sync prefill entities into dropdowns */
   useEffect(() => {
@@ -279,7 +405,7 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
         titleKn="ಸ್ಥಳ ಮಾಹಿತಿ"
         titleEn="Location"
         icon={
-          <svg className="w-5 h-5 text-[var(--user-accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-(--user-accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -307,29 +433,29 @@ const LocationStep = ({ form, prefillEntities = null, onLocationLabelsChange }) 
                   type="button"
                   onClick={() => form.setFieldValue("surveyType", opt.value)}
                   className={`w-full flex items-center justify-between rounded-2xl p-4 border transition-all cursor-pointer
-                    bg-[var(--bg-secondary)]
-                    text-[var(--text-primary)]
-                    border-[var(--border-color)]
+                    bg-(--bg-secondary)
+                    text-(--text-primary)
+                    border-(--border-color)
                     ${
                       active
-                        ? "border-2 border-[var(--accent-color)] bg-[color-mix(in_srgb,var(--accent-color)_15%,var(--bg-secondary))] shadow-[0_2px_12px_color-mix(in_srgb,var(--accent-color)_20%,transparent)] hover:border-[var(--accent-color)]"
+                        ? "border-2 border-(--accent-color) bg-[color-mix(in_srgb,var(--accent-color)_15%,var(--bg-secondary))] shadow-[0_2px_12px_color-mix(in_srgb,var(--accent-color)_20%,transparent)] hover:border-(--accent-color)"
                         : "hover:border-[color-mix(in_srgb,var(--accent-color)_40%,var(--border-color))]"
                     }
                   `}
                 >
                   <div>
-                    <p className="font-extrabold text-sm text-[var(--text-primary)]">{opt.en}</p>
-                    <p className="text-xs font-semibold mt-0.5 text-[var(--text-secondary)]">{opt.kn}</p>
+                    <p className="font-extrabold text-sm text-(--text-primary)">{opt.en}</p>
+                    <p className="text-xs font-semibold mt-0.5 text-(--text-secondary)">{opt.kn}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
-                        ${active ? "border-[var(--accent-color)]" : "border-[var(--border-color)]"}
+                        ${active ? "border-(--accent-color)" : "border-(--border-color)"}
                       `}
                       aria-hidden
                     >
                       {active ? (
-                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-color)] shadow-[0_1px_4px_color-mix(in_srgb,var(--accent-color)_25%,transparent)]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-(--accent-color) shadow-[0_1px_4px_color-mix(in_srgb,var(--accent-color)_25%,transparent)]" />
                       ) : null}
                     </div>
                   </div>

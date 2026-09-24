@@ -1,4 +1,4 @@
-// src/dashboard/user/form/steps/DrawingStep.jsx
+﻿// src/dashboard/user/form/steps/DrawingStep.jsx
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Form, Input, Upload, message, Typography } from "antd";
 
@@ -16,19 +16,19 @@ import { AUDIO_MAX_SIZE_BYTES } from "../../../../services/upload/upload.constan
 import {
   createLocalPreviewUrl,
   revokeLocalPreviewUrl,
-  resolvePreviewUrl,
 } from "../../../../utils/localFilePreview.js";
+import { resolvePlayableMediaUrl } from "../../../../utils/draftAudio.js";
 
 const { TextArea } = Input;
 const AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,.webm";
 
 const SectionHeader = ({ icon, titleKn, titleEn }) => (
   <div className="flex items-center gap-3 mb-6">
-    <div className="w-9 h-9 rounded-2xl bg-[var(--user-accent-soft)] border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-2xl bg-(--user-accent-soft) border border-[color-mix(in_srgb,var(--user-accent)_22%,var(--border-color))] flex items-center justify-center shrink-0">
       {icon}
     </div>
     <div>
-      <p className="text-[11px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
+      <p className="text-[11px] font-bold text-(--user-accent) uppercase tracking-widest leading-none mb-0.5">{titleKn}</p>
       <p className="text-lg font-extrabold text-fg leading-none">{titleEn}</p>
     </div>
   </div>
@@ -39,7 +39,7 @@ const FieldLabel = ({ kn, en, required, optional }) => (
     <span className="text-[10px] font-semibold text-fg-muted">{kn}</span>
     <span className="text-sm font-bold text-fg">
       {en}
-      {required && <span className="text-[var(--user-accent)] ml-0.5">*</span>}
+      {required && <span className="text-(--user-accent) ml-0.5">*</span>}
       {optional && <span className="text-fg-muted font-semibold ml-1 text-xs">(optional)</span>}
     </span>
   </span>
@@ -66,7 +66,7 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
   const audioField = Form.useWatch("audio", form);
   /** Parent `audioData` survives step unmount; form field may clear when this step is not mounted. */
   const savedAudio = audioRemoteUrl(audioField) ? audioField : audioRemoteUrl(audioData) ? audioData : null;
-  const playSrc = resolvePreviewUrl(savedAudio) || null;
+  const playSrc = resolvePlayableMediaUrl(savedAudio) || null;
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecTime] = useState(0);
@@ -364,7 +364,7 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
           role="status"
           aria-live="polite"
         >
-          <div className="w-8 h-8 rounded-full border-2 border-[var(--user-accent)] border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-(--user-accent) border-t-transparent animate-spin" />
           <p className="text-sm font-extrabold text-fg">Uploading audio…</p>
           <p className="text-xs font-semibold text-fg-muted">Please wait — do not continue yet</p>
         </div>
@@ -374,7 +374,7 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
         titleKn="ನಕ್ಷೆ ವಿವರ"
         titleEn="Drawing Details"
         icon={
-          <svg className="w-5 h-5 text-[var(--user-accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-(--user-accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         }
@@ -387,13 +387,13 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
           disabled={uploadingAudio}
           className={`w-full flex items-start gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
             googleSuperimpose
-              ? "border-[color-mix(in_srgb,var(--user-accent)_55%,var(--border-color))] bg-[var(--user-accent-soft)]"
+              ? "border-[color-mix(in_srgb,var(--user-accent)_55%,var(--border-color))] bg-(--user-accent-soft)"
               : "border-line bg-surface hover:border-[color-mix(in_srgb,var(--user-accent)_35%,var(--border-color))]"
           }`}
         >
           <div
             className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-              googleSuperimpose ? "border-[var(--user-accent)] bg-[var(--user-accent)]" : "border-line bg-surface"
+              googleSuperimpose ? "border-(--user-accent) bg-(--user-accent)" : "border-line bg-surface"
             }`}
           >
             {googleSuperimpose && (
@@ -437,7 +437,7 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
                 type="button"
                 onClick={startRecording}
                 disabled={uploadingAudio}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm transition-colors disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-(--user-accent) hover:bg-(--user-accent-hover) text-white font-extrabold text-sm transition-colors disabled:opacity-60"
               >
                 <Mic className="w-4 h-4" /> Record Audio
               </button>
@@ -483,7 +483,7 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
                   type="button"
                   onClick={handleUploadRecorded}
                   disabled={uploadingAudio}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] text-white font-extrabold text-sm disabled:opacity-60 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-(--user-accent) hover:bg-(--user-accent-hover) text-white font-extrabold text-sm disabled:opacity-60 transition-colors"
                 >
                   <UploadIcon className="w-4 h-4" />
                   {uploadingAudio ? "Uploading…" : "Save Recording"}
@@ -516,8 +516,12 @@ const DrawingStep = forwardRef(({ form, onAudioChange, audioData, onUploadingCha
                   <Trash2 className="w-3 h-3" /> Remove
                 </button>
               </div>
-              {playSrc && (
+              {playSrc ? (
                 <audio controls src={playSrc} className="w-full rounded-lg" preload="metadata" />
+              ) : (
+                <p className="text-xs font-semibold text-fg-muted">
+                  Audio is saved. Preview will work once a signed listen URL is available.
+                </p>
               )}
             </div>
           )}

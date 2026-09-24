@@ -1,4 +1,4 @@
-// src/dashboard/user/UserUploadForm.jsx
+﻿// src/dashboard/user/UserUploadForm.jsx
 // Full redesign — 4-step wizard. All original logic preserved.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -12,6 +12,8 @@ import {
 } from "../../utils/sketchPricingCompute.js";
 import { redirectToSketchCheckout } from "../../utils/sketchPaymentUtils.js";
 import { revokeLocalPreviewUrl } from "../../utils/localFilePreview.js";
+import { audioFromDraft } from "../../utils/draftAudio.js";
+import { getSignedReadUrl } from "../../services/upload/upload.api.js";
 import { normalizeRoleKey, ROLES } from "../../constants/roles.js";
 
 /** Same truthiness as Ant Design Checkbox (avoids missing superimpose add-on on submit). */
@@ -56,22 +58,6 @@ function toMeta(doc) {
   const url = toUrl(doc);
   if (!url) return null;
   return { fileUrl: url, fileName: doc.fileName || doc.name || "file", mimeType: doc.mimeType || doc.type, size: doc.size };
-}
-function audioFromDraft(raw) {
-  if (!raw) return null;
-  const item = Array.isArray(raw) ? raw[0] : raw;
-  if (!item) return null;
-  if (typeof item === "string") return { fileUrl: item, url: item, fileName: "audio" };
-  const url = item.url || item.fileUrl || item.fileURL;
-  if (!url) return null;
-  return {
-    fileUrl: url,
-    url,
-    key: item.key,
-    fileName: item.fileName || item.name || "audio",
-    mimeType: item.mimeType || item.type || "audio/mpeg",
-    size: item.size || 0,
-  };
 }
 function toFileListItem(meta, uid = "draft-file") {
   if (!meta?.fileUrl) return null;
@@ -567,6 +553,7 @@ const UserUploadForm = ({
       p.audio = {
         url: audioUrl,
         fileUrl: audioUrl,
+        key: audioMeta.key || undefined,
         fileName: audioMeta.fileName || "audio",
         mimeType: audioMeta.mimeType || "audio/mpeg",
         size: audioMeta.size || 0,
@@ -704,7 +691,38 @@ const UserUploadForm = ({
           }
         }
         if (draft.audio) {
-          const av = audioFromDraft(draft.audio);
+          let av = audioFromDraft(draft.audio);
+          if (av && !av.previewUrl && (av.key || av.fileUrl)) {
+            try {
+              const signed = await getSignedReadUrl({
+                key: av.key,
+                fileUrl: av.fileUrl,
+                ttlSeconds: 900,
+              });
+              const signedUrl =
+                signed?.url ||
+                signed?.downloadUrl ||
+                signed?.previewUrl ||
+                signed?.signedUrl ||
+                signed?.signedDownloadUrl;
+              if (signedUrl) {
+                av = {
+                  ...av,
+                  previewUrl: signedUrl,
+                  downloadUrlExpiresAt:
+                    signed?.expiresAt ||
+                    signed?.downloadUrlExpiresAt ||
+                    av.downloadUrlExpiresAt,
+                  key: signed?.key || av.key,
+                };
+              }
+            } catch (err) {
+              // Keep draft usable if signed-read fails; player shows fallback copy.
+              if (import.meta.env?.DEV) {
+                console.warn("[draft audio] signed-read failed", err?.response?.status || err?.message || err);
+              }
+            }
+          }
           if (av) {
             setAudioData(av);
             nv.audio = av;
@@ -785,7 +803,7 @@ const UserUploadForm = ({
 
   return (
     <>
-      <div className="min-h-screen bg-linear-to-br from-[var(--user-accent-soft)] via-[color-mix(in_srgb,var(--brand-gold)_10%,var(--bg-secondary))] to-[var(--bg-primary)] upload-form-wrap font-nunito">
+      <div className="min-h-screen bg-linear-to-br from-(--user-accent-soft) via-[color-mix(in_srgb,var(--brand-gold)_10%,var(--bg-secondary))] to-(--bg-primary) upload-form-wrap font-nunito">
         {/* ── Sticky top bar ── */}
         <div className="sticky top-0 z-30 bg-[color-mix(in_srgb,var(--bg-primary)_92%,transparent)] backdrop-blur border-b border-line shadow-sm">
           <div className="mx-auto max-w-2xl px-4 py-3 sm:px-6">
@@ -802,7 +820,7 @@ const UserUploadForm = ({
 
               {/* Title */}
               <div className="text-center flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-[var(--user-accent)] uppercase tracking-widest leading-none">ಹೊಸ CAD ವಿನಂತಿ</p>
+                <p className="text-[10px] font-bold text-(--user-accent) uppercase tracking-widest leading-none">ಹೊಸ CAD ವಿನಂತಿ</p>
                 <p className="text-sm font-extrabold text-fg truncate">New Request</p>
               </div>
 
@@ -826,8 +844,8 @@ const UserUploadForm = ({
         {/* ── Draft loading banner ── */}
         {draftLoading && (
           <div className="mx-auto max-w-2xl px-4 pt-4 sm:px-6">
-            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--cyan-accent)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--cyan-accent)_10%,var(--bg-secondary))] px-4 py-3 text-sm font-bold text-[var(--cyan-accent)] flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full border-2 border-[var(--cyan-accent)] border-t-transparent animate-spin" />
+            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--cyan-accent)_35%,var(--border-color))] bg-[color-mix(in_srgb,var(--cyan-accent)_10%,var(--bg-secondary))] px-4 py-3 text-sm font-bold text-(--cyan-accent) flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full border-2 border-(--cyan-accent) border-t-transparent animate-spin" />
               Loading draft…
             </div>
           </div>
@@ -853,7 +871,15 @@ const UserUploadForm = ({
               <Checkbox tabIndex={-1} className="sr-only absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0" />
             </Form.Item>
             <div className="theme-animate-surface rounded-2xl border border-line bg-surface shadow-sm p-5 sm:p-6 mb-6">
-              {STEP_CONTENT[step]}
+              {STEP_CONTENT.map((content, index) => (
+                <div
+                  key={content.key ?? index}
+                  className={step === index ? "block" : "hidden"}
+                  aria-hidden={step !== index}
+                >
+                  {content}
+                </div>
+              ))}
             </div>
 
             {/* ── Navigation buttons ── */}
@@ -873,7 +899,7 @@ const UserUploadForm = ({
                   type="button"
                   onClick={goNext}
                   disabled={stepLoading || fileUploading}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-(--user-accent) hover:bg-(--user-accent-hover) active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
                 >
                   {fileUploading ? (
                     <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Uploading…</>
@@ -893,7 +919,7 @@ const UserUploadForm = ({
                     fileUploading ||
                     (step === 3 && (sketchPricingLoading || !sketchPricingReady))
                   }
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[var(--user-accent)] hover:bg-[var(--user-accent-hover)] active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-(--user-accent) hover:bg-(--user-accent-hover) active:opacity-95 text-white font-extrabold text-sm shadow-[0_6px_20px_color-mix(in_srgb,var(--user-accent)_28%,transparent)] transition-colors disabled:opacity-60"
                 >
                   {loading || externalLoading ? (
                     <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Submitting…</>

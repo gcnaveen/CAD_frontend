@@ -97,13 +97,20 @@ export async function getSketchUploads(params = {}) {
  * GET /api/surveyor/orders
  * @param {{
  *  bucket?: "all" | "active" | "completed" | "cancelled",
+ *  status?: string,
  *  page?: number,
- *  limit?: number
+ *  limit?: number,
+ *  sort?: "createdAt",
+ *  order?: "asc" | "desc",
+ *  from?: string,
+ *  to?: string
  * }} params
  * Bucket rules (frontend; status query overrides API bucket when needed):
  * - active: PAYMENT_PENDING, PENDING, ASSIGNED, CAD_DELIVERED, UNDER_REVISION
  * - completed: APPROVED
  * - cancelled: REJECTED
+ * Date filter: `from` / `to` as YYYY-MM-DD (inclusive calendar days on createdAt).
+ * Default list sort from Requests page: sort=createdAt&order=desc (newest first).
  * @returns {Promise<{ success: boolean, data: any[], meta: any }>}
  */
 export async function getSurveyorOrders(params = {}) {

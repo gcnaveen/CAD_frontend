@@ -73,7 +73,7 @@ On the static host only:
 Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=(), interest-cohort=()
 ```
 
-Keep CSP `media-src 'self' blob:` so recorded blobs can play back. Redeploy the static site after changing headers, then hard-refresh and allow the browser mic prompt.
+Keep CSP `media-src 'self' blob: https://*.s3.ap-south-1.amazonaws.com https://*.s3.amazonaws.com https://s3.ap-south-1.amazonaws.com` so recorded blobs and H-10 signed S3 audio can play back. Redeploy the static site after changing headers, then hard-refresh and allow the browser mic prompt.
 
 Do **not** copy the API Permissions-Policy onto the React document host. Do **not** rely on the API CSP for the React app document.
 
